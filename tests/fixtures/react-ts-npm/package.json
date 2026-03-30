@@ -1,0 +1,12 @@
+{
+  "name": "fixture-react-ts-npm",
+  "private": true,
+  "dependencies": {
+    "axios": "1.7.9",
+    "react": "18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.2.0",
+    "vitest": "3.0.9"
+  }
+}

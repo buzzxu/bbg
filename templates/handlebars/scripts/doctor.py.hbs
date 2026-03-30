@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""Simple doctor harness entrypoint."""
+
+import argparse
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="bbg doctor helper")
+    parser.add_argument("--mode", default="full", choices=["quick", "full"])
+    parser.parse_args()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

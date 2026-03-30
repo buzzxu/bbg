@@ -1,0 +1,10 @@
+{
+  "name": "fixture-js-next-yarn",
+  "private": true,
+  "dependencies": {
+    "next": "15.2.0"
+  },
+  "devDependencies": {
+    "jest": "29.7.0"
+  }
+}

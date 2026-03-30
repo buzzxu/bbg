@@ -4,3 +4,8 @@ worktrees/
 dist/
 node_modules/
 coverage/
+*.log
+
+poster-project/
+poster-admin-web/
+mxbc-poster-h5/

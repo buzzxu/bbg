@@ -778,3 +778,9 @@ The `bbg doctor` command is modeled after `scripts/doctor.py` from mxbc-posters 
 - AI-FILL marker count is informational, not a failure
 - Output format supports both human-readable (default) and JSON (`--json`)
 - `--fix` mode can regenerate missing GENERIC/TEMPLATE files
+
+## Appendix D: Implementation Notes (v1)
+
+- Delivered v1 baseline includes the documented command surface (`init`, `add-repo`, `doctor`, `sync`, `release`, `upgrade`) and smoke coverage for `--help` output.
+- Integration hardening: CLI smoke test now deterministically builds once when `dist/cli.js` is missing before asserting help output.
+- Verification date: 2026-03-29 (local test runs completed for targeted smoke and full suite).
