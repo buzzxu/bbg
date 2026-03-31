@@ -1,11 +1,10 @@
-import { constants as fsConstants } from "node:fs";
-import { access, readdir } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { execa } from "execa";
 import { analyzeRepo } from "../analyzers/index.js";
 import { parseConfig, serializeConfig } from "../config/read-write.js";
 import type { RepoEntry, StackInfo } from "../config/schema.js";
-import { readTextFile, writeTextFile } from "../utils/fs.js";
+import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 
 export interface RunSyncInput {
   cwd: string;
@@ -36,15 +35,6 @@ export interface RunSyncResult {
   repoStatuses: RepoStatus[];
   orphanRepos: string[];
   drift: StackDriftEntry[];
-}
-
-async function exists(pathValue: string): Promise<boolean> {
-  try {
-    await access(pathValue, fsConstants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function sameStack(a: StackInfo, b: StackInfo): boolean {

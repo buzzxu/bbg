@@ -1,14 +1,5 @@
-import { access } from "node:fs/promises";
 import { resolve } from "node:path";
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { exists } from "../utils/fs.js";
 
 export async function detectStructure(repoPath: string): Promise<string[]> {
   const markers: string[] = [];

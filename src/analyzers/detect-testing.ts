@@ -1,20 +1,12 @@
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import fg from "fast-glob";
+import { exists } from "../utils/fs.js";
 
 export interface TestingInfo {
   framework: string;
   hasTestDir: boolean;
   testPattern: string;
-}
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export async function detectTesting(repoPath: string): Promise<TestingInfo> {

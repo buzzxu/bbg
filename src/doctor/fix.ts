@@ -3,16 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { BbgConfig } from "../config/schema.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates, type RenderTemplateTask } from "../templates/render.js";
-import { readTextFile, writeTextFile } from "../utils/fs.js";
-
-async function exists(pathValue: string): Promise<boolean> {
-  try {
-    await import("node:fs/promises").then(({ access }) => access(pathValue));
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 
 function expectedRepoIgnoreEntries(config: BbgConfig | null): string[] {
   if (!config) {

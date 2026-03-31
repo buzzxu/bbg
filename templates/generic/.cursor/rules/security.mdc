@@ -1,0 +1,28 @@
+---
+description: Security guidelines for all code
+globs: "**/*.{ts,tsx,js,jsx,py,go,java,rs,kt,php}"
+alwaysApply: true
+---
+
+# Security Rules
+
+Follow the security rules in `rules/common/security.md`.
+
+## Critical Rules
+
+- NEVER hardcode secrets, API keys, passwords, or tokens
+- Validate ALL user inputs at system boundaries
+- Sanitize file paths to prevent directory traversal
+- Use parameterized queries for database access
+- Error messages must NOT leak sensitive information
+- Review template outputs for injection risks
+
+## Before Committing
+
+Run the security review: see `agents/security-reviewer.md` and `skills/security-review/SKILL.md`.
+
+## References
+
+- Rules: `rules/common/security.md`
+- Agent: `agents/security-reviewer.md`
+- Skill: `skills/security-review/SKILL.md`

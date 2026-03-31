@@ -206,7 +206,17 @@ export const handleCliError = (error: unknown): void => {
   process.exitCode = mapCliErrorToExitCode(error);
 };
 
-const isEntrypoint = process.argv[1] === fileURLToPath(import.meta.url);
+import { realpathSync } from "node:fs";
+
+const resolveArgv1 = (): string => {
+  try {
+    return realpathSync(process.argv[1]);
+  } catch {
+    return process.argv[1];
+  }
+};
+
+const isEntrypoint = resolveArgv1() === fileURLToPath(import.meta.url);
 
 if (isEntrypoint) {
   void runCli().catch(handleCliError);

@@ -1,5 +1,3 @@
-import { constants as fsConstants } from "node:fs";
-import { access } from "node:fs/promises";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeRepo } from "../analyzers/index.js";
@@ -9,8 +7,9 @@ import { sha256Hex } from "../config/hash.js";
 import type { BbgConfig, RepoEntry, RepoType, StackInfo } from "../config/schema.js";
 import { CLI_VERSION } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
+import { buildGovernanceManifest } from "../templates/governance.js";
 import { renderProjectTemplates, type RenderTemplateTask } from "../templates/render.js";
-import { readTextFile, writeTextFile } from "../utils/fs.js";
+import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { cloneRepo, ensureGitAvailable, listRemoteBranches } from "../utils/git.js";
 import { makeExecutable } from "../utils/platform.js";
 import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
@@ -47,6 +46,8 @@ const DEFAULT_STACK: StackInfo = {
 
 const ROOT_TEMPLATE_MANIFEST: RenderTemplateTask[] = [
   { source: "handlebars/AGENTS.md.hbs", destination: "AGENTS.md", mode: "handlebars" },
+  { source: "handlebars/CLAUDE.md.hbs", destination: "CLAUDE.md", mode: "handlebars" },
+  { source: "handlebars/RULES.md.hbs", destination: "RULES.md", mode: "handlebars" },
   { source: "handlebars/README.md.hbs", destination: "README.md", mode: "handlebars" },
   {
     source: "generic/docs/workflows/code-review-policy.md",
@@ -165,8 +166,49 @@ const ROOT_TEMPLATE_MANIFEST: RenderTemplateTask[] = [
   },
 ];
 
+/* ------------------------------------------------------------------ */
+/*  AI tool config templates — deployed alongside governance files     */
+/* ------------------------------------------------------------------ */
+
+const TOOL_CONFIG_TEMPLATES: RenderTemplateTask[] = [
+  // Claude Code
+  { source: "generic/.claude/settings.json", destination: ".claude/settings.json", mode: "copy" },
+  { source: "generic/.claude/commands/plan.md", destination: ".claude/commands/plan.md", mode: "copy" },
+  { source: "generic/.claude/commands/tdd.md", destination: ".claude/commands/tdd.md", mode: "copy" },
+  { source: "generic/.claude/commands/code-review.md", destination: ".claude/commands/code-review.md", mode: "copy" },
+  { source: "generic/.claude/commands/build-fix.md", destination: ".claude/commands/build-fix.md", mode: "copy" },
+  { source: "generic/.claude/commands/security-scan.md", destination: ".claude/commands/security-scan.md", mode: "copy" },
+  // Cursor
+  { source: "generic/.cursor/rules/standards.mdc", destination: ".cursor/rules/standards.mdc", mode: "copy" },
+  { source: "generic/.cursor/rules/security.mdc", destination: ".cursor/rules/security.mdc", mode: "copy" },
+  { source: "generic/.cursor/rules/testing.mdc", destination: ".cursor/rules/testing.mdc", mode: "copy" },
+  // OpenCode
+  { source: "generic/.opencode/opencode.json", destination: ".opencode/opencode.json", mode: "copy" },
+  { source: "generic/.opencode/instructions/coding-standards.md", destination: ".opencode/instructions/coding-standards.md", mode: "copy" },
+  { source: "generic/.opencode/instructions/security.md", destination: ".opencode/instructions/security.md", mode: "copy" },
+  { source: "generic/.opencode/commands/plan.md", destination: ".opencode/commands/plan.md", mode: "copy" },
+  { source: "generic/.opencode/commands/tdd.md", destination: ".opencode/commands/tdd.md", mode: "copy" },
+  { source: "generic/.opencode/commands/code-review.md", destination: ".opencode/commands/code-review.md", mode: "copy" },
+  { source: "generic/.opencode/commands/build-fix.md", destination: ".opencode/commands/build-fix.md", mode: "copy" },
+  { source: "generic/.opencode/commands/security.md", destination: ".opencode/commands/security.md", mode: "copy" },
+  { source: "generic/.opencode/commands/doctor.md", destination: ".opencode/commands/doctor.md", mode: "copy" },
+  // Codex CLI
+  { source: "generic/.codex/config.toml", destination: ".codex/config.toml", mode: "copy" },
+  { source: "handlebars/.codex/AGENTS.md.hbs", destination: ".codex/AGENTS.md", mode: "handlebars" },
+  // GitHub Copilot
+  { source: "handlebars/.github/copilot-instructions.md.hbs", destination: ".github/copilot-instructions.md", mode: "handlebars" },
+  // Kiro
+  { source: "generic/.kiro/steering/coding-style.md", destination: ".kiro/steering/coding-style.md", mode: "copy" },
+  { source: "generic/.kiro/steering/security.md", destination: ".kiro/steering/security.md", mode: "copy" },
+  { source: "generic/.kiro/steering/testing.md", destination: ".kiro/steering/testing.md", mode: "copy" },
+];
+
 export function getRootTemplateManifest(): RenderTemplateTask[] {
   return ROOT_TEMPLATE_MANIFEST.map((template) => ({ ...template }));
+}
+
+export function getToolConfigTemplates(): RenderTemplateTask[] {
+  return TOOL_CONFIG_TEMPLATES.map((template) => ({ ...template }));
 }
 
 export function buildTemplatePlan(config: BbgConfig): RenderTemplateTask[] {
@@ -176,7 +218,15 @@ export function buildTemplatePlan(config: BbgConfig): RenderTemplateTask[] {
     mode: "handlebars",
   }));
 
-  return [...getRootTemplateManifest(), ...childAgentTemplates];
+  const ctx = buildTemplateContext(config);
+  const governanceTemplates = buildGovernanceManifest(ctx);
+
+  return [
+    ...getRootTemplateManifest(),
+    ...getToolConfigTemplates(),
+    ...governanceTemplates,
+    ...childAgentTemplates,
+  ];
 }
 
 function buildBaselineConfig(nowIso: string): BbgConfig {
@@ -198,15 +248,6 @@ function buildBaselineConfig(nowIso: string): BbgConfig {
     },
     context: {},
   };
-}
-
-async function exists(pathValue: string): Promise<boolean> {
-  try {
-    await access(pathValue, fsConstants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function buildPlannedFiles(cwd: string, config: BbgConfig): string[] {
@@ -499,6 +540,22 @@ async function resolveBuiltinTemplatesRoot(): Promise<string> {
   return candidates[0] ?? join(commandDir, "..", "..", "templates");
 }
 
+async function resolvePackageRoot(): Promise<string> {
+  const commandDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    join(commandDir, "..", ".."),
+    join(commandDir, ".."),
+  ];
+
+  for (const candidate of candidates) {
+    if (await exists(join(candidate, "agents"))) {
+      return candidate;
+    }
+  }
+
+  return candidates[0] ?? join(commandDir, "..", "..");
+}
+
 export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   const bbgDirPath = join(options.cwd, ".bbg");
   if (await exists(bbgDirPath)) {
@@ -536,12 +593,26 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   await ensureRootGitignore(options.cwd, baselineConfig.repos);
 
   const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot();
+  const packageRoot = await resolvePackageRoot();
+  const templateContext = buildTemplateContext(baselineConfig);
+  const governanceTemplates = buildGovernanceManifest(templateContext);
+
   const rootRenderedFiles = await renderProjectTemplates({
     workspaceRoot: options.cwd,
     builtinTemplatesRoot,
-    context: buildTemplateContext(baselineConfig),
-    templates: ROOT_TEMPLATE_MANIFEST,
+    packageRoot,
+    context: templateContext,
+    templates: [...ROOT_TEMPLATE_MANIFEST, ...TOOL_CONFIG_TEMPLATES],
   });
+
+  const governanceRenderedFiles = await renderProjectTemplates({
+    workspaceRoot: options.cwd,
+    builtinTemplatesRoot,
+    packageRoot,
+    context: templateContext,
+    templates: governanceTemplates,
+  });
+
   makeExecutable(join(options.cwd, ".githooks", "pre-commit"));
   makeExecutable(join(options.cwd, ".githooks", "pre-push"));
 
@@ -550,7 +621,8 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
     const childRendered = await renderProjectTemplates({
       workspaceRoot: options.cwd,
       builtinTemplatesRoot,
-      context: { ...buildTemplateContext(baselineConfig), repo },
+      packageRoot,
+      context: { ...templateContext, repo },
       templates: [
         {
           source: "handlebars/child-AGENTS.md.hbs",
@@ -564,7 +636,7 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
 
   const generatedAt = new Date().toISOString();
   const hashRecord: FileHashRecord = {};
-  const trackedFiles = [configPath, gitignorePath, ...rootRenderedFiles, ...childAgentFiles];
+  const trackedFiles = [configPath, gitignorePath, ...rootRenderedFiles, ...governanceRenderedFiles, ...childAgentFiles];
   for (const generatedFile of trackedFiles) {
     const content = await readTextFile(generatedFile);
     const relativePath = normalizeWorkspaceRelativePath(options.cwd, generatedFile);
@@ -589,7 +661,7 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   }
 
   return {
-    createdFiles: [configPath, fileHashesPath, gitignorePath, ...rootRenderedFiles, ...childAgentFiles],
+    createdFiles: [configPath, fileHashesPath, gitignorePath, ...rootRenderedFiles, ...governanceRenderedFiles, ...childAgentFiles],
     clonedRepos: initData.clonedRepos,
     doctor: doctorResult,
   };

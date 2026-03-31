@@ -1,6 +1,20 @@
 import { randomUUID } from "node:crypto";
+import { access } from "node:fs/promises";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+
+/**
+ * Check if a file or directory exists at the given path.
+ * This is the single source of truth — never re-implement this function.
+ */
+export async function exists(pathValue: string): Promise<boolean> {
+  try {
+    await access(pathValue);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export async function readTextFile(filePath: string): Promise<string> {
   return readFile(filePath, "utf8");

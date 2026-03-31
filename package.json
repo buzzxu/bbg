@@ -17,7 +17,8 @@
     "build": "tsup",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev:install": "npm run build && npm install -g ."
   },
   "dependencies": {
     "@inquirer/prompts": "^7.8.4",
@@ -26,7 +27,6 @@
     "execa": "^9.6.0",
     "fast-glob": "^3.3.3",
     "handlebars": "^4.7.8",
-    "ora": "^8.2.0",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {

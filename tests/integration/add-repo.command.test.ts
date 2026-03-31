@@ -118,7 +118,7 @@ describe("add-repo command", () => {
     promptState.promptInput.mockResolvedValue("new repo description");
     promptState.promptSelect.mockResolvedValue("other");
     promptState.promptConfirm.mockResolvedValue(true);
-    gitState.listRemoteBranches.mockResolvedValue(["main", "develop"]);
+    gitState.listRemoteBranches.mockResolvedValue({ branches: ["main", "develop"], credentials: null });
     gitState.cloneRepo.mockResolvedValue(undefined);
     analyzerState.analyzeRepo.mockResolvedValue({
       stack: {
@@ -176,7 +176,7 @@ describe("add-repo command", () => {
     const rootAgents = await readFile(join(cwd, "AGENTS.md"), "utf8");
     const childAgents = await readFile(join(cwd, "new-repo", "AGENTS.md"), "utf8");
     expect(rootAgents).toContain("new-repo");
-    expect(childAgents).toContain("# new-repo Agent Rules");
+    expect(childAgents).toContain("# new-repo -- Agent Rules");
 
     const hashes = JSON.parse(await readFile(join(cwd, ".bbg", "file-hashes.json"), "utf8")) as Record<
       string,
@@ -192,6 +192,7 @@ describe("add-repo command", () => {
       url: "https://example.com/new-repo.git",
       branch: "main",
       targetDir: join(cwd, "new-repo"),
+      credentials: undefined,
     });
   });
 
@@ -316,6 +317,7 @@ describe("add-repo command", () => {
       url: "git@host:group/repo.git",
       branch: "main",
       targetDir: join(cwd, "repo"),
+      credentials: undefined,
     });
 
     const config = JSON.parse(await readFile(join(cwd, ".bbg", "config.json"), "utf8")) as {

@@ -1,5 +1,4 @@
-import { constants as fsConstants } from "node:fs";
-import { access, rm, unlink } from "node:fs/promises";
+import { rm, unlink } from "node:fs/promises";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeRepo } from "../analyzers/index.js";
@@ -10,7 +9,7 @@ import type { RepoEntry, RepoType, StackInfo } from "../config/schema.js";
 import { CLI_VERSION } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates } from "../templates/render.js";
-import { readTextFile, writeTextFile } from "../utils/fs.js";
+import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { cloneRepo, listRemoteBranches } from "../utils/git.js";
 import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
 import { runDoctor } from "./doctor.js";
@@ -32,15 +31,6 @@ const REPO_TYPE_CHOICES: Array<{ name: RepoType; value: RepoType }> = [
   { name: "frontend-web", value: "frontend-web" },
   { name: "other", value: "other" },
 ];
-
-async function exists(pathValue: string): Promise<boolean> {
-  try {
-    await access(pathValue, fsConstants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function sanitizePromptValue(value: string, fallback = ""): string {
   const trimmed = value.trim();
@@ -151,7 +141,7 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     throw new Error("Repository git URL is invalid. Please provide a parseable git URL.");
   }
 
-  const branches = await listRemoteBranches(resolvedUrl);
+  const { branches, credentials } = await listRemoteBranches(resolvedUrl);
   const branchChoices = (branches.length > 0 ? branches : ["main"]).map((branch) => ({
     name: branch,
     value: branch,
@@ -169,13 +159,24 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
   }
 
   const repoName = inferRepoName(resolvedUrl);
-  if (config.repos.some((repo) => repo.name === repoName)) {
-    throw new Error(`Repository ${repoName} is already registered in config.`);
+  const existingIndex = config.repos.findIndex((repo) => repo.name === repoName);
+  if (existingIndex !== -1) {
+    const overwrite = await promptConfirm({
+      message: `Repository ${repoName} is already registered. Overwrite it?`,
+      default: false,
+    });
+    if (!overwrite) {
+      throw new Error(`Repository ${repoName} is already registered in config.`);
+    }
   }
 
   const targetDir = join(input.cwd, repoName);
+  // Remove existing directory if present so clone doesn't fail
+  if (await exists(targetDir)) {
+    await rm(targetDir, { recursive: true, force: true });
+  }
   let clonedInThisRun = false;
-  await cloneRepo({ url: resolvedUrl, branch: resolvedBranch, targetDir });
+  await cloneRepo({ url: resolvedUrl, branch: resolvedBranch, targetDir, credentials: credentials ?? undefined });
   clonedInThisRun = true;
   const analysis = await analyzeRepo(targetDir);
   const stack = await collectStackInfo(analysis.stack);
@@ -209,9 +210,14 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     (await exists(childAgentsPath)) ? readTextFile(childAgentsPath) : Promise.resolve<string | null>(null),
   ]);
 
+  const nextRepos =
+    existingIndex !== -1
+      ? config.repos.map((repo, i) => (i === existingIndex ? repoEntry : repo))
+      : [...config.repos, repoEntry];
+
   const nextConfig = {
     ...config,
-    repos: [...config.repos, repoEntry],
+    repos: nextRepos,
     updatedAt: new Date().toISOString(),
   };
 

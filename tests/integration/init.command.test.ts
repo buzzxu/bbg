@@ -456,9 +456,9 @@ describe("init command", () => {
     expect(result.clonedRepos).toEqual([join(cwd, "repo-a")]);
 
     const childAgents = await readFile(join(cwd, "repo-a", "AGENTS.md"), "utf8");
-    expect(childAgents).toContain("# repo-a Agent Rules");
-    expect(childAgents).toContain("- Type: backend");
-    expect(childAgents).toContain("- Description: repo-a description");
+    expect(childAgents).toContain("# repo-a -- Agent Rules");
+    expect(childAgents).toContain("**Type:** backend");
+    expect(childAgents).toContain("**Description:** repo-a description");
 
     const gitignoreText = await readFile(join(cwd, ".gitignore"), "utf8");
     expect(gitignoreText).toContain("repo-a/");

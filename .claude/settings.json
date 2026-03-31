@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build)",
+      "Bash(npm run test)",
+      "Bash(npm run dev)",
+      "Bash(npx bbg *)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx vitest *)",
+      "Bash(git *)",
+      "Bash(node hooks/scripts/*)",
+      "Read(*)",
+      "Write(src/**)",
+      "Write(tests/**)",
+      "Write(templates/**)",
+      "Write(agents/**)",
+      "Write(skills/**)",
+      "Write(rules/**)",
+      "Write(commands/**)",
+      "Write(hooks/**)",
+      "Write(contexts/**)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(git push --force)",
+      "Bash(git push -f)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(*.key)",
+      "Write(*.pem)",
+      "Write(*credentials*)",
+      "Write(*secret*)"
+    ]
+  }
+}

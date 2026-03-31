@@ -20,6 +20,10 @@ export interface TemplateContext {
   hasTypeScript: boolean;
   hasPython: boolean;
   hasGo: boolean;
+  hasRust: boolean;
+  hasKotlin: boolean;
+  hasPhp: boolean;
+  hasCpp: boolean;
   bbgVersion: string;
   generatedAt: string;
   repo?: RepoEntry;
@@ -52,9 +56,13 @@ export function buildTemplateContext(config: BbgConfig): TemplateContext {
     languages,
     frameworks,
     hasJava: languages.includes("java"),
-    hasTypeScript: languages.includes("typescript"),
+    hasTypeScript: languages.includes("typescript") || languages.includes("javascript"),
     hasPython: languages.includes("python"),
     hasGo: languages.includes("go"),
+    hasRust: languages.includes("rust"),
+    hasKotlin: languages.includes("kotlin"),
+    hasPhp: languages.includes("php"),
+    hasCpp: languages.includes("cpp") || languages.includes("c++"),
     bbgVersion: config.version,
     generatedAt: new Date().toISOString(),
   };

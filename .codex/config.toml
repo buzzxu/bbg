@@ -1,0 +1,6 @@
+# Codex CLI Configuration for bbg
+# AGENTS.md is auto-discovered by Codex
+# Model left unset — Codex will use your account's default model
+
+[history]
+persistence = "none"

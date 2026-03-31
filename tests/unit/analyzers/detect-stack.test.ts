@@ -28,7 +28,7 @@ describe("detectStack", () => {
 
     expect(result.language).toBe("javascript");
     expect(result.framework).toBe("next");
-    expect(result.buildTool).toBe("npm");
+    expect(result.buildTool).toBe("yarn");
     expect(result.packageManager).toBe("yarn");
   });
 

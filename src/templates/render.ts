@@ -15,6 +15,7 @@ export interface RenderTemplateTask {
 export interface RenderProjectTemplatesInput {
   workspaceRoot: string;
   builtinTemplatesRoot: string;
+  packageRoot?: string;
   context: TemplateContext;
   templates: RenderTemplateTask[];
 }
@@ -58,6 +59,7 @@ export async function resolveTemplatePath(
   workspaceRoot: string,
   builtinTemplatesRoot: string,
   source: string,
+  packageRoot?: string,
 ): Promise<string> {
   const safeSource = ensureSafeRelativePath(source, "source");
   const overridePath = join(workspaceRoot, ".bbg", "templates", safeSource);
@@ -68,6 +70,13 @@ export async function resolveTemplatePath(
   const builtinPath = join(builtinTemplatesRoot, safeSource);
   if (await fileExists(builtinPath)) {
     return builtinPath;
+  }
+
+  if (packageRoot) {
+    const packagePath = join(packageRoot, safeSource);
+    if (await fileExists(packagePath)) {
+      return packagePath;
+    }
   }
 
   throw new BbgTemplateError(
@@ -103,6 +112,7 @@ export async function renderTemplateContents(
       input.workspaceRoot,
       input.builtinTemplatesRoot,
       template.source,
+      input.packageRoot,
     );
     const sourceContent = await readTextFile(templatePath);
     const safeDestination = ensureSafeRelativePath(template.destination, "destination");

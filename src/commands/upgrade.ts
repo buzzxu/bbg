@@ -1,5 +1,3 @@
-import { constants as fsConstants } from "node:fs";
-import { access } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { FileHashRecord } from "../config/hash.js";
@@ -8,10 +6,11 @@ import { parseConfig, serializeConfig } from "../config/read-write.js";
 import type { RepoEntry } from "../config/schema.js";
 import { CLI_VERSION } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
-import { buildTemplatePlan, getRootTemplateManifest } from "./init.js";
+import { buildGovernanceManifest } from "../templates/governance.js";
+import { buildTemplatePlan, getRootTemplateManifest, getToolConfigTemplates } from "./init.js";
 import { renderTemplateContents } from "../templates/render.js";
 import { createUnifiedPatch } from "../upgrade/diff.js";
-import { readTextFile, writeTextFile } from "../utils/fs.js";
+import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { promptConfirm } from "../utils/prompts.js";
 
 export interface RunUpgradeInput {
@@ -42,15 +41,6 @@ function tryExtractChildAgentsRepoName(filePath: string): string | null {
   return match?.[1] ?? null;
 }
 
-async function exists(pathValue: string): Promise<boolean> {
-  try {
-    await access(pathValue, fsConstants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function toPatchRelativePath(filePath: string): string {
   return `.bbg/upgrade-patches/${filePath}.patch`.split("\\").join("/");
 }
@@ -76,6 +66,22 @@ async function resolveBuiltinTemplatesRoot(cwd: string): Promise<string> {
   return candidates[0] ?? join(commandDir, "..", "..", "templates");
 }
 
+async function resolvePackageRoot(): Promise<string> {
+  const commandDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    join(commandDir, "..", ".."),
+    join(commandDir, ".."),
+  ];
+
+  for (const candidate of candidates) {
+    if (await exists(join(candidate, "agents"))) {
+      return candidate;
+    }
+  }
+
+  return candidates[0] ?? join(commandDir, "..", "..");
+}
+
 async function loadSnapshot(cwd: string, filePath: string): Promise<string | null> {
   const snapshotPath = join(cwd, toSnapshotRelativePath(filePath));
   if (!(await exists(snapshotPath))) {
@@ -92,13 +98,25 @@ async function writeSnapshot(cwd: string, filePath: string, content: string): Pr
 async function buildTrackedFiles(cwd: string, hashRecord: FileHashRecord): Promise<TrackedFile[]> {
   const config = parseConfig(await readTextFile(join(cwd, ".bbg", "config.json")));
   const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(cwd);
+  const packageRoot = await resolvePackageRoot();
 
   const baseContext = buildTemplateContext(config);
+  const governanceTemplates = buildGovernanceManifest(baseContext);
+
   const rootRendered = await renderTemplateContents({
     workspaceRoot: cwd,
     builtinTemplatesRoot,
+    packageRoot,
     context: baseContext,
-    templates: getRootTemplateManifest(),
+    templates: [...getRootTemplateManifest(), ...getToolConfigTemplates()],
+  });
+
+  const governanceRendered = await renderTemplateContents({
+    workspaceRoot: cwd,
+    builtinTemplatesRoot,
+    packageRoot,
+    context: baseContext,
+    templates: governanceTemplates,
   });
 
   const childRenderedByRepo = await Promise.all(
@@ -106,6 +124,7 @@ async function buildTrackedFiles(cwd: string, hashRecord: FileHashRecord): Promi
       renderTemplateContents({
         workspaceRoot: cwd,
         builtinTemplatesRoot,
+        packageRoot,
         context: { ...baseContext, repo },
         templates: [
           {
@@ -117,7 +136,7 @@ async function buildTrackedFiles(cwd: string, hashRecord: FileHashRecord): Promi
       }),
     ),
   );
-  const rendered = [...rootRendered, ...childRenderedByRepo.flat()];
+  const rendered = [...rootRendered, ...governanceRendered, ...childRenderedByRepo.flat()];
 
   const renderedByPath = new Map(rendered.map((item) => [item.destination, item.content]));
 

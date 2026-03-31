@@ -1,0 +1,28 @@
+---
+description: Coding standards and style guidelines
+globs: "**/*.{ts,tsx,js,jsx,py,go,java,rs,kt,php}"
+alwaysApply: true
+---
+
+# Coding Standards
+
+Follow the coding rules defined in the `rules/` directory of this project.
+
+## General Rules
+
+- Small, focused functions (< 50 lines)
+- Descriptive naming conventions
+- Consistent formatting and indentation
+- Handle errors explicitly with try/catch
+- Never mutate function arguments
+- Extract shared logic -- never duplicate functions
+
+## Git Commits
+
+Use conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
+
+## References
+
+- Full rules: `rules/common/coding-style.md`
+- Agents: `agents/` directory
+- Skills: `skills/` directory
