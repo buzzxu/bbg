@@ -6,7 +6,7 @@ AI Development Workflow Governance CLI -- scaffolds agent instructions, rules, h
 
 - **Multi-tool support** -- Generates configurations for Claude Code, OpenCode, Cursor, Codex CLI, GitHub Copilot, and Kiro
 - **Project analysis** -- Auto-detects stack, structure, dependencies, and testing setup
-- **3-tier template system** -- Generic (verbatim copy), Handlebars (rendered), and Scaffold (AI-fill markers)
+- **2-tier template system** -- Generic (verbatim copy) and Handlebars (rendered with project-specific variables)
 - **Health checks** -- `bbg doctor` audits governance config and auto-fixes issues
 - **Template upgrades** -- Diff-based upgrades when templates evolve
 - **Comprehensive governance scaffold** -- 25 agents, 60 skills, 35 rules, 32 commands, hooks, MCP configs
@@ -63,7 +63,7 @@ src/doctor/             Health checks and auto-fix
 src/templates/          Template rendering engine (Handlebars)
 src/upgrade/            Template upgrade diffing
 src/utils/              Shared utilities (fs, logger)
-templates/              3-tier template system (generic, handlebars, scaffold)
+templates/              2-tier template system (generic, handlebars)
 tests/                  Unit + integration tests (vitest)
 ```
 

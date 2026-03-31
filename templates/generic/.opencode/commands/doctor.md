@@ -1,10 +1,10 @@
 ---
-description: Run project health check and governance scaffold verification
+description: Run project health check and governance template verification
 ---
 
 # /doctor -- Health Check
 
-Run project health checks to verify governance scaffold integrity.
+Run project health checks to verify governance template integrity.
 
 1. Verify all required governance directories exist (agents/, skills/, rules/, commands/, hooks/, contexts/)
 2. Check that key configuration files are present

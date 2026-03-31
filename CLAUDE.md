@@ -34,22 +34,20 @@ src/
 │   ├── checks.ts             # Governance health checks
 │   └── fix.ts                # Auto-fix for detected issues
 ├── templates/                # Template rendering engine
-│   └── render.ts             # Handlebars + scaffold rendering
+│   └── render.ts             # Handlebars template rendering
 ├── upgrade/                  # Template upgrade diffing
 │   └── diff.ts               # Template version comparison
 └── utils/                    # Shared utilities
     ├── fs.ts                 # Filesystem helpers (exists, readJson, etc.)
     └── logger.ts             # Logger utility
 
-templates/                    # 3-tier template system
+templates/                    # 2-tier template system
 ├── generic/                  # Verbatim copy templates
-├── handlebars/               # Rendered with project context
-│   ├── AGENTS.md.hbs         # Root AGENTS.md template
-│   ├── child-AGENTS.md.hbs   # Per-repo AGENTS.md template
-│   ├── README.md.hbs         # README template
-│   └── ...                   # Git hooks, scripts, docs
-└── scaffold/                 # AI-fill marker templates
-    └── docs/                 # Task/review templates with <!-- AI-FILL --> markers
+└── handlebars/               # Rendered with project context
+    ├── AGENTS.md.hbs         # Root AGENTS.md template
+    ├── child-AGENTS.md.hbs   # Per-repo AGENTS.md template
+    ├── README.md.hbs         # README template
+    └── ...                   # Git hooks, scripts, docs
 ```
 
 ## Governance Scaffold Architecture
@@ -159,7 +157,7 @@ npx bbg upgrade        # Upgrade templates
 ## Key Design Decisions
 
 - **ESM-only**: All imports use `.js` extensions for Node.js ESM compatibility
-- **3-tier templates**: generic (verbatim), handlebars (rendered), scaffold (AI-fill markers)
+- **2-tier templates**: generic (verbatim copy), handlebars (rendered with project variables)
 - **4 analyzers**: detect-stack, detect-structure, detect-deps, detect-testing
 - **Supported stacks**: Node.js, Java (Maven/Gradle), Python, Go
 - **Template manifest**: All template paths are declared in `src/constants.ts`
@@ -169,7 +167,6 @@ npx bbg upgrade        # Upgrade templates
 
 - File naming: lowercase with hyphens (e.g., `detect-stack.ts`, `add-repo.ts`)
 - Template rendering uses Handlebars with `{{variable}}` syntax
-- Scaffold templates use `<!-- AI-FILL -->` markers for AI agents to complete
 - `import ... with { type: "json" }` syntax is used for JSON imports (Node 18+)
 - All async functions use proper error handling with try/catch
 

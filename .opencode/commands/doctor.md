@@ -1,5 +1,5 @@
 ---
-description: Run governance health check and scaffold integrity verification
+description: Run governance health check and template integrity verification
 ---
 
 Run bbg's own governance health check.
@@ -11,7 +11,7 @@ Follow the workflow in `commands/doctor.md`:
 3. Check for code duplication (grep for `exists(` across src/)
 4. Check for unused imports and dead code — see `agents/refactor-cleaner.md`
 5. Verify template manifest in src/constants.ts matches actual template files
-6. Check governance scaffold integrity:
+6. Check governance template integrity:
    - Agents: verify `agents/*.md` files are valid
    - Skills: verify `skills/*/SKILL.md` structure
    - Rules: verify `rules/` directory structure

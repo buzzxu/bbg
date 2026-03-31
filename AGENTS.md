@@ -154,7 +154,7 @@ src/utils/                   -> Shared utilities
   platform.ts                -> Platform detection
   prompts.ts                 -> CLI prompts + sanitization + collectStackInfo
   errors.ts                  -> Custom error classes (BbgError, BbgConfigError, etc.)
-templates/                   -> 3-tier template system (generic, handlebars, scaffold)
+templates/                   -> 2-tier template system (generic, handlebars)
 tests/                       -> Unit + integration tests (vitest)
 ```
 

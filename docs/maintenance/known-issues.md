@@ -31,7 +31,7 @@ Issues are sorted by severity and tagged with milestone assignment.
 | K-021 | ~~`BbgAnalyzerError` exported but never used~~ | `src/utils/errors.ts` | v0.2.0 | ✅ Resolved — removed |
 | K-022 | ~~AGENTS.md references non-existent files~~ | `AGENTS.md` | v0.2.0 | ✅ Resolved — references updated |
 | K-023 | Hardcoded BBG paths in contexts | `contexts/dev.md`, `review.md`, `research.md` | v0.3.0 | Open |
-| K-024 | Scaffold tier vestigial (1 file, 4 lines) | `templates/scaffold/` | v0.3.0 | Open |
+| K-024 | Scaffold tier removed (was vestigial) | `templates/scaffold/` deleted | v0.3.0 | Resolved |
 | K-025 | Asymmetric language coverage | `commands/`, `agents/` | v0.3.0 | Open |
 | K-026 | ESLint 8 is EOL | `.eslintrc.cjs` | v0.3.0 | New — migrate to flat config (ESLint 9+) |
 | K-027 | 2 pre-existing test timeouts | `cli.smoke.test.ts`, `bootstrap.test.ts` | v0.3.0 | New — CLI bootstrap tests timeout at 5000ms |

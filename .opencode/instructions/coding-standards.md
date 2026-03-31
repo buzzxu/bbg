@@ -12,7 +12,7 @@ bbg is a TypeScript CLI tool (ESM-only, Node.js >= 18) that generates AI develop
 - `src/templates/` — Template rendering engine
 - `src/upgrade/` — Template upgrade diffing
 - `src/utils/` — Shared utilities (always use these, never duplicate)
-- `templates/` — 3-tier system (generic, handlebars, scaffold)
+- `templates/` — 2-tier system (generic, handlebars)
 - `tests/` — vitest unit + integration tests
 
 ## Governance Architecture

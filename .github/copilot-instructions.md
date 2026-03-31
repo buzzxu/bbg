@@ -13,7 +13,7 @@ src/doctor/             Health checks and auto-fix
 src/templates/          Template rendering engine (Handlebars)
 src/upgrade/            Template upgrade diffing
 src/utils/              Shared utilities (always use these, never duplicate)
-templates/              3-tier system: generic (verbatim), handlebars (rendered), scaffold (AI-fill)
+templates/              2-tier system: generic (verbatim copy), handlebars (rendered)
 agents/                 25 specialized AI agents (core, language reviewers, build resolvers)
 skills/                 60 workflow skills (coding, testing, security, framework patterns)
 rules/                  35 rule files organized by language (common + 7 languages)

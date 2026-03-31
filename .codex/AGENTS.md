@@ -18,13 +18,13 @@ src/doctor/             → Health checks and auto-fix
 src/templates/          → Handlebars rendering engine
 src/upgrade/            → Template upgrade diffing
 src/utils/              → Shared utilities (fs.ts, logger.ts)
-templates/              → 3-tier template system (generic, handlebars, scaffold)
+templates/              → 2-tier template system (generic, handlebars)
 tests/                  → vitest unit + integration tests
 ```
 
 ## Governance Architecture
 
-This project contains a comprehensive AI governance scaffold:
+This project contains comprehensive AI governance content:
 
 ```
 agents/                 → 25 agent definitions (core, language, build resolvers)

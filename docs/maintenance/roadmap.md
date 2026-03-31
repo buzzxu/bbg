@@ -75,7 +75,7 @@
 
 ### P2
 
-- [ ] Activate scaffold tier (expand from 1 vestigial file)
+- [x] Remove scaffold tier (vestigial — replaced by two-tier system)
 - [ ] Complete Kotlin/PHP/C++ command coverage
 - [ ] Language coverage audit and alignment
 
@@ -110,7 +110,7 @@
 
 ### v0.1.0 — Initial Bootstrap (current)
 - [x] Core CLI: init, add-repo, doctor, sync, release, upgrade commands
-- [x] Template system: 3-tier (generic, handlebars, scaffold)
+- [x] Template system: 2-tier (generic, handlebars) — scaffold tier removed in v0.3.0
 - [x] Governance content: 25 agents, 60 skills, 34 rules, 32 commands
 - [x] 6 AI tool support: Claude Code, OpenCode, Cursor, Codex CLI, Copilot, Kiro
 - [x] 93/93 tests passing
