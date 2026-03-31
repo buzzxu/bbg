@@ -1,4 +1,4 @@
-import { basename, dirname, join, relative, sep } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeRepo } from "../analyzers/index.js";
 import { serializeConfig } from "../config/read-write.js";
@@ -11,6 +11,7 @@ import { buildGovernanceManifest } from "../templates/governance.js";
 import { renderProjectTemplates, type RenderTemplateTask } from "../templates/render.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { cloneRepo, ensureGitAvailable, listRemoteBranches } from "../utils/git.js";
+import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
 import { makeExecutable } from "../utils/platform.js";
 import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
 import { runDoctor, type RunDoctorResult } from "./doctor.js";
@@ -266,37 +267,6 @@ function toSnapshotRelativePath(filePath: string): string {
 function sanitizePromptValue(value: string, fallback: string): string {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : fallback;
-}
-
-function inferRepoName(url: string): string {
-  const normalized = url.trim().replace(/\/+$/, "");
-  const slashName = normalized.split("/").at(-1) ?? normalized;
-  const colonName = slashName.split(":").at(-1) ?? slashName;
-  const withoutGit = colonName.replace(/\.git$/i, "");
-  const safe = withoutGit.trim();
-  if (safe.length === 0) {
-    throw new Error(`Unable to infer repository name from URL: ${url}`);
-  }
-
-  return basename(safe);
-}
-
-function isParseableGitUrl(value: string): boolean {
-  const raw = value.trim();
-  if (raw.length === 0) {
-    return false;
-  }
-
-  if (/^[^@\s]+@[^:\s]+:[^\s]+$/.test(raw)) {
-    return true;
-  }
-
-  try {
-    const parsed = new URL(raw);
-    return ["https:", "http:", "ssh:", "git:"].includes(parsed.protocol);
-  } catch {
-    return false;
-  }
 }
 
 async function collectStackInfo(detectedStack: StackInfo): Promise<StackInfo> {

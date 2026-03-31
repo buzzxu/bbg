@@ -1,5 +1,5 @@
 import { rm, unlink } from "node:fs/promises";
-import { basename, dirname, join, relative, sep } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeRepo } from "../analyzers/index.js";
 import type { FileHashRecord } from "../config/hash.js";
@@ -11,6 +11,7 @@ import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates } from "../templates/render.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { cloneRepo, listRemoteBranches } from "../utils/git.js";
+import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
 import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
 import { runDoctor } from "./doctor.js";
 
@@ -35,37 +36,6 @@ const REPO_TYPE_CHOICES: Array<{ name: RepoType; value: RepoType }> = [
 function sanitizePromptValue(value: string, fallback = ""): string {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : fallback;
-}
-
-function isParseableGitUrl(value: string): boolean {
-  const raw = value.trim();
-  if (raw.length === 0) {
-    return false;
-  }
-
-  if (/^[^@\s]+@[^:\s]+:[^\s]+$/.test(raw)) {
-    return true;
-  }
-
-  try {
-    const parsed = new URL(raw);
-    return ["https:", "http:", "ssh:", "git:"].includes(parsed.protocol);
-  } catch {
-    return false;
-  }
-}
-
-function inferRepoName(url: string): string {
-  const normalized = url.trim().replace(/\/+$/, "");
-  const slashName = normalized.split("/").at(-1) ?? normalized;
-  const colonName = slashName.split(":").at(-1) ?? slashName;
-  const withoutGit = colonName.replace(/\.git$/i, "");
-  const safe = withoutGit.trim();
-  if (safe.length === 0) {
-    throw new Error(`Unable to infer repository name from URL: ${url}`);
-  }
-
-  return basename(safe);
 }
 
 function normalizeWorkspaceRelativePath(cwd: string, filePath: string): string {
