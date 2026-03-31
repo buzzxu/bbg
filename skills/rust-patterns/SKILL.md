@@ -196,3 +196,10 @@ async fn main() {
 - Use `mockall` or manual trait implementations for dependency mocking
 - Use `tokio::test` macro for async test functions
 - Use `assert_matches!` macro for enum variant assertions
+
+
+## Related
+
+- **Agents**: [rust-reviewer](../../agents/rust-reviewer.md), [rust-build-resolver](../../agents/rust-build-resolver.md)
+- **Rules**: [rust/coding-style](../../rules/rust/coding-style.md), [rust/testing](../../rules/rust/testing.md)
+- **Commands**: [/rust-review](../../commands/rust-review.md), [/rust-build](../../commands/rust-build.md)

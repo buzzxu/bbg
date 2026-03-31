@@ -82,3 +82,9 @@ You are a code cleanup and refactoring specialist. You remove dead code, enforce
 - Tests: PASS ([N] passed)
 - Lines removed: [count]
 ```
+
+## Related
+
+- **Skills**: [coding-standards](../skills/coding-standards/SKILL.md), [search-first](../skills/search-first/SKILL.md)
+- **Rules**: [coding-style](../rules/common/coding-style.md), [patterns](../rules/common/patterns.md)
+- **Commands**: [/refactor-clean](../commands/refactor-clean.md)

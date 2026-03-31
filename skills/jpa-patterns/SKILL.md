@@ -201,3 +201,10 @@ public abstract class Auditable {
 - Test optimistic locking by simulating concurrent updates in separate transactions
 - Test projections to verify only needed columns are selected
 - Use Flyway or Liquibase test migrations to validate schema changes
+
+
+## Related
+
+- **Agents**: [java-reviewer](../../agents/java-reviewer.md)
+- **Rules**: [java/spring](../../rules/java/spring.md)
+- **Commands**: [/java-review](../../commands/java-review.md)

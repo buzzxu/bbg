@@ -103,3 +103,9 @@ Production  → promoted from staging; gradual rollout
 - [ ] Feature flags used for decoupling deploy from release
 - [ ] Monitoring and alerts verify deployment health
 - [ ] Production deploy requires staging validation first
+
+
+## Related
+
+- **Agents**: [devops-reviewer](../../agents/devops-reviewer.md)
+- **Rules**: [performance](../../rules/common/performance.md)

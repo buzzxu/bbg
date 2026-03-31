@@ -49,3 +49,9 @@ After each cycle:
 /python-test "parse_config handles empty YAML gracefully"
 /python-test "Cache expires entries after TTL"
 ```
+
+## Related
+
+- **Agents**: [python-reviewer](../agents/python-reviewer.md)
+- **Skills**: [python-testing](../skills/python-testing/SKILL.md), [tdd-workflow](../skills/tdd-workflow/SKILL.md)
+- **Rules**: [testing](../rules/python/testing.md)

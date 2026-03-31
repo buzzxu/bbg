@@ -50,6 +50,7 @@ const CORE_SKILLS = [
   "security-review",
   "verification-loop",
   "search-first",
+  "writing-plans",
   "continuous-learning",
   "eval-harness",
   "strategic-compact",

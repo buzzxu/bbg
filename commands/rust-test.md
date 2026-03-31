@@ -48,3 +48,9 @@ After each cycle:
 /rust-test "parse_config handles empty TOML gracefully"
 /rust-test "Cache expires entries after TTL"
 ```
+
+## Related
+
+- **Agents**: [rust-reviewer](../agents/rust-reviewer.md)
+- **Skills**: [rust-testing](../skills/rust-testing/SKILL.md), [tdd-workflow](../skills/tdd-workflow/SKILL.md)
+- **Rules**: [testing](../rules/rust/testing.md)

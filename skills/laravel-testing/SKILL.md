@@ -234,3 +234,8 @@ test('unauthorized users cannot cancel orders', function () {
 - Use `--coverage --min=80` to enforce coverage threshold
 - Test jobs and listeners both in isolation and through feature tests
 - Use `assertDatabaseCount` to verify no unexpected records are created
+
+
+## Related
+
+- **Rules**: [php/testing](../../rules/php/testing.md)

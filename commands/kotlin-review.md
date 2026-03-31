@@ -43,3 +43,9 @@ Kotlin/Android-specific findings:
 /kotlin-review app/src/main/java/com/example/viewmodel/MainViewModel.kt
 /kotlin-review feature/auth/src/main/
 ```
+
+## Related
+
+- **Agents**: [kotlin-reviewer](../agents/kotlin-reviewer.md)
+- **Skills**: [kotlin-patterns](../skills/kotlin-patterns/SKILL.md), [android-patterns](../skills/android-patterns/SKILL.md), [ktor-patterns](../skills/ktor-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/kotlin/coding-style.md)

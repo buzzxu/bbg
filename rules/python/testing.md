@@ -61,3 +61,10 @@ def test_user():
     user = get_user(1)
     assert user  # What exactly is being tested?
 ```
+
+
+## Related
+
+- **Agents**: [python-reviewer](../../agents/python-reviewer.md)
+- **Skills**: [python-testing](../../skills/python-testing/SKILL.md), [tdd-workflow](../../skills/tdd-workflow/SKILL.md)
+- **Commands**: [/python-test](../../commands/python-test.md), [/tdd](../../commands/tdd.md)

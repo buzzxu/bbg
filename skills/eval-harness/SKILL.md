@@ -98,3 +98,9 @@ criteria:
 - [ ] Scoring model weights reflect priority of criteria
 - [ ] Regressions are detected and flagged
 - [ ] Results are stored for trend analysis
+
+
+## Related
+
+- **Agents**: [harness-optimizer](../../agents/harness-optimizer.md)
+- **Commands**: [/harness-audit](../../commands/harness-audit.md), [/eval](../../commands/eval.md)

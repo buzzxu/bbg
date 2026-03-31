@@ -86,3 +86,8 @@ Lessons Learned: What worked well, what needs improvement
 - [ ] Game days scheduled quarterly to practice incident response
 - [ ] Incident timeline tool configured (logs, metrics, deploy history correlated)
 - [ ] Blameless post-mortem culture explicitly established by leadership
+
+
+## Related
+
+- **Rules**: [security](../../rules/common/security.md)

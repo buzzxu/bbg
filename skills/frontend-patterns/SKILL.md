@@ -98,3 +98,9 @@ URL state       → Router params/search — shareable, bookmarkable
 - [ ] Core Web Vitals within acceptable thresholds
 - [ ] Bundle size monitored with regression alerts
 - [ ] No derived state stored — all computed from source
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md)
+- **Rules**: [typescript/react](../../rules/typescript/react.md)

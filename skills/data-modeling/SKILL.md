@@ -90,3 +90,8 @@ Load this skill when designing database schemas, choosing between relational and
 - [ ] Large data backfills run as background jobs outside migration transactions
 - [ ] External-facing IDs use UUIDs; internal references use sequential integers
 - [ ] Data model documented with ER diagram and column descriptions
+
+
+## Related
+
+- **Agents**: [database-reviewer](../../agents/database-reviewer.md)

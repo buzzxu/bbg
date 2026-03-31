@@ -123,3 +123,10 @@ function area(s: Shape): number {
 - Test discriminated unions by covering every variant in switch/match
 - Use `@ts-expect-error` in test files to verify that invalid code is rejected
 - Run `tsc --noEmit` in CI to catch type regressions without building
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md), [typescript-build-resolver](../../agents/typescript-build-resolver.md)
+- **Rules**: [typescript/coding-style](../../rules/typescript/coding-style.md), [typescript/testing](../../rules/typescript/testing.md)
+- **Commands**: [/ts-review](../../commands/ts-review.md), [/ts-build](../../commands/ts-build.md), [/ts-test](../../commands/ts-test.md)

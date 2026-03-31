@@ -39,3 +39,9 @@ A structured plan with:
 /plan "Refactor database layer to support PostgreSQL"
 /plan "Add CSV export to the reporting module"
 ```
+
+## Related
+
+- **Agents**: [planner](../agents/planner.md), [architect](../agents/architect.md)
+- **Skills**: [writing-plans](../skills/writing-plans/SKILL.md), [search-first](../skills/search-first/SKILL.md), [api-design](../skills/api-design/SKILL.md)
+- **Rules**: [patterns](../rules/common/patterns.md), [coding-style](../rules/common/coding-style.md)

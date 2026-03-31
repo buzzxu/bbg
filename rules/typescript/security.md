@@ -59,3 +59,10 @@ const isValid = timingSafeEqual(Buffer.from(token), Buffer.from(expected));
 // Bad: Direct comparison (vulnerable to timing attacks)
 const isValid = token === expected;
 ```
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md)
+- **Skills**: [typescript-patterns](../../skills/typescript-patterns/SKILL.md), [security-review](../../skills/security-review/SKILL.md)
+- **Commands**: [/ts-review](../../commands/ts-review.md), [/security-scan](../../commands/security-scan.md)

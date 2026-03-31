@@ -89,3 +89,9 @@ You are a Rust code review specialist. You review code for correct ownership sem
 
 ### Verdict: [PASS / FAIL / CONDITIONAL PASS]
 ```
+
+## Related
+
+- **Skills**: [rust-patterns](../skills/rust-patterns/SKILL.md), [rust-testing](../skills/rust-testing/SKILL.md), [axum-patterns](../skills/axum-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/rust/coding-style.md), [testing](../rules/rust/testing.md), [security](../rules/rust/security.md)
+- **Commands**: [/rust-review](../commands/rust-review.md), [/rust-build](../commands/rust-build.md), [/rust-test](../commands/rust-test.md)

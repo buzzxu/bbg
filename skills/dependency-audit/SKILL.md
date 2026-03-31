@@ -82,3 +82,9 @@ Load this skill when auditing project dependencies for vulnerabilities, configur
 - [ ] Production and development dependencies are separated
 - [ ] Transitive dependency tree reviewed for unexpected inclusions
 - [ ] Vulnerability remediation SLA defined by severity level
+
+
+## Related
+
+- **Rules**: [security](../../rules/common/security.md)
+- **Commands**: [/security-scan](../../commands/security-scan.md)

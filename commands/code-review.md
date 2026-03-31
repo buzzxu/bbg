@@ -40,3 +40,9 @@ A structured review report:
 /code-review src/analyzers/
 /code-review src/
 ```
+
+## Related
+
+- **Agents**: [code-reviewer](../agents/code-reviewer.md)
+- **Skills**: [code-review-checklist](../skills/code-review-checklist/SKILL.md), [coding-standards](../skills/coding-standards/SKILL.md)
+- **Rules**: [coding-style](../rules/common/coding-style.md), [testing](../rules/common/testing.md), [security](../rules/common/security.md)

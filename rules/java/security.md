@@ -70,3 +70,10 @@ Optional<User> findByEmail(@Param("email") String email);
 // Bad: Concatenated query
 @Query("SELECT u FROM User u WHERE u.email = '" + email + "'")  // INJECTION
 ```
+
+
+## Related
+
+- **Agents**: [java-reviewer](../../agents/java-reviewer.md)
+- **Skills**: [java-patterns](../../skills/java-patterns/SKILL.md), [security-review](../../skills/security-review/SKILL.md)
+- **Commands**: [/java-review](../../commands/java-review.md), [/security-scan](../../commands/security-scan.md)

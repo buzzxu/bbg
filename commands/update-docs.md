@@ -42,3 +42,7 @@ Update documentation to accurately reflect current code changes. Ensures README,
 /update-docs --scope readme           # Only update README
 /update-docs --after "added sync command"
 ```
+
+## Related
+
+- **Agents**: [doc-updater](../agents/doc-updater.md)

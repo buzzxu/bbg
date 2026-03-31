@@ -45,3 +45,9 @@ Bad:  Agent scope: "Fix the project"
 Good: security-reviewer runs with: [read, grep, glob] tools only
 Bad:  security-reviewer runs with: [read, write, bash, deploy] tools
 ```
+
+
+## Related
+
+- **Skills**: [agent-orchestration](../../skills/agent-orchestration/SKILL.md)
+- **Commands**: [/orchestrate](../../commands/orchestrate.md)

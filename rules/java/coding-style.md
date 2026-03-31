@@ -66,3 +66,10 @@ public User findById(String id) {
     return userMap.get(id);  // May return null
 }
 ```
+
+
+## Related
+
+- **Agents**: [java-reviewer](../../agents/java-reviewer.md), [java-build-resolver](../../agents/java-build-resolver.md)
+- **Skills**: [java-patterns](../../skills/java-patterns/SKILL.md), [springboot-patterns](../../skills/springboot-patterns/SKILL.md)
+- **Commands**: [/java-review](../../commands/java-review.md), [/java-build](../../commands/java-build.md)

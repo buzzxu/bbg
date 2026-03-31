@@ -74,3 +74,10 @@ fun test() {
     assertEquals(expected, viewModel.users.value)
 }
 ```
+
+
+## Related
+
+- **Agents**: [kotlin-reviewer](../../agents/kotlin-reviewer.md)
+- **Skills**: [kotlin-patterns](../../skills/kotlin-patterns/SKILL.md), [tdd-workflow](../../skills/tdd-workflow/SKILL.md)
+- **Commands**: [/kotlin-review](../../commands/kotlin-review.md), [/tdd](../../commands/tdd.md)

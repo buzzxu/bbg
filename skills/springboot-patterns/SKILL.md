@@ -184,3 +184,10 @@ public class SecurityConfig {
 - Use `@DataJpaTest` for repository tests with an in-memory DB
 - Mock service dependencies with `@MockBean`
 - Use Testcontainers for tests against real databases and message brokers
+
+
+## Related
+
+- **Agents**: [java-reviewer](../../agents/java-reviewer.md), [java-build-resolver](../../agents/java-build-resolver.md)
+- **Rules**: [java/spring](../../rules/java/spring.md), [java/coding-style](../../rules/java/coding-style.md)
+- **Commands**: [/java-review](../../commands/java-review.md), [/java-build](../../commands/java-build.md)

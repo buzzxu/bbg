@@ -64,3 +64,10 @@ struct OrderId(uuid::Uuid);
 // Bad: Stringly typed
 fn process(user_id: String, order_id: String) { ... }
 ```
+
+
+## Related
+
+- **Agents**: [rust-reviewer](../../agents/rust-reviewer.md), [rust-build-resolver](../../agents/rust-build-resolver.md)
+- **Skills**: [rust-patterns](../../skills/rust-patterns/SKILL.md)
+- **Commands**: [/rust-review](../../commands/rust-review.md), [/rust-build](../../commands/rust-build.md)

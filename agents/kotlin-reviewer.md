@@ -87,3 +87,9 @@ You are a Kotlin code review specialist covering Android, Kotlin Multiplatform (
 
 ### Verdict: [PASS / FAIL / CONDITIONAL PASS]
 ```
+
+## Related
+
+- **Skills**: [kotlin-patterns](../skills/kotlin-patterns/SKILL.md), [android-patterns](../skills/android-patterns/SKILL.md), [ktor-patterns](../skills/ktor-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/kotlin/coding-style.md), [testing](../rules/kotlin/testing.md), [security](../rules/kotlin/security.md)
+- **Commands**: [/kotlin-review](../commands/kotlin-review.md)

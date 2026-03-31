@@ -176,3 +176,10 @@ val csv = with(StringBuilder()) {
 - Use MockK for mocking Kotlin-specific features (coroutines, extension functions)
 - Test sealed class hierarchies by covering every subclass in `when` expressions
 - Use `@JvmStatic` `@Parameterized` or JUnit 5 `@ParameterizedTest` for data-driven tests
+
+
+## Related
+
+- **Agents**: [kotlin-reviewer](../../agents/kotlin-reviewer.md)
+- **Rules**: [kotlin/coding-style](../../rules/kotlin/coding-style.md), [kotlin/testing](../../rules/kotlin/testing.md)
+- **Commands**: [/kotlin-review](../../commands/kotlin-review.md)

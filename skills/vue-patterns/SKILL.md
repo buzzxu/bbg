@@ -175,3 +175,10 @@ const HeavyChart = defineAsyncComponent(() => import("./HeavyChart.vue"));
 - Test Pinia stores independently with `createPinia()` and `setActivePinia()`
 - Use `flushPromises()` to resolve async operations in tests
 - Test emitted events with `wrapper.emitted()` assertions
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md)
+- **Rules**: [typescript/coding-style](../../rules/typescript/coding-style.md)
+- **Commands**: [/ts-review](../../commands/ts-review.md)

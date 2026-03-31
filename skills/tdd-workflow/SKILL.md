@@ -83,3 +83,10 @@ Assert  — Verify the expected outcome
 - [ ] No test depends on execution order or shared state
 - [ ] Mocks are only at system boundaries
 - [ ] Coverage meets 80%+ threshold
+
+
+## Related
+
+- **Agents**: [tdd-guide](../../agents/tdd-guide.md)
+- **Rules**: [testing](../../rules/common/testing.md)
+- **Commands**: [/tdd](../../commands/tdd.md)

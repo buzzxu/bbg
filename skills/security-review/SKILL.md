@@ -75,3 +75,10 @@ Load this skill before committing code, reviewing PRs, or working on authenticat
 - [ ] Security headers configured (CSP, HSTS, X-Frame-Options)
 - [ ] Sensitive operations are rate-limited
 - [ ] Logging captures security events without exposing secrets
+
+
+## Related
+
+- **Agents**: [security-reviewer](../../agents/security-reviewer.md)
+- **Rules**: [security](../../rules/common/security.md)
+- **Commands**: [/security-scan](../../commands/security-scan.md)

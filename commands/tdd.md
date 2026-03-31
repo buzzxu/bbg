@@ -42,3 +42,9 @@ After each cycle:
 /tdd "doctor command should warn when AGENTS.md is missing"
 /tdd "Template rendering should escape HTML in user inputs"
 ```
+
+## Related
+
+- **Agents**: [tdd-guide](../agents/tdd-guide.md)
+- **Skills**: [tdd-workflow](../skills/tdd-workflow/SKILL.md), [verification-loop](../skills/verification-loop/SKILL.md)
+- **Rules**: [testing](../rules/common/testing.md)

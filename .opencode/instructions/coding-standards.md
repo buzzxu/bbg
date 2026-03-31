@@ -17,9 +17,9 @@ bbg is a TypeScript CLI tool (ESM-only, Node.js >= 18) that generates AI develop
 
 ## Governance Architecture
 - `agents/` — 25 agent definitions organized by category
-- `skills/` — 60 skill workflows with SKILL.md files
-- `rules/` — 35 rule files (common/ + 7 language directories)
-- `commands/` — 32 slash command definitions
+- `skills/` — 61 skill workflows with SKILL.md files
+- `rules/` — 34 rule files (common/ + 7 language directories)
+- `commands/` — 40 slash command definitions
 - `hooks/` — Hook automation with 6 scripts
 - `mcp-configs/` — 14 MCP server configurations
 - `contexts/` — 3 operational contexts (dev, review, research)

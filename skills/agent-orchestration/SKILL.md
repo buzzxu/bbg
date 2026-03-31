@@ -87,3 +87,9 @@ Load this skill when building multi-agent systems, designing task decomposition 
 - [ ] Agent outputs validated against schema before aggregation
 - [ ] Full orchestration flow is traceable with per-agent logging
 - [ ] Each agent tested independently before integration testing
+
+
+## Related
+
+- **Rules**: [agents](../../rules/common/agents.md)
+- **Commands**: [/orchestrate](../../commands/orchestrate.md)

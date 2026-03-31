@@ -57,3 +57,10 @@ data = yaml.safe_load(user_input)
 # Bad: Arbitrary code execution
 data = yaml.load(user_input, Loader=yaml.FullLoader)
 ```
+
+
+## Related
+
+- **Agents**: [python-reviewer](../../agents/python-reviewer.md)
+- **Skills**: [python-patterns](../../skills/python-patterns/SKILL.md), [security-review](../../skills/security-review/SKILL.md)
+- **Commands**: [/python-review](../../commands/python-review.md), [/security-scan](../../commands/security-scan.md)

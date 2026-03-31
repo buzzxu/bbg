@@ -91,3 +91,9 @@ You are a senior code reviewer. You review code changes systematically using a p
 
 ### Approved: [YES / NO / YES WITH CHANGES]
 ```
+
+## Related
+
+- **Skills**: [code-review-checklist](../skills/code-review-checklist/SKILL.md), [coding-standards](../skills/coding-standards/SKILL.md)
+- **Rules**: [coding-style](../rules/common/coding-style.md), [testing](../rules/common/testing.md), [security](../rules/common/security.md)
+- **Commands**: [/code-review](../commands/code-review.md)

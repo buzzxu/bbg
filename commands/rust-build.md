@@ -51,3 +51,9 @@ Final summary:
 /rust-build --lib            # Build library only
 /rust-build --release        # Build with release optimizations
 ```
+
+## Related
+
+- **Agents**: [rust-build-resolver](../agents/rust-build-resolver.md)
+- **Skills**: [rust-patterns](../skills/rust-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/rust/coding-style.md)

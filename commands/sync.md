@@ -56,3 +56,7 @@ Summary: 4 changes across 2 repos (3 applied, 1 skipped)
 /sync --repo ./services/api    # Sync single repo
 /sync --force                  # Overwrite all, including customizations
 ```
+
+## Related
+
+- **Skills**: [git-workflow](../skills/git-workflow/SKILL.md)

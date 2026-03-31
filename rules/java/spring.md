@@ -69,3 +69,10 @@ public class GlobalExceptionHandler {
     }
 }
 ```
+
+
+## Related
+
+- **Agents**: [java-reviewer](../../agents/java-reviewer.md)
+- **Skills**: [springboot-patterns](../../skills/springboot-patterns/SKILL.md), [jpa-patterns](../../skills/jpa-patterns/SKILL.md)
+- **Commands**: [/java-review](../../commands/java-review.md)

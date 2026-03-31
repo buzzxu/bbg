@@ -9,7 +9,7 @@ AI Development Workflow Governance CLI -- scaffolds agent instructions, rules, h
 - **2-tier template system** -- Generic (verbatim copy) and Handlebars (rendered with project-specific variables)
 - **Health checks** -- `bbg doctor` audits governance config and auto-fixes issues
 - **Template upgrades** -- Diff-based upgrades when templates evolve
-- **Comprehensive governance scaffold** -- 25 agents, 60 skills, 35 rules, 32 commands, hooks, MCP configs
+- **Comprehensive governance scaffold** -- 25 agents, 61 skills, 34 rules, 40 commands, hooks, MCP configs
 
 ## Quick Start
 
@@ -71,9 +71,9 @@ tests/                  Unit + integration tests (vitest)
 
 ```
 agents/                 25 agent definitions (core, language, build resolvers)
-skills/                 60 skill directories with SKILL.md workflows
-rules/                  35 rule files (common + 7 language-specific directories)
-commands/               32 slash command definitions
+skills/                 61 skill directories with SKILL.md workflows
+rules/                  34 rule files (common + 7 language-specific directories)
+commands/               40 slash command definitions
 hooks/                  Hook automation (hooks.json + 6 scripts)
 mcp-configs/            14 MCP server configurations
 contexts/               3 operational contexts (dev, review, research)

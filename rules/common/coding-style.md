@@ -45,3 +45,10 @@ Bad:  function calc(i: any): any { ... }
 Good: if (!isValid) return { error: "Invalid input" };
 Bad:  if (isValid) { if (hasPermission) { if (isReady) { ... } } }
 ```
+
+
+## Related
+
+- **Agents**: [planner](../../agents/planner.md), [code-reviewer](../../agents/code-reviewer.md), [build-error-resolver](../../agents/build-error-resolver.md), [refactor-cleaner](../../agents/refactor-cleaner.md)
+- **Skills**: [coding-standards](../../skills/coding-standards/SKILL.md), [search-first](../../skills/search-first/SKILL.md)
+- **Commands**: [/code-review](../../commands/code-review.md), [/refactor-clean](../../commands/refactor-clean.md)

@@ -65,9 +65,10 @@ agents/                       # 25 agent definitions
                               go-build-resolver, java-build-resolver,
                               rust-build-resolver, cpp-build-resolver
 
-skills/                       # 60 skill directories (each with SKILL.md)
-├── Core (20):                coding-standards, tdd-workflow, security-review,
-│                             verification-loop, search-first, continuous-learning,
+skills/                       # 61 skill directories (each with SKILL.md)
+├── Core (21):                coding-standards, tdd-workflow, security-review,
+│                             verification-loop, search-first, writing-plans,
+│                             continuous-learning,
 │                             eval-harness, strategic-compact, api-design,
 │                             backend-patterns, database-migrations, postgres-patterns,
 │                             frontend-patterns, e2e-testing, deployment-patterns,
@@ -89,7 +90,7 @@ skills/                       # 60 skill directories (each with SKILL.md)
                               data-modeling, api-versioning, prompt-engineering,
                               llm-cost-optimization, agent-orchestration
 
-rules/                        # 35 rule files
+rules/                        # 34 rule files
 ├── common/ (8):              coding-style, git-workflow, testing, security,
 │                             performance, patterns, hooks, agents
 ├── typescript/ (5):          coding-style, testing, react, node, security
@@ -100,12 +101,14 @@ rules/                        # 35 rule files
 ├── kotlin/ (3):              coding-style, testing, security
 └── php/ (3):                 coding-style, testing, security
 
-commands/                     # 32 slash commands
+commands/                     # 40 slash commands
 ├── Core (10):                plan, tdd, code-review, build-fix, security-scan,
 │                             refactor-clean, e2e, test-coverage, update-docs, doctor
 ├── Learning (6):             learn, learn-eval, checkpoint, verify, sessions, eval
-├── Language (8):             ts-review, python-review, go-review, go-test,
-│                             go-build, java-review, rust-review, kotlin-review
+├── Language (16):            ts-review, ts-build, ts-test, python-review,
+│                             python-build, python-test, go-review, go-test,
+│                             go-build, java-review, java-build, java-test,
+│                             rust-review, rust-build, rust-test, kotlin-review
 └── Orchestration (8):        orchestrate, loop-start, loop-status, quality-gate,
                               harness-audit, model-route, setup-pm, sync
 

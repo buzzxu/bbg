@@ -51,3 +51,9 @@ Final summary:
 /java-build src/main/java/com/example/     # Focus on specific package
 /java-build --gradle                       # Use Gradle instead of Maven
 ```
+
+## Related
+
+- **Agents**: [java-build-resolver](../agents/java-build-resolver.md)
+- **Skills**: [java-patterns](../skills/java-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/java/coding-style.md)

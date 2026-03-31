@@ -44,3 +44,8 @@ Save the current verification state (build, tests, lint, types) as a baseline fo
 /checkpoint "before refactoring analyzers"   # Named checkpoint
 /checkpoint --name pre-migration             # Explicit name flag
 ```
+
+## Related
+
+- **Skills**: [git-workflow](../skills/git-workflow/SKILL.md)
+- **Rules**: [git-workflow](../rules/common/git-workflow.md)

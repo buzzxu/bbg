@@ -57,3 +57,10 @@ client := &http.Client{Timeout: 10 * time.Second}
 // Bad: No timeout (waits forever)
 client := &http.Client{}
 ```
+
+
+## Related
+
+- **Agents**: [go-reviewer](../../agents/go-reviewer.md)
+- **Skills**: [golang-patterns](../../skills/golang-patterns/SKILL.md), [security-review](../../skills/security-review/SKILL.md)
+- **Commands**: [/go-review](../../commands/go-review.md), [/security-scan](../../commands/security-scan.md)

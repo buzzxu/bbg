@@ -81,3 +81,10 @@ Load this skill when preparing applications for production deployment, configuri
 - [ ] Penetration test completed within last quarter
 - [ ] All pen test findings tracked to resolution and retested
 - [ ] DDoS response runbook documented with escalation contacts
+
+
+## Related
+
+- **Agents**: [security-reviewer](../../agents/security-reviewer.md)
+- **Rules**: [security](../../rules/common/security.md)
+- **Commands**: [/security-scan](../../commands/security-scan.md)

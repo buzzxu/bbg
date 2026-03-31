@@ -51,3 +51,8 @@ Top recommendations for improvement.
 /eval src/analyzers/ --criteria correctness,testability
 /eval --criteria security    # Security-focused evaluation
 ```
+
+## Related
+
+- **Agents**: [harness-optimizer](../agents/harness-optimizer.md)
+- **Skills**: [eval-harness](../skills/eval-harness/SKILL.md)

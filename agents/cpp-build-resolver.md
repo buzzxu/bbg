@@ -104,3 +104,8 @@ You are a C++ build error resolution specialist. You fix compilation errors, CMa
 - Build: PASS
 - Tests: PASS
 ```
+
+## Related
+
+- **Skills**: [cpp-patterns](../skills/cpp-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Commands**: [/build-fix](../commands/build-fix.md)

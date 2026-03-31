@@ -42,3 +42,9 @@ Final summary:
 /build-fix
 /build-fix --strict    # Also treat warnings as errors
 ```
+
+## Related
+
+- **Agents**: [build-error-resolver](../agents/build-error-resolver.md), [typescript-build-resolver](../agents/typescript-build-resolver.md), [python-build-resolver](../agents/python-build-resolver.md), [go-build-resolver](../agents/go-build-resolver.md), [java-build-resolver](../agents/java-build-resolver.md), [rust-build-resolver](../agents/rust-build-resolver.md), [cpp-build-resolver](../agents/cpp-build-resolver.md)
+- **Skills**: [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/common/coding-style.md)

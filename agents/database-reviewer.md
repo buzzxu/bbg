@@ -91,3 +91,7 @@ You are a database review specialist. You review schemas, queries, migrations, a
 
 ### Verdict: [PASS / FAIL / CONDITIONAL PASS]
 ```
+
+## Related
+
+- **Skills**: [database-migrations](../skills/database-migrations/SKILL.md), [postgres-patterns](../skills/postgres-patterns/SKILL.md), [data-modeling](../skills/data-modeling/SKILL.md)

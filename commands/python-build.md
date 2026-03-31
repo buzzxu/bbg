@@ -51,3 +51,9 @@ Final summary:
 /python-build src/handlers/  # Focus on specific directory
 /python-build --typecheck    # Type check only with mypy
 ```
+
+## Related
+
+- **Agents**: [python-build-resolver](../agents/python-build-resolver.md)
+- **Skills**: [python-patterns](../skills/python-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/python/coding-style.md)

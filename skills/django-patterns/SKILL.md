@@ -154,3 +154,10 @@ def notify_subscribers(sender, instance, created, **kwargs):
 - Use `factory_boy` for test data instead of fixtures or manual creation
 - Test querysets separately from views to isolate data logic
 - Use `assertNumQueries` to catch N+1 regressions in tests
+
+
+## Related
+
+- **Agents**: [python-reviewer](../../agents/python-reviewer.md)
+- **Rules**: [python/django](../../rules/python/django.md)
+- **Commands**: [/python-review](../../commands/python-review.md)

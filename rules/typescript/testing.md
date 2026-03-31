@@ -55,3 +55,10 @@ it.each([
   expect(isActive(status)).toBe(expected);
 });
 ```
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md)
+- **Skills**: [typescript-patterns](../../skills/typescript-patterns/SKILL.md), [tdd-workflow](../../skills/tdd-workflow/SKILL.md)
+- **Commands**: [/ts-test](../../commands/ts-test.md), [/tdd](../../commands/tdd.md)

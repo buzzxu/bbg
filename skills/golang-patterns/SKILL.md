@@ -174,3 +174,10 @@ func NewServer(opts ...Option) *Server {
 - Mock interfaces with hand-written stubs or `gomock`
 - Use `t.Parallel()` for independent tests
 - Run `go vet` and `golangci-lint` in CI alongside tests
+
+
+## Related
+
+- **Agents**: [go-reviewer](../../agents/go-reviewer.md), [go-build-resolver](../../agents/go-build-resolver.md)
+- **Rules**: [golang/coding-style](../../rules/golang/coding-style.md), [golang/patterns](../../rules/golang/patterns.md)
+- **Commands**: [/go-review](../../commands/go-review.md), [/go-build](../../commands/go-build.md)

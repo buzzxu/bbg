@@ -61,7 +61,7 @@ This file provides instructions for AI coding agents (Claude Code, Codex, OpenCo
 | rust-build-resolver | `agents/rust-build-resolver.md` | Rust/Cargo |
 | cpp-build-resolver | `agents/cpp-build-resolver.md` | C++/CMake |
 
-## Skills (60)
+## Skills (61)
 
 Skills are detailed workflow instructions in `skills/*/SKILL.md`. Key skills for this project:
 
@@ -76,7 +76,7 @@ Skills are detailed workflow instructions in `skills/*/SKILL.md`. Key skills for
 | Continuous Learning | `skills/continuous-learning/SKILL.md` | Learning from mistakes |
 | Search First | `skills/search-first/SKILL.md` | Read before writing |
 
-See `skills/` directory for all 60 skill workflows covering core patterns (20), language-specific (24), and operations (16).
+See `skills/` directory for all 61 skill workflows covering core patterns (21), language-specific (24), and operations (16).
 
 ## Rules (35)
 
@@ -95,7 +95,7 @@ Rules are organized by language in `rules/`:
 
 See `rules/README.md` for installation and usage guide.
 
-## Commands (32)
+## Commands (40)
 
 Slash commands are defined in `commands/*.md`:
 

@@ -43,3 +43,10 @@ Bad:  if (format === "json") { ... } else if (format === "xml") { ... } else { .
 Good: class StripeAdapter implements PaymentGateway { charge(amount) { ... } }
 Bad:  stripe.charges.create() called directly in 15 different files
 ```
+
+
+## Related
+
+- **Agents**: [planner](../../agents/planner.md), [architect](../../agents/architect.md), [refactor-cleaner](../../agents/refactor-cleaner.md)
+- **Skills**: [api-design](../../skills/api-design/SKILL.md), [backend-patterns](../../skills/backend-patterns/SKILL.md)
+- **Commands**: [/plan](../../commands/plan.md)

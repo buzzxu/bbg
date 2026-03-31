@@ -131,3 +131,10 @@ const Row = memo(function Row({ item }: { item: Item }) {
 - Use `renderHook` from `@testing-library/react` for custom hook tests
 - Mock network calls with `msw` (Mock Service Worker), not by mocking `fetch`
 - Test error boundaries by throwing from a child and asserting fallback renders
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md)
+- **Rules**: [typescript/react](../../rules/typescript/react.md)
+- **Commands**: [/ts-review](../../commands/ts-review.md)

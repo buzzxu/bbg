@@ -44,3 +44,10 @@ Bad:  const user = { id: 1, name: "test", role: "admin", email: "t@t.com", ... }
 Good: test.skip("flaky on CI — tracking in #456")
 Bad:  test.skip("doesn't work")
 ```
+
+
+## Related
+
+- **Agents**: [tdd-guide](../../agents/tdd-guide.md), [code-reviewer](../../agents/code-reviewer.md), [e2e-runner](../../agents/e2e-runner.md)
+- **Skills**: [tdd-workflow](../../skills/tdd-workflow/SKILL.md), [verification-loop](../../skills/verification-loop/SKILL.md), [e2e-testing](../../skills/e2e-testing/SKILL.md)
+- **Commands**: [/tdd](../../commands/tdd.md), [/e2e](../../commands/e2e.md), [/test-coverage](../../commands/test-coverage.md)

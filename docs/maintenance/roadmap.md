@@ -111,7 +111,7 @@
 ### v0.1.0 — Initial Bootstrap (current)
 - [x] Core CLI: init, add-repo, doctor, sync, release, upgrade commands
 - [x] Template system: 2-tier (generic, handlebars) — scaffold tier removed in v0.3.0
-- [x] Governance content: 25 agents, 60 skills, 34 rules, 32 commands
+- [x] Governance content: 25 agents, 61 skills, 34 rules, 40 commands
 - [x] 6 AI tool support: Claude Code, OpenCode, Cursor, Codex CLI, Copilot, Kiro
 - [x] 93/93 tests passing
 - [x] Bug fixes: CLI silent exit, double git prompts, add-repo overwrite, OpenCode/Codex configs

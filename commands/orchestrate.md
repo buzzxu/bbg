@@ -46,3 +46,8 @@ Orchestration report:
 /orchestrate "Refactor auth module: migrate, test, review, document"
 /orchestrate "Fix security vulnerabilities and verify fixes"
 ```
+
+## Related
+
+- **Skills**: [agent-orchestration](../skills/agent-orchestration/SKILL.md)
+- **Rules**: [agents](../rules/common/agents.md)

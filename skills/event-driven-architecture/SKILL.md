@@ -88,3 +88,9 @@ Load this skill when designing asynchronous systems, implementing event sourcing
 - [ ] Read model rebuilds tested end-to-end from event store
 - [ ] Poison message handling prevents infinite retry loops
 - [ ] Broker failover and consumer restart recovery tested
+
+
+## Related
+
+- **Agents**: [architect](../../agents/architect.md)
+- **Rules**: [patterns](../../rules/common/patterns.md)

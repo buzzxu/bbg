@@ -47,3 +47,8 @@ Alternative: claude-haiku (faster, may miss nuance)
 /model-route "Refactor database layer" --prefer cost # → Balanced
 /model-route --list                                  # Show all model profiles
 ```
+
+## Related
+
+- **Agents**: [harness-optimizer](../agents/harness-optimizer.md)
+- **Skills**: [llm-cost-optimization](../skills/llm-cost-optimization/SKILL.md)

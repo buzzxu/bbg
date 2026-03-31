@@ -43,3 +43,9 @@ Java/Spring-specific findings:
 /java-review src/main/java/com/example/controller/UserController.java
 /java-review src/main/java/ --include-tests
 ```
+
+## Related
+
+- **Agents**: [java-reviewer](../agents/java-reviewer.md)
+- **Skills**: [java-patterns](../skills/java-patterns/SKILL.md), [springboot-patterns](../skills/springboot-patterns/SKILL.md), [jpa-patterns](../skills/jpa-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/java/coding-style.md), [spring](../rules/java/spring.md)

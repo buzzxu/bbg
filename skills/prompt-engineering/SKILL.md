@@ -87,3 +87,8 @@ Load this skill when designing prompts for LLM-powered features, optimizing mode
 - [ ] Prompts version-controlled and tested with diverse inputs
 - [ ] Fallback behavior defined for model output failures
 - [ ] Model version pinned in production; prompt updates tested before deploy
+
+
+## Related
+
+- **Agents**: [harness-optimizer](../../agents/harness-optimizer.md)

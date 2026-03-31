@@ -41,3 +41,9 @@ Security report with:
 /security-scan src/templates/
 /security-scan --deep    # Include node_modules audit
 ```
+
+## Related
+
+- **Agents**: [security-reviewer](../agents/security-reviewer.md)
+- **Skills**: [security-review](../skills/security-review/SKILL.md), [security-hardening](../skills/security-hardening/SKILL.md), [secrets-management](../skills/secrets-management/SKILL.md)
+- **Rules**: [security](../rules/common/security.md)

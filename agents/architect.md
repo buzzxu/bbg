@@ -69,3 +69,9 @@ You are a system design and architecture specialist. You evaluate tradeoffs, pro
 ### Consequences
 - [Positive and negative consequences of this decision]
 ```
+
+## Related
+
+- **Skills**: [api-design](../skills/api-design/SKILL.md), [backend-patterns](../skills/backend-patterns/SKILL.md)
+- **Rules**: [patterns](../rules/common/patterns.md), [performance](../rules/common/performance.md)
+- **Commands**: [/plan](../commands/plan.md)

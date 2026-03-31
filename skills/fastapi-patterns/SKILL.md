@@ -177,3 +177,10 @@ async def chat(ws: WebSocket):
 - Test WebSocket endpoints with `TestClient` context manager
 - Use `factory_boy` or Pydantic factories for test data generation
 - Test background tasks by mocking `BackgroundTasks.add_task`
+
+
+## Related
+
+- **Agents**: [python-reviewer](../../agents/python-reviewer.md)
+- **Rules**: [python/coding-style](../../rules/python/coding-style.md)
+- **Commands**: [/python-review](../../commands/python-review.md)

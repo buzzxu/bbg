@@ -48,3 +48,9 @@ After each cycle:
 /ts-test "parseConfig handles empty YAML gracefully"
 /ts-test "Cache expires entries after TTL"
 ```
+
+## Related
+
+- **Agents**: [typescript-reviewer](../agents/typescript-reviewer.md)
+- **Skills**: [typescript-patterns](../skills/typescript-patterns/SKILL.md), [tdd-workflow](../skills/tdd-workflow/SKILL.md)
+- **Rules**: [testing](../rules/typescript/testing.md)

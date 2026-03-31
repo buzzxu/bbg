@@ -42,3 +42,9 @@ TypeScript-specific findings:
 /ts-review src/commands/
 /ts-review src/
 ```
+
+## Related
+
+- **Agents**: [typescript-reviewer](../agents/typescript-reviewer.md)
+- **Skills**: [typescript-patterns](../skills/typescript-patterns/SKILL.md), [react-patterns](../skills/react-patterns/SKILL.md), [nextjs-patterns](../skills/nextjs-patterns/SKILL.md), [vue-patterns](../skills/vue-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/typescript/coding-style.md), [testing](../rules/typescript/testing.md)

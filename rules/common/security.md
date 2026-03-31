@@ -46,3 +46,10 @@ Bad:  db.query(`SELECT * FROM users WHERE id = ${userId}`);
 Good: return { error: "Authentication failed" };
 Bad:  return { error: `Login failed for ${email}: ${err.stack}` };
 ```
+
+
+## Related
+
+- **Agents**: [code-reviewer](../../agents/code-reviewer.md), [security-reviewer](../../agents/security-reviewer.md)
+- **Skills**: [security-review](../../skills/security-review/SKILL.md), [security-hardening](../../skills/security-hardening/SKILL.md), [secrets-management](../../skills/secrets-management/SKILL.md)
+- **Commands**: [/security-scan](../../commands/security-scan.md)

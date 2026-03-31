@@ -52,3 +52,7 @@ Actions:
 /setup-pm --prefer pnpm   # Switch to pnpm
 /setup-pm --detect         # Detection only, no changes
 ```
+
+## Related
+
+- **Skills**: [mcp-integration](../skills/mcp-integration/SKILL.md)

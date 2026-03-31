@@ -45,3 +45,7 @@ Manage session history — list previous sessions, resume context from a past se
 /sessions resume 2025-01-15T10-30-00       # Resume specific session
 /sessions compare session-1 session-2      # Compare two sessions
 ```
+
+## Related
+
+- **Skills**: [strategic-compact](../skills/strategic-compact/SKILL.md)

@@ -66,3 +66,10 @@ user?.address?.city?.let { println("City: $it") }
 // Bad: Force unwrap
 println("City: ${user!!.address!!.city!!}")
 ```
+
+
+## Related
+
+- **Agents**: [kotlin-reviewer](../../agents/kotlin-reviewer.md)
+- **Skills**: [kotlin-patterns](../../skills/kotlin-patterns/SKILL.md), [android-patterns](../../skills/android-patterns/SKILL.md)
+- **Commands**: [/kotlin-review](../../commands/kotlin-review.md)

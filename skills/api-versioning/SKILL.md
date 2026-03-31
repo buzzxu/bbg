@@ -101,3 +101,9 @@ Load this skill when designing APIs that will evolve over time, planning breakin
 - [ ] Maximum 2 active major versions supported simultaneously
 - [ ] API changelog maintained and published with every release
 - [ ] Sunset versions return 410 Gone with migration pointer
+
+
+## Related
+
+- **Agents**: [architect](../../agents/architect.md)
+- **Rules**: [patterns](../../rules/common/patterns.md)

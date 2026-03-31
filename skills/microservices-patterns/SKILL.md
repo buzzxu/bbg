@@ -79,3 +79,9 @@ Load this skill when designing distributed systems, decomposing a monolith, or s
 - [ ] Contract tests verify compatibility between service pairs
 - [ ] Distributed tracing with correlation IDs across all services
 - [ ] Health checks (liveness/readiness) implemented in every service
+
+
+## Related
+
+- **Agents**: [architect](../../agents/architect.md)
+- **Rules**: [patterns](../../rules/common/patterns.md), [performance](../../rules/common/performance.md)

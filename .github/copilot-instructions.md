@@ -45,9 +45,9 @@ contexts/               Dynamic system prompt contexts (dev, review, research)
 
 ## Available Resources
 - **25 agents** in `agents/` — delegate complex tasks to specialized agents
-- **60 skills** in `skills/` — workflow definitions and domain knowledge
-- **32 commands** in `commands/` — slash commands for quick execution
-- **35 rules** in `rules/` — organized by language (common + ts + py + go + java + rust + kotlin + php)
+- **61 skills** in `skills/` — workflow definitions and domain knowledge
+- **40 commands** in `commands/` — slash commands for quick execution
+- **34 rules** in `rules/` — organized by language (common + ts + py + go + java + rust + kotlin + php)
 - **hooks** in `hooks/` — automated checks on session start/end, edit, security
 
 ## Build & Test

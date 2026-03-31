@@ -121,3 +121,9 @@ Success criteria: [how to verify the task is done]
 - [ ] Token usage monitored and optimized
 - [ ] Instructions updated when recurring agent mistakes are identified
 - [ ] No duplicated instructions across files
+
+
+## Related
+
+- **Agents**: [harness-optimizer](../../agents/harness-optimizer.md)
+- **Commands**: [/harness-audit](../../commands/harness-audit.md)

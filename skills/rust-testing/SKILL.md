@@ -206,3 +206,10 @@ async fn service_returns_user() {
 - Benchmark critical paths with criterion before and after optimization
 - Use `cargo-llvm-cov` for code coverage reporting
 - Separate fast unit tests from slow integration tests with `#[ignore]` attribute
+
+
+## Related
+
+- **Agents**: [rust-reviewer](../../agents/rust-reviewer.md)
+- **Rules**: [rust/testing](../../rules/rust/testing.md)
+- **Commands**: [/rust-test](../../commands/rust-test.md)

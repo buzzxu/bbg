@@ -56,3 +56,10 @@ import { readFile } from "node:fs/promises";
 // Bad: CommonJS require
 const fs = require("fs");
 ```
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md)
+- **Skills**: [nextjs-patterns](../../skills/nextjs-patterns/SKILL.md), [typescript-patterns](../../skills/typescript-patterns/SKILL.md)
+- **Commands**: [/ts-review](../../commands/ts-review.md)

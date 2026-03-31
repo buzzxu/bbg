@@ -42,3 +42,7 @@ Health check report:
 /doctor --fix          # Run checks and auto-fix what's possible
 /doctor --verbose      # Show detailed check output
 ```
+
+## Related
+
+- **Skills**: [verification-loop](../skills/verification-loop/SKILL.md)

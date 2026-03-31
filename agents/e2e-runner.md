@@ -74,3 +74,9 @@ Each page object encapsulates:
 ### Data Requirements
 - [Fixtures or seed data needed]
 ```
+
+## Related
+
+- **Skills**: [e2e-testing](../skills/e2e-testing/SKILL.md)
+- **Rules**: [testing](../rules/common/testing.md)
+- **Commands**: [/e2e](../commands/e2e.md)

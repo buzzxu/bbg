@@ -78,3 +78,10 @@ fn test_can_delete(#[case] role: &str, #[case] expected: bool) {
     assert_eq!(can_delete(role), expected);
 }
 ```
+
+
+## Related
+
+- **Agents**: [rust-reviewer](../../agents/rust-reviewer.md)
+- **Skills**: [rust-testing](../../skills/rust-testing/SKILL.md), [tdd-workflow](../../skills/tdd-workflow/SKILL.md)
+- **Commands**: [/rust-test](../../commands/rust-test.md), [/tdd](../../commands/tdd.md)

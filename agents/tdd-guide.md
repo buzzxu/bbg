@@ -71,3 +71,9 @@ For each cycle, report:
 **IMPROVE**: [Refactoring performed]
 - Result: PASS (all tests)
 ```
+
+## Related
+
+- **Skills**: [tdd-workflow](../skills/tdd-workflow/SKILL.md), [verification-loop](../skills/verification-loop/SKILL.md)
+- **Rules**: [testing](../rules/common/testing.md)
+- **Commands**: [/tdd](../commands/tdd.md)

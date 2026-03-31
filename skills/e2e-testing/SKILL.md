@@ -119,3 +119,10 @@ test.describe('Checkout Flow', () => {
 - [ ] Visual regression baselines reviewed and approved
 - [ ] No hardcoded waits — all waits are condition-based
 - [ ] Test suite completes within acceptable time limits
+
+
+## Related
+
+- **Agents**: [e2e-runner](../../agents/e2e-runner.md)
+- **Rules**: [testing](../../rules/common/testing.md)
+- **Commands**: [/e2e](../../commands/e2e.md)

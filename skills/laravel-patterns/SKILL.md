@@ -218,3 +218,8 @@ class OrderPolicy
 - Test policies with `$this->assertTrue($user->can('cancel', $order))`
 - Test queued jobs with `Queue::fake()` and `Queue::assertPushed()`
 - Test events with `Event::fake()` and `Event::assertDispatched()`
+
+
+## Related
+
+- **Rules**: [php/coding-style](../../rules/php/coding-style.md), [php/security](../../rules/php/security.md)

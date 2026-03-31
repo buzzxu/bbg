@@ -48,3 +48,9 @@ After each cycle:
 /java-test "ConfigParser handles empty YAML gracefully"
 /java-test "Cache expires entries after TTL"
 ```
+
+## Related
+
+- **Agents**: [java-reviewer](../agents/java-reviewer.md)
+- **Skills**: [springboot-testing](../skills/springboot-testing/SKILL.md), [tdd-workflow](../skills/tdd-workflow/SKILL.md)
+- **Rules**: [testing](../rules/java/testing.md)

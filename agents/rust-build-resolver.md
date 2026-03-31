@@ -95,3 +95,9 @@ You are a Rust build error resolution specialist. You fix borrow checker errors,
 - Clippy: PASS (no warnings)
 - Tests: PASS
 ```
+
+## Related
+
+- **Skills**: [rust-patterns](../skills/rust-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/rust/coding-style.md)
+- **Commands**: [/build-fix](../commands/build-fix.md), [/rust-build](../commands/rust-build.md)

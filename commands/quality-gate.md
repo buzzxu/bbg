@@ -49,3 +49,8 @@ If any check fails:
 /quality-gate --fix        # Auto-fix and re-run
 /quality-gate --skip lint  # Skip specific checks
 ```
+
+## Related
+
+- **Skills**: [performance-optimization](../skills/performance-optimization/SKILL.md)
+- **Rules**: [performance](../rules/common/performance.md)

@@ -47,3 +47,9 @@ Bad:  Branch: john/stuff
 Good: refactor: extract validation into shared utility
 Bad:  refactor (no description)
 ```
+
+
+## Related
+
+- **Skills**: [git-workflow](../../skills/git-workflow/SKILL.md)
+- **Commands**: [/checkpoint](../../commands/checkpoint.md)

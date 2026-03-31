@@ -149,3 +149,10 @@ active = filter_active(read_records("data.jsonl"))
 - Test async code with `pytest-asyncio` and `anyio` backend
 - Use `freezegun` or `time-machine` for time-dependent tests
 - Run `mypy` / `pyright` as a test step to catch type regressions
+
+
+## Related
+
+- **Agents**: [python-reviewer](../../agents/python-reviewer.md), [python-build-resolver](../../agents/python-build-resolver.md)
+- **Rules**: [python/coding-style](../../rules/python/coding-style.md), [python/testing](../../rules/python/testing.md)
+- **Commands**: [/python-review](../../commands/python-review.md), [/python-build](../../commands/python-build.md), [/python-test](../../commands/python-test.md)

@@ -85,3 +85,9 @@ You are a Java and Spring Boot code review specialist. You enforce solid OOP pri
 
 ### Verdict: [PASS / FAIL / CONDITIONAL PASS]
 ```
+
+## Related
+
+- **Skills**: [java-patterns](../skills/java-patterns/SKILL.md), [springboot-patterns](../skills/springboot-patterns/SKILL.md), [springboot-testing](../skills/springboot-testing/SKILL.md), [jpa-patterns](../skills/jpa-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/java/coding-style.md), [testing](../rules/java/testing.md), [spring](../rules/java/spring.md), [security](../rules/java/security.md)
+- **Commands**: [/java-review](../commands/java-review.md), [/java-build](../commands/java-build.md), [/java-test](../commands/java-test.md)

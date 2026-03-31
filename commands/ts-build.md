@@ -51,3 +51,9 @@ Final summary:
 /ts-build src/commands/      # Focus on specific directory
 /ts-build --noEmit           # Type check only, no output
 ```
+
+## Related
+
+- **Agents**: [typescript-build-resolver](../agents/typescript-build-resolver.md)
+- **Skills**: [typescript-patterns](../skills/typescript-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/typescript/coding-style.md)

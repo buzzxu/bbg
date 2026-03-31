@@ -73,3 +73,10 @@ func process(ctx context.Context, jobs <-chan Job, results chan<- Result) {
     }
 }
 ```
+
+
+## Related
+
+- **Agents**: [go-reviewer](../../agents/go-reviewer.md)
+- **Skills**: [golang-patterns](../../skills/golang-patterns/SKILL.md), [gin-patterns](../../skills/gin-patterns/SKILL.md)
+- **Commands**: [/go-review](../../commands/go-review.md)

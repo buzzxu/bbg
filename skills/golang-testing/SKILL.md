@@ -185,3 +185,10 @@ func TestPostgresStore(t *testing.T) {
 - Fuzz critical parsers and decoders for at least 30 seconds in CI
 - Benchmark before and after performance-sensitive changes
 - Use build tags to separate unit and integration tests
+
+
+## Related
+
+- **Agents**: [go-reviewer](../../agents/go-reviewer.md)
+- **Rules**: [golang/testing](../../rules/golang/testing.md)
+- **Commands**: [/go-test](../../commands/go-test.md)

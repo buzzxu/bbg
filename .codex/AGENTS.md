@@ -28,9 +28,9 @@ This project contains comprehensive AI governance content:
 
 ```
 agents/                 → 25 agent definitions (core, language, build resolvers)
-skills/                 → 60 skill directories with SKILL.md files
-rules/                  → 35 rule files (common + 7 language-specific directories)
-commands/               → 32 slash command definitions
+skills/                 → 61 skill directories with SKILL.md files
+rules/                  → 34 rule files (common + 7 language-specific directories)
+commands/               → 40 slash command definitions
 hooks/                  → Hook configs + 6 automation scripts
 mcp-configs/            → 14 MCP server configurations
 contexts/               → 3 operational contexts (dev, review, research)
@@ -45,17 +45,17 @@ contexts/               → 3 operational contexts (dev, review, research)
 | Language | typescript-reviewer, python-reviewer, go-reviewer, java-reviewer, rust-reviewer, kotlin-reviewer |
 | Build | typescript-build-resolver, python-build-resolver, go-build-resolver, java-build-resolver, rust-build-resolver, cpp-build-resolver |
 
-### Skills (60)
+### Skills (61)
 
-Organized across: core patterns (20), language-specific (24), and operations (16). Each skill is a directory under `skills/` with a `SKILL.md` file containing workflow instructions, checklists, and best practices.
+Organized across: core patterns (21), language-specific (24), and operations (16). Each skill is a directory under `skills/` with a `SKILL.md` file containing workflow instructions, checklists, and best practices.
 
-### Rules (35)
+### Rules (34)
 
 Located in `rules/` directory with `common/` (8 files) and language-specific subdirectories: `typescript/` (5), `python/` (4), `golang/` (4), `java/` (4), `rust/` (3), `kotlin/` (3), `php/` (3).
 
-### Commands (32)
+### Commands (40)
 
-Located in `commands/` directory covering: core workflow (10), learning & session (6), language-specific (8), and orchestration (8).
+Located in `commands/` directory covering: core workflow (10), learning & session (6), language-specific (16), and orchestration (8).
 
 ## Build & Test
 
