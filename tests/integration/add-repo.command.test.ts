@@ -29,6 +29,17 @@ vi.mock("../../src/utils/prompts.js", async (importOriginal) => {
     promptSelect: promptState.promptSelect,
     promptConfirm: promptState.promptConfirm,
     sanitizePromptValue: actual.sanitizePromptValue,
+    collectStackInfo: async (detectedStack: Record<string, string>) => {
+      const useDetected = await promptState.promptConfirm({ message: "Use detected stack info?", default: true });
+      if (useDetected) return detectedStack;
+      return {
+        language: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack language", default: detectedStack.language }), detectedStack.language),
+        framework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack framework", default: detectedStack.framework }), detectedStack.framework),
+        buildTool: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack build tool", default: detectedStack.buildTool }), detectedStack.buildTool),
+        testFramework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack test framework", default: detectedStack.testFramework }), detectedStack.testFramework),
+        packageManager: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack package manager", default: detectedStack.packageManager }), detectedStack.packageManager),
+      };
+    },
   };
 });
 

@@ -5,7 +5,7 @@ import { analyzeRepo } from "../analyzers/index.js";
 import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
 import { parseConfig, serializeConfig } from "../config/read-write.js";
-import type { RepoEntry, RepoType, StackInfo } from "../config/schema.js";
+import type { RepoEntry, RepoType } from "../config/schema.js";
 import { CLI_VERSION, REPO_TYPE_CHOICES } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates } from "../templates/render.js";
@@ -13,7 +13,7 @@ import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { cloneRepo, listRemoteBranches } from "../utils/git.js";
 import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
 import { normalizeWorkspaceRelativePath, resolveBuiltinTemplatesRoot } from "../utils/paths.js";
-import { promptConfirm, promptInput, promptSelect, sanitizePromptValue } from "../utils/prompts.js";
+import { collectStackInfo, promptConfirm, promptInput, promptSelect, sanitizePromptValue } from "../utils/prompts.js";
 import { runDoctor } from "./doctor.js";
 
 export interface RunAddRepoInput {
@@ -24,36 +24,6 @@ export interface RunAddRepoInput {
 
 export interface RunAddRepoResult {
   addedRepoName: string;
-}
-
-async function collectStackInfo(detectedStack: StackInfo): Promise<StackInfo> {
-  const useDetectedStack = await promptConfirm({ message: "Use detected stack info?", default: true });
-  if (useDetectedStack) {
-    return detectedStack;
-  }
-
-  return {
-    language: sanitizePromptValue(
-      await promptInput({ message: "Stack language", default: detectedStack.language }),
-      detectedStack.language,
-    ),
-    framework: sanitizePromptValue(
-      await promptInput({ message: "Stack framework", default: detectedStack.framework }),
-      detectedStack.framework,
-    ),
-    buildTool: sanitizePromptValue(
-      await promptInput({ message: "Stack build tool", default: detectedStack.buildTool }),
-      detectedStack.buildTool,
-    ),
-    testFramework: sanitizePromptValue(
-      await promptInput({ message: "Stack test framework", default: detectedStack.testFramework }),
-      detectedStack.testFramework,
-    ),
-    packageManager: sanitizePromptValue(
-      await promptInput({ message: "Stack package manager", default: detectedStack.packageManager }),
-      detectedStack.packageManager,
-    ),
-  };
 }
 
 async function restoreFile(pathValue: string, previousContent: string | null): Promise<void> {

@@ -4,7 +4,7 @@ import { analyzeRepo } from "../analyzers/index.js";
 import { serializeConfig } from "../config/read-write.js";
 import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
-import type { BbgConfig, RepoEntry, RepoType, StackInfo } from "../config/schema.js";
+import type { BbgConfig, RepoEntry, RepoType } from "../config/schema.js";
 import { CLI_VERSION, DEFAULT_STACK, MANAGED_GITIGNORE_BLOCK_END, MANAGED_GITIGNORE_BLOCK_START, REPO_TYPE_CHOICES } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { buildGovernanceManifest } from "../templates/governance.js";
@@ -19,7 +19,7 @@ import {
   toSnapshotRelativePath,
 } from "../utils/paths.js";
 import { makeExecutable } from "../utils/platform.js";
-import { promptConfirm, promptInput, promptSelect, sanitizePromptValue } from "../utils/prompts.js";
+import { collectStackInfo, promptConfirm, promptInput, promptSelect, sanitizePromptValue } from "../utils/prompts.js";
 import { runDoctor, type RunDoctorResult } from "./doctor.js";
 
 export interface RunInitOptions {
@@ -243,36 +243,6 @@ function buildBaselineConfig(nowIso: string): BbgConfig {
 function buildPlannedFiles(cwd: string, config: BbgConfig): string[] {
   const plannedTemplateFiles = buildTemplatePlan(config).map((template) => join(cwd, template.destination));
   return [join(cwd, ".bbg", "config.json"), join(cwd, ".bbg", "file-hashes.json"), join(cwd, ".gitignore"), ...plannedTemplateFiles];
-}
-
-async function collectStackInfo(detectedStack: StackInfo): Promise<StackInfo> {
-  const useDetectedStack = await promptConfirm({ message: "Use detected stack info?", default: true });
-  if (useDetectedStack) {
-    return detectedStack;
-  }
-
-  return {
-    language: sanitizePromptValue(
-      await promptInput({ message: "Stack language", default: detectedStack.language }),
-      detectedStack.language,
-    ),
-    framework: sanitizePromptValue(
-      await promptInput({ message: "Stack framework", default: detectedStack.framework }),
-      detectedStack.framework,
-    ),
-    buildTool: sanitizePromptValue(
-      await promptInput({ message: "Stack build tool", default: detectedStack.buildTool }),
-      detectedStack.buildTool,
-    ),
-    testFramework: sanitizePromptValue(
-      await promptInput({ message: "Stack test framework", default: detectedStack.testFramework }),
-      detectedStack.testFramework,
-    ),
-    packageManager: sanitizePromptValue(
-      await promptInput({ message: "Stack package manager", default: detectedStack.packageManager }),
-      detectedStack.packageManager,
-    ),
-  };
 }
 
 function parseRiskThresholdInput(
