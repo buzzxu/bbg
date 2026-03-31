@@ -157,24 +157,22 @@ export async function runSync(input: RunSyncInput): Promise<RunSyncResult> {
         expected: repo.stack,
         actual: analysis.stack,
       });
-
-      if (input.update) {
-        repo.stack = analysis.stack;
-      }
     }
   }
 
   const orphanRepos = await detectOrphanRepos(input.cwd, config.repos);
 
   if (input.update === true) {
-    for (const driftEntry of drift) {
-      const matchedRepo = config.repos.find((repo) => repo.name === driftEntry.repoName);
-      if (matchedRepo) {
-        matchedRepo.stack = driftEntry.actual;
-      }
-    }
-    config.updatedAt = new Date().toISOString();
-    await writeTextFile(configPath, serializeConfig(config));
+    const updatedRepos = config.repos.map((r) => {
+      const driftEntry = drift.find((d) => d.repoName === r.name);
+      return driftEntry ? { ...r, stack: driftEntry.actual } : r;
+    });
+    const updatedConfig = {
+      ...config,
+      repos: updatedRepos,
+      updatedAt: new Date().toISOString(),
+    };
+    await writeTextFile(configPath, serializeConfig(updatedConfig));
   }
 
   return {
