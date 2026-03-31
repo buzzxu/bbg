@@ -1,5 +1,5 @@
 import { rm, unlink } from "node:fs/promises";
-import { dirname, join, relative, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeRepo } from "../analyzers/index.js";
 import type { FileHashRecord } from "../config/hash.js";
@@ -12,6 +12,7 @@ import { renderProjectTemplates } from "../templates/render.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { cloneRepo, listRemoteBranches } from "../utils/git.js";
 import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
+import { normalizeWorkspaceRelativePath, resolveBuiltinTemplatesRoot } from "../utils/paths.js";
 import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
 import { runDoctor } from "./doctor.js";
 
@@ -36,10 +37,6 @@ const REPO_TYPE_CHOICES: Array<{ name: RepoType; value: RepoType }> = [
 function sanitizePromptValue(value: string, fallback = ""): string {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : fallback;
-}
-
-function normalizeWorkspaceRelativePath(cwd: string, filePath: string): string {
-  return relative(cwd, filePath).split(sep).join("/");
 }
 
 async function collectStackInfo(detectedStack: StackInfo): Promise<StackInfo> {
@@ -81,19 +78,6 @@ async function restoreFile(pathValue: string, previousContent: string | null): P
   }
 
   await writeTextFile(pathValue, previousContent);
-}
-
-async function resolveBuiltinTemplatesRoot(): Promise<string> {
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [join(commandDir, "..", "..", "templates"), join(commandDir, "..", "templates")];
-
-  for (const candidate of candidates) {
-    if (await exists(candidate)) {
-      return candidate;
-    }
-  }
-
-  return candidates[0] ?? join(commandDir, "..", "..", "templates");
 }
 
 export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResult> {
@@ -194,7 +178,8 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
   try {
     await writeTextFile(configPath, serializeConfig(nextConfig));
 
-    const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot();
+    const commandDir = dirname(fileURLToPath(import.meta.url));
+    const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(commandDir);
     const templateContext = buildTemplateContext(nextConfig);
 
     const [rootAgentsFiles, childAgentsFiles] = await Promise.all([

@@ -1,4 +1,4 @@
-import { dirname, join, relative, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeRepo } from "../analyzers/index.js";
 import { serializeConfig } from "../config/read-write.js";
@@ -12,6 +12,12 @@ import { renderProjectTemplates, type RenderTemplateTask } from "../templates/re
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { cloneRepo, ensureGitAvailable, listRemoteBranches } from "../utils/git.js";
 import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
+import {
+  normalizeWorkspaceRelativePath,
+  resolveBuiltinTemplatesRoot,
+  resolvePackageRoot,
+  toSnapshotRelativePath,
+} from "../utils/paths.js";
 import { makeExecutable } from "../utils/platform.js";
 import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
 import { runDoctor, type RunDoctorResult } from "./doctor.js";
@@ -256,14 +262,6 @@ function buildPlannedFiles(cwd: string, config: BbgConfig): string[] {
   return [join(cwd, ".bbg", "config.json"), join(cwd, ".bbg", "file-hashes.json"), join(cwd, ".gitignore"), ...plannedTemplateFiles];
 }
 
-function normalizeWorkspaceRelativePath(cwd: string, filePath: string): string {
-  return relative(cwd, filePath).split(sep).join("/");
-}
-
-function toSnapshotRelativePath(filePath: string): string {
-  return `.bbg/generated-snapshots/${filePath}.gen`;
-}
-
 function sanitizePromptValue(value: string, fallback: string): string {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : fallback;
@@ -494,38 +492,6 @@ async function ensureRootGitignore(cwd: string, repos: RepoEntry[]): Promise<str
   return gitignorePath;
 }
 
-async function resolveBuiltinTemplatesRoot(): Promise<string> {
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    join(commandDir, "..", "..", "templates"),
-    join(commandDir, "..", "templates"),
-  ];
-
-  for (const candidate of candidates) {
-    if (await exists(candidate)) {
-      return candidate;
-    }
-  }
-
-  return candidates[0] ?? join(commandDir, "..", "..", "templates");
-}
-
-async function resolvePackageRoot(): Promise<string> {
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    join(commandDir, "..", ".."),
-    join(commandDir, ".."),
-  ];
-
-  for (const candidate of candidates) {
-    if (await exists(join(candidate, "agents"))) {
-      return candidate;
-    }
-  }
-
-  return candidates[0] ?? join(commandDir, "..", "..");
-}
-
 export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   const bbgDirPath = join(options.cwd, ".bbg");
   if (await exists(bbgDirPath)) {
@@ -562,8 +528,9 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   await writeTextFile(configPath, serializeConfig(baselineConfig));
   await ensureRootGitignore(options.cwd, baselineConfig.repos);
 
-  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot();
-  const packageRoot = await resolvePackageRoot();
+  const commandDir = dirname(fileURLToPath(import.meta.url));
+  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(commandDir);
+  const packageRoot = await resolvePackageRoot(commandDir);
   const templateContext = buildTemplateContext(baselineConfig);
   const governanceTemplates = buildGovernanceManifest(templateContext);
 

@@ -11,6 +11,11 @@ import { buildTemplatePlan, getRootTemplateManifest, getToolConfigTemplates } fr
 import { renderTemplateContents } from "../templates/render.js";
 import { createUnifiedPatch } from "../upgrade/diff.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
+import {
+  resolveBuiltinTemplatesRoot,
+  resolvePackageRoot,
+  toSnapshotRelativePath,
+} from "../utils/paths.js";
 import { promptConfirm } from "../utils/prompts.js";
 
 export interface RunUpgradeInput {
@@ -45,43 +50,6 @@ function toPatchRelativePath(filePath: string): string {
   return `.bbg/upgrade-patches/${filePath}.patch`.split("\\").join("/");
 }
 
-function toSnapshotRelativePath(filePath: string): string {
-  return `.bbg/generated-snapshots/${filePath}.gen`;
-}
-
-async function resolveBuiltinTemplatesRoot(cwd: string): Promise<string> {
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    join(commandDir, "..", "..", "templates"),
-    join(commandDir, "..", "templates"),
-    join(cwd, "node_modules", "bbg", "templates"),
-  ];
-
-  for (const candidate of candidates) {
-    if (await exists(candidate)) {
-      return candidate;
-    }
-  }
-
-  return candidates[0] ?? join(commandDir, "..", "..", "templates");
-}
-
-async function resolvePackageRoot(): Promise<string> {
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    join(commandDir, "..", ".."),
-    join(commandDir, ".."),
-  ];
-
-  for (const candidate of candidates) {
-    if (await exists(join(candidate, "agents"))) {
-      return candidate;
-    }
-  }
-
-  return candidates[0] ?? join(commandDir, "..", "..");
-}
-
 async function loadSnapshot(cwd: string, filePath: string): Promise<string | null> {
   const snapshotPath = join(cwd, toSnapshotRelativePath(filePath));
   if (!(await exists(snapshotPath))) {
@@ -97,8 +65,11 @@ async function writeSnapshot(cwd: string, filePath: string, content: string): Pr
 
 async function buildTrackedFiles(cwd: string, hashRecord: FileHashRecord): Promise<TrackedFile[]> {
   const config = parseConfig(await readTextFile(join(cwd, ".bbg", "config.json")));
-  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(cwd);
-  const packageRoot = await resolvePackageRoot();
+  const commandDir = dirname(fileURLToPath(import.meta.url));
+  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(commandDir, [
+    join(cwd, "node_modules", "bbg", "templates"),
+  ]);
+  const packageRoot = await resolvePackageRoot(commandDir);
 
   const baseContext = buildTemplateContext(config);
   const governanceTemplates = buildGovernanceManifest(baseContext);

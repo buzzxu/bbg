@@ -4,6 +4,7 @@ import type { BbgConfig } from "../config/schema.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates, type RenderTemplateTask } from "../templates/render.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
+import { resolveBuiltinTemplatesRoot } from "../utils/paths.js";
 
 function expectedRepoIgnoreEntries(config: BbgConfig | null): string[] {
   if (!config) {
@@ -34,19 +35,6 @@ const ROOT_FIX_TEMPLATES: RenderTemplateTask[] = [
   { source: "handlebars/README.md.hbs", destination: "README.md", mode: "handlebars" },
 ];
 
-async function resolveBuiltinTemplatesRoot(): Promise<string> {
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [join(commandDir, "..", "..", "templates"), join(commandDir, "..", "templates")];
-
-  for (const candidate of candidates) {
-    if (await exists(candidate)) {
-      return candidate;
-    }
-  }
-
-  return candidates[0] ?? join(commandDir, "..", "..", "templates");
-}
-
 async function applyRootGovernanceFileFixes(cwd: string, config: BbgConfig | null): Promise<string[]> {
   if (!config) {
     return [];
@@ -63,7 +51,8 @@ async function applyRootGovernanceFileFixes(cwd: string, config: BbgConfig | nul
     return [];
   }
 
-  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot();
+  const commandDir = dirname(fileURLToPath(import.meta.url));
+  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(commandDir);
   return renderProjectTemplates({
     workspaceRoot: cwd,
     builtinTemplatesRoot,
