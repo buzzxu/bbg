@@ -17,3 +17,8 @@ export function promptSelect<Value = unknown>(options: SelectPromptOptions): Pro
 export function promptConfirm(options: ConfirmPromptOptions): Promise<boolean> {
   return confirm(options);
 }
+
+export function sanitizePromptValue(value: string, fallback = ""): string {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+}

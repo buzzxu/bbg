@@ -6,14 +6,14 @@ import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
 import { parseConfig, serializeConfig } from "../config/read-write.js";
 import type { RepoEntry, RepoType, StackInfo } from "../config/schema.js";
-import { CLI_VERSION } from "../constants.js";
+import { CLI_VERSION, REPO_TYPE_CHOICES } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates } from "../templates/render.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { cloneRepo, listRemoteBranches } from "../utils/git.js";
 import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
 import { normalizeWorkspaceRelativePath, resolveBuiltinTemplatesRoot } from "../utils/paths.js";
-import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
+import { promptConfirm, promptInput, promptSelect, sanitizePromptValue } from "../utils/prompts.js";
 import { runDoctor } from "./doctor.js";
 
 export interface RunAddRepoInput {
@@ -24,19 +24,6 @@ export interface RunAddRepoInput {
 
 export interface RunAddRepoResult {
   addedRepoName: string;
-}
-
-const REPO_TYPE_CHOICES: Array<{ name: RepoType; value: RepoType }> = [
-  { name: "backend", value: "backend" },
-  { name: "frontend-pc", value: "frontend-pc" },
-  { name: "frontend-h5", value: "frontend-h5" },
-  { name: "frontend-web", value: "frontend-web" },
-  { name: "other", value: "other" },
-];
-
-function sanitizePromptValue(value: string, fallback = ""): string {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
 }
 
 async function collectStackInfo(detectedStack: StackInfo): Promise<StackInfo> {

@@ -5,7 +5,7 @@ import { serializeConfig } from "../config/read-write.js";
 import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
 import type { BbgConfig, RepoEntry, RepoType, StackInfo } from "../config/schema.js";
-import { CLI_VERSION } from "../constants.js";
+import { CLI_VERSION, DEFAULT_STACK, MANAGED_GITIGNORE_BLOCK_END, MANAGED_GITIGNORE_BLOCK_START, REPO_TYPE_CHOICES } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { buildGovernanceManifest } from "../templates/governance.js";
 import { renderProjectTemplates, type RenderTemplateTask } from "../templates/render.js";
@@ -19,7 +19,7 @@ import {
   toSnapshotRelativePath,
 } from "../utils/paths.js";
 import { makeExecutable } from "../utils/platform.js";
-import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
+import { promptConfirm, promptInput, promptSelect, sanitizePromptValue } from "../utils/prompts.js";
 import { runDoctor, type RunDoctorResult } from "./doctor.js";
 
 export interface RunInitOptions {
@@ -33,23 +33,6 @@ export interface RunInitResult {
   clonedRepos: string[];
   doctor: RunDoctorResult;
 }
-
-const REPO_TYPE_CHOICES: Array<{ name: RepoType; value: RepoType }> = [
-  { name: "backend", value: "backend" },
-  { name: "frontend-pc", value: "frontend-pc" },
-  { name: "frontend-h5", value: "frontend-h5" },
-  { name: "frontend-web", value: "frontend-web" },
-  { name: "other", value: "other" },
-];
-const MANAGED_GITIGNORE_BLOCK_START = "# >>> bbg managed repos >>>";
-const MANAGED_GITIGNORE_BLOCK_END = "# <<< bbg managed repos <<<";
-const DEFAULT_STACK: StackInfo = {
-  language: "unknown",
-  framework: "unknown",
-  buildTool: "unknown",
-  testFramework: "unknown",
-  packageManager: "unknown",
-};
 
 const ROOT_TEMPLATE_MANIFEST: RenderTemplateTask[] = [
   { source: "handlebars/AGENTS.md.hbs", destination: "AGENTS.md", mode: "handlebars" },
@@ -260,11 +243,6 @@ function buildBaselineConfig(nowIso: string): BbgConfig {
 function buildPlannedFiles(cwd: string, config: BbgConfig): string[] {
   const plannedTemplateFiles = buildTemplatePlan(config).map((template) => join(cwd, template.destination));
   return [join(cwd, ".bbg", "config.json"), join(cwd, ".bbg", "file-hashes.json"), join(cwd, ".gitignore"), ...plannedTemplateFiles];
-}
-
-function sanitizePromptValue(value: string, fallback: string): string {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
 }
 
 async function collectStackInfo(detectedStack: StackInfo): Promise<StackInfo> {

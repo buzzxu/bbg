@@ -23,11 +23,15 @@ const doctorState = vi.hoisted(() => ({
   runDoctor: vi.fn(),
 }));
 
-vi.mock("../../src/utils/prompts.js", () => ({
-  promptInput: promptState.promptInput,
-  promptConfirm: promptState.promptConfirm,
-  promptSelect: promptState.promptSelect,
-}));
+vi.mock("../../src/utils/prompts.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/utils/prompts.js")>();
+  return {
+    promptInput: promptState.promptInput,
+    promptConfirm: promptState.promptConfirm,
+    promptSelect: promptState.promptSelect,
+    sanitizePromptValue: actual.sanitizePromptValue,
+  };
+});
 
 vi.mock("../../src/utils/git.js", () => ({
   ensureGitAvailable: gitState.ensureGitAvailable,
