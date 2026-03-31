@@ -1,5 +1,5 @@
 import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
-import { join, sep } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import {

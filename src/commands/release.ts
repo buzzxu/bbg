@@ -1,5 +1,4 @@
-import { basename, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { basename, join } from "node:path";
 import { parseConfig } from "../config/read-write.js";
 import { readTextFile, writeTextFile } from "../utils/fs.js";
 import { promptConfirm, promptInput } from "../utils/prompts.js";
@@ -100,10 +99,12 @@ function buildReleaseRecord(version: string, notes: string, items: ChecklistItem
 
 export async function runRelease(input: RunReleaseInput): Promise<RunReleaseResult> {
   if (input.skipDoctor) {
+    // eslint-disable-next-line no-console
     console.warn("[bbg release] warning: skipDoctor=true, doctor gate is bypassed.");
   }
 
   if (input.skipSync) {
+    // eslint-disable-next-line no-console
     console.warn("[bbg release] warning: skipSync=true, sync drift gate is bypassed.");
   }
 

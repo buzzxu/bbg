@@ -43,7 +43,7 @@ export async function writeTextFile(filePath: string, content: string): Promise<
   } catch (error: unknown) {
     try {
       await unlink(tempFilePath);
-    } catch {}
+    } catch { /* cleanup best-effort */ }
 
     throw error;
   }

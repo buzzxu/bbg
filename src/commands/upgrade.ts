@@ -7,7 +7,7 @@ import type { RepoEntry } from "../config/schema.js";
 import { CLI_VERSION } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { buildGovernanceManifest } from "../templates/governance.js";
-import { buildTemplatePlan, getRootTemplateManifest, getToolConfigTemplates } from "./init.js";
+import { getRootTemplateManifest, getToolConfigTemplates } from "./init.js";
 import { renderTemplateContents } from "../templates/render.js";
 import { createUnifiedPatch } from "../upgrade/diff.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";

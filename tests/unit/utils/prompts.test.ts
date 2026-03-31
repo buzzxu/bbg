@@ -1,5 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
-import type { StackInfo } from "../../../src/config/schema.js";
+import { describe, expect, it } from "vitest";
 
 // collectStackInfo requires mocking @inquirer/prompts — test the wrapper behavior
 describe("utils/prompts", () => {
