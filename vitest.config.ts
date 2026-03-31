@@ -6,5 +6,17 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     testTimeout: 10000,
     hookTimeout: 10000,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      include: ["src/**/*.ts"],
+      exclude: ["src/cli.ts"],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 70,
+        statements: 80,
+      },
+    },
   },
 });
