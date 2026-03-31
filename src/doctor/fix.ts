@@ -5,26 +5,7 @@ import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates, type RenderTemplateTask } from "../templates/render.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { resolveBuiltinTemplatesRoot } from "../utils/paths.js";
-
-function expectedRepoIgnoreEntries(config: BbgConfig | null): string[] {
-  if (!config) {
-    return [];
-  }
-
-  const seen = new Set<string>();
-  const entries: string[] = [];
-  for (const repo of config.repos) {
-    const name = repo.name.trim().replace(/^\/+|\/+$/g, "");
-    if (name.length === 0 || seen.has(name)) {
-      continue;
-    }
-
-    seen.add(name);
-    entries.push(`${name}/`);
-  }
-
-  return entries;
-}
+import { expectedRepoIgnoreEntries } from "./shared.js";
 
 export interface DoctorFixResult {
   changed: string[];

@@ -6,6 +6,7 @@ import { parseConfig } from "../config/read-write.js";
 import { sha256Hex, type FileHashRecord } from "../config/hash.js";
 import type { BbgConfig } from "../config/schema.js";
 import { exists, readTextFile } from "../utils/fs.js";
+import { expectedRepoIgnoreEntries } from "./shared.js";
 
 export type DoctorSeverity = "error" | "warning" | "info";
 
@@ -75,26 +76,6 @@ async function checkManyExist(cwd: string, relativePaths: string[]): Promise<{ m
   }
 
   return { missing };
-}
-
-function expectedRepoIgnoreEntries(config: BbgConfig | null): string[] {
-  if (!config) {
-    return [];
-  }
-
-  const seen = new Set<string>();
-  const entries: string[] = [];
-  for (const repo of config.repos) {
-    const name = repo.name.trim().replace(/^\/+|\/+$/g, "");
-    if (name.length === 0 || seen.has(name)) {
-      continue;
-    }
-
-    seen.add(name);
-    entries.push(`${name}/`);
-  }
-
-  return entries;
 }
 
 async function runHashIntegrityCheck(cwd: string): Promise<DoctorCheckResult> {
