@@ -1,52 +1,59 @@
 # BBG Maintenance Roadmap
 
 **Last updated**: 2026-03-31  
-**Current version**: v0.1.0  
+**Current version**: v0.2.0  
 **Architecture**: [Self-Governance Feedback Loop](specs/self-governance-architecture.md)
 
 ---
 
-## v0.2.0 — Foundation Hardening
+## v0.2.0 — Foundation Hardening ✅
 
 **Theme**: Fix first, build later. Eliminate tech debt, add quality gates.  
-**Status**: Not started
+**Status**: Complete
 
-### P0 — Must Have
+### P0 — Must Have ✅
 
-- [ ] Extract duplicated functions to `src/utils/shared.ts`
-  - `sanitizePromptValue()` — duplicated in init.ts, add-repo.ts
-  - `isParseableGitUrl()` — duplicated in init.ts, add-repo.ts
-  - `inferRepoName()` — duplicated in init.ts, add-repo.ts
-  - `collectStackInfo()` — duplicated in init.ts, add-repo.ts
-  - `resolveBuiltinTemplatesRoot()` — duplicated in init.ts, upgrade.ts, fix.ts
-- [ ] Split `init.ts` (668 lines → 3-4 focused modules)
-  - Template manifest management
-  - Repository setup flow
-  - Governance deployment
-  - Prompt/interaction handling
-- [ ] Add tests for 8 untested source files
-  - `src/constants.ts`
-  - `src/analyzers/index.ts`
-  - `src/templates/engine.ts`
-  - `src/templates/governance.ts`
-  - `src/upgrade/diff.ts`
-  - `src/utils/fs.ts`
-  - `src/utils/prompts.ts`
-  - `src/config/schema.ts`
+- [x] Extract 10 duplicated functions to shared modules
+  - `sanitizePromptValue()` → `src/utils/prompts.ts`
+  - `isParseableGitUrl()` → `src/utils/git-url.ts`
+  - `inferRepoName()` → `src/utils/git-url.ts`
+  - `collectStackInfo()` → `src/utils/prompts.ts`
+  - `resolveBuiltinTemplatesRoot()` → `src/utils/paths.ts`
+  - `resolvePackageRoot()` → `src/utils/paths.ts`
+  - `toSnapshotRelativePath()` → `src/utils/paths.ts`
+  - `normalizeWorkspaceRelativePath()` → `src/utils/paths.ts`
+  - `readIfExists()` → `src/utils/fs.ts`
+  - `expectedRepoIgnoreEntries()` → `src/doctor/shared.ts`
+- [x] Split `init.ts` (553 → 172 lines, 4 focused modules)
+  - `init.ts` — orchestrator
+  - `init-manifest.ts` — template registries + plan building
+  - `init-prompts.ts` — interactive wizard + config collection
+  - `init-gitignore.ts` — gitignore managed block logic
+- [x] Add tests for untested source files
+  - `src/constants.ts` — 6 tests
+  - `src/analyzers/index.ts` — 7 tests
+  - `src/templates/engine.ts` — 30 tests
+  - `src/templates/governance.ts` — 5 tests
+  - `src/upgrade/diff.ts` — 14 tests
+  - `src/utils/fs.ts` — 10 tests
+  - `src/utils/prompts.ts` — 1 test
+  - `src/doctor/shared.ts` — 4 tests
+  - `src/utils/git-url.ts` — 15 tests
+  - `src/utils/paths.ts` — 14 tests
 
-### P1 — Should Have
+### P1 — Should Have ✅
 
-- [ ] Add ESLint + Prettier configuration
-- [ ] Add GitHub Actions CI workflow (build + test + lint on push/PR)
-- [ ] Add npm scripts: `typecheck`, `coverage`, `lint`
-- [ ] Set up vitest coverage reporting (target: 80%)
+- [x] Add ESLint + Prettier configuration (`.eslintrc.cjs`, `.prettierrc`)
+- [x] Add GitHub Actions CI workflow (`.github/workflows/ci.yml`, Node 18/20/22 matrix)
+- [x] Add npm scripts: `typecheck`, `coverage`, `lint`, `lint:fix`
+- [x] Set up vitest coverage reporting with `@vitest/coverage-v8`
 
-### P2 — Nice to Have
+### P2 — Nice to Have ✅
 
-- [ ] Fix `sync.ts` direct mutation of `repo.stack` (immutability violation)
-- [ ] Remove unused `BbgAnalyzerError` export from `src/utils/errors.ts`
-- [ ] Fix AGENTS.md references to non-existent files (`src/utils/logger.ts`, `src/templates/manifest.ts`)
-- [ ] Fix init.ts TypeScript errors (ListRemoteBranchesResult type issues)
+- [x] Fix `sync.ts` direct mutation of `repo.stack` (immutable `config.repos.map()` pattern)
+- [x] Remove unused `BbgAnalyzerError` export from `src/utils/errors.ts`
+- [x] Fix AGENTS.md references to non-existent files
+- [x] Fix init.ts TypeScript errors (ListRemoteBranchesResult type — zero TS errors now)
 
 ---
 

@@ -134,16 +134,28 @@ Operational contexts in `contexts/`:
 ## Project Architecture
 
 ```
-src/cli.ts              -> CLI entry point (Commander + Inquirer)
-src/analyzers/          -> 4 project analyzers (stack, structure, deps, testing)
-src/commands/           -> 6 CLI commands (init, add-repo, doctor, sync, release, upgrade)
-src/config/             -> Configuration management
-src/doctor/             -> Health checks and auto-fix
-src/templates/          -> Template rendering engine (Handlebars)
-src/upgrade/            -> Template upgrade diffing
-src/utils/              -> Shared utilities (fs, git, git-url, paths, platform, prompts, errors)
-templates/              -> 3-tier template system (generic, handlebars, scaffold)
-tests/                  -> Unit + integration tests (vitest)
+src/cli.ts                   -> CLI entry point (Commander + Inquirer)
+src/analyzers/               -> 4 project analyzers (stack, structure, deps, testing)
+src/commands/                -> 6 CLI commands (init, add-repo, doctor, sync, release, upgrade)
+  init.ts                    -> Init orchestrator (~170 lines)
+  init-manifest.ts           -> Template registries + plan building
+  init-prompts.ts            -> Interactive wizard + config collection
+  init-gitignore.ts          -> Gitignore managed block logic
+src/config/                  -> Configuration management
+src/doctor/                  -> Health checks and auto-fix
+  shared.ts                  -> Shared doctor utilities (expectedRepoIgnoreEntries)
+src/templates/               -> Template rendering engine (Handlebars)
+src/upgrade/                 -> Template upgrade diffing
+src/utils/                   -> Shared utilities
+  fs.ts                      -> File operations (exists, readIfExists, readTextFile, writeTextFile)
+  git.ts                     -> Git operations (clone, branches, credentials)
+  git-url.ts                 -> Git URL validation + repo name inference
+  paths.ts                   -> Template root / package root resolution
+  platform.ts                -> Platform detection
+  prompts.ts                 -> CLI prompts + sanitization + collectStackInfo
+  errors.ts                  -> Custom error classes (BbgError, BbgConfigError, etc.)
+templates/                   -> 3-tier template system (generic, handlebars, scaffold)
+tests/                       -> Unit + integration tests (vitest)
 ```
 
 ## Build & Test
@@ -152,6 +164,10 @@ tests/                  -> Unit + integration tests (vitest)
 npm run build          # Build with tsup
 npm run test           # Run all tests with vitest
 npm run dev            # Development mode with tsx
+npm run typecheck      # TypeScript type checking
+npm run lint           # ESLint check
+npm run lint:fix       # ESLint auto-fix
+npm run coverage       # Test coverage report
 ```
 
 ## Coding Style

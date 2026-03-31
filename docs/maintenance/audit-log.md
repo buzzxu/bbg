@@ -6,6 +6,74 @@ Per-session maintenance log for BBG. Each entry records what was done, what was 
 
 ---
 
+## 2026-03-31 — v0.2.0 Foundation Hardening Implementation
+
+**Session type**: Refactor / Feature / Bug fix  
+**Duration**: Multi-session  
+**Tools used**: OpenCode, Claude Code
+
+### Changes Made
+
+**Extraction (Tasks 1-6):** Extracted 10 duplicated functions into shared modules:
+- `src/utils/fs.ts` — `readIfExists`
+- `src/utils/git-url.ts` — `isParseableGitUrl`, `inferRepoName`
+- `src/utils/paths.ts` — `resolveBuiltinTemplatesRoot`, `resolvePackageRoot`, `toSnapshotRelativePath`, `normalizeWorkspaceRelativePath`
+- `src/utils/prompts.ts` — `sanitizePromptValue`, `collectStackInfo`
+- `src/doctor/shared.ts` — `expectedRepoIgnoreEntries`
+- `src/constants.ts` — `REPO_TYPE_CHOICES`, `DEFAULT_STACK`, `MANAGED_GITIGNORE_BLOCK_*`
+
+**Split (Task 7):** Split `init.ts` (553→172 lines) into 4 focused modules:
+- `init.ts` (orchestrator), `init-manifest.ts`, `init-prompts.ts`, `init-gitignore.ts`
+
+**Bug fixes (Tasks 8-10):**
+- Fixed `ListRemoteBranchesResult` type errors and credential passthrough
+- Fixed `sync.ts` immutability violation (immutable `config.repos.map()` pattern)
+- Removed dead `BbgAnalyzerError` class
+
+**Documentation (Task 11):** Fixed AGENTS.md stale references
+
+**Tests (Tasks 12-15):** Added 56+ tests across 4 new test files:
+- `tests/unit/templates/engine.test.ts` — 30 tests for Handlebars helpers
+- `tests/unit/templates/governance.test.ts` — 5 tests for manifest generation
+- `tests/unit/upgrade/diff.test.ts` — 14 tests for unified patch
+- `tests/unit/analyzers/index.test.ts` — 7 tests for repo analysis
+
+**Tooling (Tasks 16-17):**
+- ESLint 8 + Prettier + `eslint-config-prettier` configured
+- `typecheck`, `lint`, `lint:fix`, `coverage` npm scripts added
+- `@vitest/coverage-v8` for coverage reporting
+- GitHub Actions CI with Node 18/20/22 matrix
+
+**Final (Task 18):** Updated AGENTS.md architecture, roadmap, known-issues, audit-log
+
+### Test Results
+- 201 tests passing (up from 93 at v0.1.0)
+- 2 pre-existing timeout failures (cli.smoke.test.ts, bootstrap.test.ts)
+- Zero TypeScript errors (`npm run typecheck`)
+- Zero lint errors (`npm run lint`)
+- Build passes (`npm run build`)
+
+### Discoveries
+- `indent` Handlebars helper param order is `(count, text)` not `(text, count)` — spec had it wrong
+- Handlebars passes options hash object as last arg to helpers — affects `date` and `join` when called without explicit params
+- `ListRemoteBranchesResult` returns `{ branches, credentials }` not `string[]` — credentials needed for clone
+- `BbgConfig` uses `gitUrl` (not `url`), `projectName` (not `name`), `version` (not `bbgVersion`)
+- ESLint 8 is EOL but ESLint 9+ requires flat config format — tracked as K-026
+
+### Governance Feedback
+- Implementation plan specs should be validated against actual type schemas before execution
+- The 18-task execution method (subagent-driven development) worked well for mechanical refactoring
+- Spec compliance review caught several schema mismatches early
+- Coverage target of 80% should be verified with actual coverage run
+
+### Next Steps
+- Run `npm run coverage` and assess coverage percentage
+- Begin v0.3.0 planning (governance cross-references, context path fixes)
+- Migrate to ESLint 9 flat config (K-026)
+- Fix pre-existing test timeouts (K-027)
+
+---
+
 ## 2026-03-31 — Self-Governance Architecture Design
 
 **Session type**: Architecture / Planning  
