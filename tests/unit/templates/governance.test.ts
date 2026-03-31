@@ -122,11 +122,13 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("rules/typescript/node.md");
     expect(destinations).toContain("rules/typescript/security.md");
 
-    // TypeScript commands: ts-review
+    // TypeScript commands: ts-review, ts-build, ts-test
     expect(destinations).toContain("commands/ts-review.md");
+    expect(destinations).toContain("commands/ts-build.md");
+    expect(destinations).toContain("commands/ts-test.md");
 
-    // Total: 94 core + 2 agents + 4 skills + 5 rules + 1 command = 106
-    expect(tasks).toHaveLength(106);
+    // Total: 94 core + 2 agents + 4 skills + 5 rules + 3 commands = 108
+    expect(tasks).toHaveLength(108);
   });
 
   it("includes files for multiple languages (python + typescript)", () => {
@@ -173,8 +175,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("skills/coding-standards/SKILL.md");
     expect(destinations).toContain("rules/common/coding-style.md");
 
-    // 94 core + TS(2+4+5+1) + Python(2+4+4+1) = 94 + 12 + 11 = 117
-    expect(tasks).toHaveLength(117);
+    // 94 core + TS(2+4+5+3) + Python(2+4+4+3) = 94 + 14 + 13 = 121
+    expect(tasks).toHaveLength(121);
   });
 
   it("ensures all task source and destination paths are non-empty strings", () => {
