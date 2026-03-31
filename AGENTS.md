@@ -121,8 +121,8 @@ Hook automation is configured in `hooks/hooks.json` with 6 scripts:
 
 ## MCP Servers
 
-12 MCP server configurations in `mcp-configs/mcp-servers.json`:
-github, filesystem, postgres, sqlite, brave-search, puppeteer, memory, fetch, sequential-thinking, context7, supabase, redis.
+14 MCP server configurations in `mcp-configs/mcp-servers.json`:
+github, filesystem, postgres, sqlite, brave-search, puppeteer, memory, fetch, sequential-thinking, context7, magic, playwright, supabase, redis.
 
 ## Contexts
 

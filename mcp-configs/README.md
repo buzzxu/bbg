@@ -39,6 +39,8 @@ This directory contains Model Context Protocol (MCP) server configurations for u
 | `brave-search` | Web search via Brave Search API |
 | `puppeteer` | Browser automation, screenshots, scraping |
 | `sequential-thinking` | Multi-step reasoning and chain-of-thought |
+| `magic` | AI-powered UI component generation |
+| `playwright` | Browser automation and E2E testing via MCP |
 
 ## Recommended Configurations by Use Case
 
@@ -49,7 +51,7 @@ This directory contains Model Context Protocol (MCP) server configurations for u
 
 ## Context Window Budget
 
-**Keep active MCP servers under 10.** Each server consumes context window tokens for its tool definitions. Running all 12 servers simultaneously wastes context that could be used for code and conversation.
+**Keep active MCP servers under 10.** Each server consumes context window tokens for its tool definitions. Running all 14 servers simultaneously wastes context that could be used for code and conversation.
 
 Pick the smallest set of servers that covers your current task. You can always swap servers between sessions.
 

@@ -146,11 +146,11 @@ const CORE_COMMANDS = [
 ];
 
 const LANGUAGE_COMMANDS: Record<string, string[]> = {
-  typescript: ["ts-review"],
-  python: ["python-review"],
+  typescript: ["ts-review", "ts-build", "ts-test"],
+  python: ["python-review", "python-build", "python-test"],
   go: ["go-review", "go-test", "go-build"],
-  java: ["java-review"],
-  rust: ["rust-review"],
+  java: ["java-review", "java-build", "java-test"],
+  rust: ["rust-review", "rust-build", "rust-test"],
   kotlin: ["kotlin-review"],
 };
 

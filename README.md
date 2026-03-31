@@ -75,7 +75,7 @@ skills/                 60 skill directories with SKILL.md workflows
 rules/                  35 rule files (common + 7 language-specific directories)
 commands/               32 slash command definitions
 hooks/                  Hook automation (hooks.json + 6 scripts)
-mcp-configs/            12 MCP server configurations
+mcp-configs/            14 MCP server configurations
 contexts/               3 operational contexts (dev, review, research)
 ```
 
@@ -129,9 +129,9 @@ contexts/               3 operational contexts (dev, review, research)
 | security-scan.js | Detect secrets, block destructive commands |
 | suggest-compact.js | Track token usage and suggest compaction |
 
-### MCP Servers (12)
+### MCP Servers (14)
 
-github, filesystem, postgres, sqlite, brave-search, puppeteer, memory, fetch, sequential-thinking, context7, supabase, redis
+github, filesystem, postgres, sqlite, brave-search, puppeteer, memory, fetch, sequential-thinking, context7, magic, playwright, supabase, redis
 
 See `mcp-configs/README.md` for setup instructions.
 

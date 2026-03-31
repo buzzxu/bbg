@@ -32,7 +32,7 @@ skills/                 → 60 skill directories with SKILL.md files
 rules/                  → 35 rule files (common + 7 language-specific directories)
 commands/               → 32 slash command definitions
 hooks/                  → Hook configs + 6 automation scripts
-mcp-configs/            → 12 MCP server configurations
+mcp-configs/            → 14 MCP server configurations
 contexts/               → 3 operational contexts (dev, review, research)
 ```
 
