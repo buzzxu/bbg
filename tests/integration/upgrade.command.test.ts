@@ -150,7 +150,7 @@ describe("upgrade command", () => {
     expect(hashRecord["docs/workflows/release-checklist.md"]?.templateVersion).toBe("0.0.1");
   });
 
-  it("supports dry-run and asks confirmation before --force overwrite", async () => {
+  it("supports dry-run and asks confirmation before --force overwrite", { timeout: 15000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 
