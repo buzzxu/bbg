@@ -11,6 +11,19 @@ AI Development Workflow Governance CLI -- scaffolds agent instructions, rules, h
 - **Template upgrades** -- Diff-based upgrades when templates evolve
 - **Comprehensive governance scaffold** -- 25 agents, 61 skills, 34 rules, 40 commands, hooks, MCP configs
 
+## Language Support
+
+| Language | Reviewer | Build Resolver | Commands | Skills | Rules | Status |
+|----------|:--------:|:--------------:|:--------:|:------:|:-----:|--------|
+| TypeScript | Y | Y | 3 | 4 | 5 | Full |
+| Python | Y | Y | 3 | 4 | 4 | Full |
+| Go | Y | Y | 3 | 3 | 4 | Full |
+| Java | Y | Y | 3 | 4 | 4 | Full |
+| Rust | Y | Y | 3 | 3 | 3 | Full |
+| Kotlin | Y | -- | 1 | 3 | 3 | Partial |
+| PHP | -- | -- | -- | 2 | 3 | Partial |
+| C++ | -- | Y | -- | 1 | -- | Partial |
+
 ## Quick Start
 
 ```bash
@@ -88,15 +101,15 @@ contexts/               3 operational contexts (dev, review, research)
 | Language | 6 | typescript-reviewer, python-reviewer, go-reviewer, java-reviewer, rust-reviewer, kotlin-reviewer |
 | Build Resolvers | 6 | typescript-build-resolver, python-build-resolver, go-build-resolver, java-build-resolver, rust-build-resolver, cpp-build-resolver |
 
-### Skills (60)
+### Skills (61)
 
 | Category | Count | Examples |
 |----------|-------|----------|
-| Core | 20 | tdd-workflow, security-review, verification-loop, api-design, harness-engineering |
+| Core | 21 | tdd-workflow, security-review, verification-loop, api-design, harness-engineering, writing-plans |
 | Language | 24 | typescript-patterns, react-patterns, python-patterns, golang-patterns, rust-patterns |
 | Operations | 16 | ci-cd-patterns, monitoring-patterns, incident-response, prompt-engineering |
 
-### Rules (35)
+### Rules (34)
 
 | Directory | Count | Scope |
 |-----------|-------|-------|
@@ -109,13 +122,13 @@ contexts/               3 operational contexts (dev, review, research)
 | kotlin/ | 3 | coding-style, testing, security |
 | php/ | 3 | coding-style, testing, security |
 
-### Commands (32)
+### Commands (40)
 
 | Category | Count | Commands |
 |----------|-------|----------|
 | Core Workflow | 10 | plan, tdd, code-review, build-fix, security-scan, refactor-clean, e2e, test-coverage, update-docs, doctor |
 | Learning & Session | 6 | learn, learn-eval, checkpoint, verify, sessions, eval |
-| Language-Specific | 8 | ts-review, python-review, go-review, go-test, go-build, java-review, rust-review, kotlin-review |
+| Language-Specific | 16 | ts-review, ts-test, ts-build, python-review, python-test, python-build, go-review, go-test, go-build, java-review, java-test, java-build, rust-review, rust-test, rust-build, kotlin-review |
 | Orchestration | 8 | orchestrate, loop-start, loop-status, quality-gate, harness-audit, model-route, setup-pm, sync |
 
 ### Hooks
