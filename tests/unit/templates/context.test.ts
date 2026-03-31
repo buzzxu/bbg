@@ -105,4 +105,26 @@ describe("buildTemplateContext", () => {
 
     vi.useRealTimers();
   });
+
+  it("includes buildCommand derived from stack info", () => {
+    const config = createConfig();
+    const ctx = buildTemplateContext(config);
+    expect(ctx.buildCommand).toBe("mvn compile");
+  });
+
+  it("includes testCommand derived from stack info", () => {
+    const config = createConfig();
+    const ctx = buildTemplateContext(config);
+    expect(ctx.testCommand).toBe("mvn test");
+  });
+
+  it("includes srcDir defaulting to src/main/java/ for java", () => {
+    const ctx = buildTemplateContext(createConfig());
+    expect(ctx.srcDir).toBe("src/main/java/");
+  });
+
+  it("includes lintCommand defaulting to mvn checkstyle:check for java", () => {
+    const ctx = buildTemplateContext(createConfig());
+    expect(ctx.lintCommand).toBe("mvn checkstyle:check");
+  });
 });

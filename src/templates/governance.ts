@@ -165,7 +165,7 @@ const HOOK_FILES = [
   "scripts/suggest-compact.js",
 ];
 
-const CONTEXT_FILES = ["dev.md", "review.md", "research.md"];
+const CONTEXT_HBS_FILES = ["dev.md", "review.md", "research.md"];
 
 const MCP_CONFIG_FILES = ["mcp-servers.json", "README.md"];
 
@@ -175,6 +175,10 @@ const MCP_CONFIG_FILES = ["mcp-servers.json", "README.md"];
 
 function copyTask(source: string, destination: string): RenderTemplateTask {
   return { source, destination, mode: "copy" };
+}
+
+function handlebarsTask(source: string, destination: string): RenderTemplateTask {
+  return { source, destination, mode: "handlebars" };
 }
 
 /* ------------------------------------------------------------------ */
@@ -268,9 +272,11 @@ export function buildGovernanceManifest(ctx: TemplateContext): RenderTemplateTas
     tasks.push(copyTask(`hooks/${hookFile}`, `hooks/${hookFile}`));
   }
 
-  // --- Contexts ---
-  for (const ctxFile of CONTEXT_FILES) {
-    tasks.push(copyTask(`contexts/${ctxFile}`, `contexts/${ctxFile}`));
+  // --- Contexts (Handlebars-rendered) ---
+  for (const ctxFile of CONTEXT_HBS_FILES) {
+    tasks.push(
+      handlebarsTask(`handlebars/contexts/${ctxFile}.hbs`, `contexts/${ctxFile}`),
+    );
   }
 
   // --- MCP Configs ---

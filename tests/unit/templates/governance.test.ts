@@ -49,8 +49,9 @@ describe("buildGovernanceManifest", () => {
     const ctx = buildTemplateContext(config);
     const tasks = buildGovernanceManifest(ctx);
 
-    // All tasks should be copy mode
-    for (const task of tasks) {
+    // All non-context tasks should be copy mode
+    const nonContextTasks = tasks.filter((t) => !t.destination.startsWith("contexts/"));
+    for (const task of nonContextTasks) {
       expect(task.mode).toBe("copy");
     }
 
@@ -84,9 +85,13 @@ describe("buildGovernanceManifest", () => {
     expect(hookTasks.map((t) => t.destination)).toContain("hooks/hooks.json");
     expect(hookTasks.map((t) => t.destination)).toContain("hooks/scripts/security-scan.js");
 
-    // Contexts: 3
+    // Contexts: 3 (handlebars mode)
     const contextTasks = tasks.filter((t) => t.destination.startsWith("contexts/"));
     expect(contextTasks).toHaveLength(3);
+    for (const task of contextTasks) {
+      expect(task.mode).toBe("handlebars");
+      expect(task.source).toMatch(/^handlebars\/contexts\/.*\.hbs$/);
+    }
 
     // MCP configs: 2
     const mcpTasks = tasks.filter((t) => t.destination.startsWith("mcp-configs/"));

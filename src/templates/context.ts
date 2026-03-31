@@ -26,11 +26,63 @@ export interface TemplateContext {
   hasCpp: boolean;
   bbgVersion: string;
   generatedAt: string;
+  buildCommand: string;
+  testCommand: string;
+  lintCommand: string;
+  srcDir: string;
   repo?: RepoEntry;
 }
 
 function unique(values: string[]): string[] {
   return [...new Set(values)];
+}
+
+function deriveBuildCommand(languages: string[], repos: RepoEntry[]): string {
+  const primaryLang = languages[0] ?? "unknown";
+  const buildTool = repos[0]?.stack.buildTool ?? "unknown";
+
+  if (primaryLang === "go") return "go build ./...";
+  if (primaryLang === "rust") return "cargo build";
+  if (primaryLang === "java") {
+    if (buildTool === "gradle") return "./gradlew build";
+    return "mvn compile";
+  }
+  if (primaryLang === "python") return "python -m build";
+  return "npm run build";
+}
+
+function deriveTestCommand(languages: string[], repos: RepoEntry[]): string {
+  const primaryLang = languages[0] ?? "unknown";
+  const buildTool = repos[0]?.stack.buildTool ?? "unknown";
+
+  if (primaryLang === "go") return "go test ./...";
+  if (primaryLang === "rust") return "cargo test";
+  if (primaryLang === "java") {
+    if (buildTool === "gradle") return "./gradlew test";
+    return "mvn test";
+  }
+  if (primaryLang === "python") return "pytest";
+  return "npm test";
+}
+
+function deriveLintCommand(languages: string[]): string {
+  const primaryLang = languages[0] ?? "unknown";
+
+  if (primaryLang === "go") return "golangci-lint run";
+  if (primaryLang === "rust") return "cargo clippy";
+  if (primaryLang === "python") return "ruff check .";
+  if (primaryLang === "java") return "mvn checkstyle:check";
+  return "npm run lint";
+}
+
+function deriveSrcDir(languages: string[]): string {
+  const primaryLang = languages[0] ?? "unknown";
+
+  if (primaryLang === "go") return "pkg/";
+  if (primaryLang === "rust") return "src/";
+  if (primaryLang === "java") return "src/main/java/";
+  if (primaryLang === "python") return "app/";
+  return "src/";
 }
 
 export function buildTemplateContext(config: BbgConfig): TemplateContext {
@@ -65,5 +117,9 @@ export function buildTemplateContext(config: BbgConfig): TemplateContext {
     hasCpp: languages.includes("cpp") || languages.includes("c++"),
     bbgVersion: config.version,
     generatedAt: new Date().toISOString(),
+    buildCommand: deriveBuildCommand(languages, config.repos),
+    testCommand: deriveTestCommand(languages, config.repos),
+    lintCommand: deriveLintCommand(languages),
+    srcDir: deriveSrcDir(languages),
   };
 }
