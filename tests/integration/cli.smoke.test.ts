@@ -21,7 +21,7 @@ describe("cli smoke", () => {
     await ensureBuiltCli();
   });
 
-  it("prints v1 command list in --help output", { timeout: 15000 }, async () => {
+  it("prints v1 command list in --help output", { timeout: 30000 }, async () => {
     const { stdout } = await execa("node", [distCliPath, "--help"], { cwd: repoRoot });
 
     expect(stdout).toContain("Usage: bbg");

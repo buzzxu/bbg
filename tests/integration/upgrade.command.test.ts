@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../../src/config/hash.js";
+import { CLI_VERSION } from "../../src/constants.js";
 import { writeTextFile } from "../../src/utils/fs.js";
 
 const promptState = vi.hoisted(() => ({
@@ -138,15 +139,15 @@ describe("upgrade command", () => {
     const updatedConfig = JSON.parse(await readFile(join(cwd, ".bbg", "config.json"), "utf8")) as {
       version: string;
     };
-    expect(updatedConfig.version).toBe("0.1.0");
+    expect(updatedConfig.version).toBe(CLI_VERSION);
 
     const hashRecord = JSON.parse(await readFile(join(cwd, ".bbg", "file-hashes.json"), "utf8")) as Record<
       string,
       { generatedHash: string; generatedAt: string; templateVersion: string }
     >;
-    expect(hashRecord["AGENTS.md"]?.templateVersion).toBe("0.1.0");
-    expect(hashRecord["README.md"]?.templateVersion).toBe("0.1.0");
-    expect(hashRecord[".githooks/pre-commit"]?.templateVersion).toBe("0.1.0");
+    expect(hashRecord["AGENTS.md"]?.templateVersion).toBe(CLI_VERSION);
+    expect(hashRecord["README.md"]?.templateVersion).toBe(CLI_VERSION);
+    expect(hashRecord[".githooks/pre-commit"]?.templateVersion).toBe(CLI_VERSION);
     expect(hashRecord["docs/workflows/release-checklist.md"]?.templateVersion).toBe("0.0.1");
   });
 
