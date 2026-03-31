@@ -106,8 +106,8 @@ export async function collectInitConfig(nowIso: string, options: CollectInitOpti
     if (!isParseableGitUrl(gitUrl)) {
       throw new Error("Repository git URL is invalid. Please provide a parseable git URL.");
     }
-    const remoteBranches = await listRemoteBranches(gitUrl);
-    const branchChoices = (remoteBranches.length > 0 ? remoteBranches : ["main"]).map((branch) => ({
+    const { branches: remoteBranches, credentials } = await listRemoteBranches(gitUrl);
+    const branchChoices = (remoteBranches.length > 0 ? remoteBranches : ["main"]).map((branch: string) => ({
       name: branch,
       value: branch,
     }));
@@ -121,7 +121,7 @@ export async function collectInitConfig(nowIso: string, options: CollectInitOpti
 
     let stack = DEFAULT_STACK;
     if (!options.dryRun) {
-      await cloneRepo({ url: gitUrl, branch, targetDir });
+      await cloneRepo({ url: gitUrl, branch, targetDir, credentials: credentials ?? undefined });
       clonedRepos.push(targetDir);
       const analysis = await analyzeRepo(targetDir);
       stack = await collectStackInfo(analysis.stack);

@@ -83,7 +83,7 @@ describe("init command", () => {
     promptState.promptConfirm.mockResolvedValue(false);
     promptState.promptSelect.mockResolvedValue("other");
     gitState.ensureGitAvailable.mockResolvedValue(undefined);
-    gitState.listRemoteBranches.mockResolvedValue(["main"]);
+    gitState.listRemoteBranches.mockResolvedValue({ branches: ["main"], credentials: null });
     gitState.cloneRepo.mockResolvedValue(undefined);
     analyzerState.analyzeRepo.mockResolvedValue({
       stack: {
@@ -311,7 +311,7 @@ describe("init command", () => {
       .mockResolvedValueOnce("main")
       .mockResolvedValueOnce("backend");
 
-    gitState.listRemoteBranches.mockResolvedValue(["main", "develop"]);
+    gitState.listRemoteBranches.mockResolvedValue({ branches: ["main", "develop"], credentials: null });
 
     analyzerState.analyzeRepo.mockResolvedValue({
       stack: {
