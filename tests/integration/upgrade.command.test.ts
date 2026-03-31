@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, unlink } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -55,7 +55,6 @@ async function seedWorkspace(cwd: string): Promise<void> {
   const trackedOld = {
     "AGENTS.md": "old agents\n",
     "docs/workflows/release-checklist.md": "old checklist\n",
-    "docs/domains/core.md": "old core\n",
     ".gitignore": "old ignore\n",
   };
 
@@ -64,13 +63,11 @@ async function seedWorkspace(cwd: string): Promise<void> {
     writeTextFile(join(cwd, "AGENTS.md"), trackedOld["AGENTS.md"]),
     writeTextFile(join(cwd, ".gitignore"), trackedOld[".gitignore"]),
     writeTextFile(join(cwd, "docs", "workflows", "release-checklist.md"), trackedOld["docs/workflows/release-checklist.md"]),
-    writeTextFile(join(cwd, "docs", "domains", "core.md"), trackedOld["docs/domains/core.md"]),
     writeTextFile(join(cwd, ".bbg", "generated-snapshots", "AGENTS.md.gen"), trackedOld["AGENTS.md"]),
     writeTextFile(
       join(cwd, ".bbg", "generated-snapshots", "docs", "workflows", "release-checklist.md.gen"),
       trackedOld["docs/workflows/release-checklist.md"],
     ),
-    writeTextFile(join(cwd, ".bbg", "generated-snapshots", "docs", "domains", "core.md.gen"), trackedOld["docs/domains/core.md"]),
     writeTextFile(join(cwd, ".bbg", "generated-snapshots", ".gitignore.gen"), trackedOld[".gitignore"]),
     mkdir(join(cwd, "repo-a"), { recursive: true }),
   ]);
@@ -83,11 +80,6 @@ async function seedWorkspace(cwd: string): Promise<void> {
     },
     "docs/workflows/release-checklist.md": {
       generatedHash: sha256Hex(trackedOld["docs/workflows/release-checklist.md"]),
-      generatedAt: "2026-03-29T00:00:00.000Z",
-      templateVersion: "0.0.1",
-    },
-    "docs/domains/core.md": {
-      generatedHash: sha256Hex(trackedOld["docs/domains/core.md"]),
       generatedAt: "2026-03-29T00:00:00.000Z",
       templateVersion: "0.0.1",
     },
@@ -123,13 +115,11 @@ describe("upgrade command", () => {
     await seedWorkspace(cwd);
 
     await writeTextFile(join(cwd, "docs", "workflows", "release-checklist.md"), "user changed checklist\n");
-    await unlink(join(cwd, "docs", "domains", "core.md"));
 
     const result = await runUpgrade({ cwd });
 
     expect(result.overwritten).toContain("AGENTS.md");
     expect(result.patches).toContain(".bbg/upgrade-patches/docs/workflows/release-checklist.md.patch");
-    expect(result.skipped).toContain("docs/domains/core.md");
     expect(result.skippedWithNotice).not.toContain("docs/workflows/release-checklist.md");
     expect(result.skippedDeletedTemplate).toContain(".gitignore");
     expect(result.created).toContain("README.md");

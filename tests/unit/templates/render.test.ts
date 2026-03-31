@@ -128,35 +128,6 @@ describe("renderProjectTemplates", () => {
     expect(agentsContent).toContain("  line2");
   });
 
-  it("copies scaffold files and preserves AI-FILL markers", async () => {
-    const workspaceRoot = createTempDir("bbg-render-scaffold-workspace-");
-    const builtinTemplatesRoot = createTempDir("bbg-render-scaffold-builtin-");
-
-    mkdirSync(join(builtinTemplatesRoot, "scaffold/docs/domains"), { recursive: true });
-    writeFileSync(
-      join(builtinTemplatesRoot, "scaffold/docs/domains/core.md"),
-      "# Core\n\n<!-- AI-FILL: explain domains -->\n",
-      "utf8",
-    );
-
-    const writtenFiles = await renderProjectTemplates({
-      workspaceRoot,
-      builtinTemplatesRoot,
-      context: buildTemplateContext(createConfig()),
-      templates: [
-        {
-          source: "scaffold/docs/domains/core.md",
-          destination: "docs/domains/core.md",
-          mode: "copy",
-        },
-      ],
-    });
-
-    expect(writtenFiles).toEqual([join(workspaceRoot, "docs/domains/core.md")]);
-
-    const content = readFileSync(join(workspaceRoot, "docs/domains/core.md"), "utf8");
-    expect(content).toContain("<!-- AI-FILL: explain domains -->");
-  });
 
   it("rejects absolute or escaping template source and destination paths", async () => {
     const workspaceRoot = createTempDir("bbg-render-path-guard-workspace-");

@@ -125,7 +125,6 @@ describe("init command", () => {
     expect(result.createdFiles).toContain(join(cwd, "README.md"));
     expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "code-review-policy.md"));
     expect(result.createdFiles).toContain(join(cwd, "docs", "architecture", "order-lifecycle.md"));
-    expect(result.createdFiles).toContain(join(cwd, "docs", "domains", "core.md"));
     expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "development-standards.md"));
     expect(result.createdFiles).toContain(join(cwd, "scripts", "doctor.py"));
     expect(result.createdFiles).toContain(join(cwd, ".githooks", "pre-commit"));
@@ -168,7 +167,6 @@ describe("init command", () => {
     expect(Object.keys(hashRecord)).toContain("AGENTS.md");
     expect(Object.keys(hashRecord)).toContain("README.md");
     expect(Object.keys(hashRecord)).toContain("docs/architecture/order-lifecycle.md");
-    expect(Object.keys(hashRecord)).toContain("docs/domains/core.md");
     expect(Object.keys(hashRecord)).not.toContain(".bbg/file-hashes.json");
 
     for (const key of Object.keys(hashRecord)) {
@@ -226,7 +224,6 @@ describe("init command", () => {
         join(cwd, "docs", "cleanup", "secrets-and-config-governance.md"),
         join(cwd, "docs", "environments", "env-overview.md"),
         join(cwd, "docs", "architecture", "order-lifecycle.md"),
-        join(cwd, "docs", "domains", "core.md"),
         join(cwd, "docs", "system-architecture-and-ai-workflow.md"),
         join(cwd, "docs", "workflows", "development-standards.md"),
         join(cwd, "docs", "workflows", "release-checklist.md"),
