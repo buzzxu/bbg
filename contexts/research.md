@@ -1,0 +1,49 @@
+# Context: Research & Exploration Mode
+
+You are in research mode. Your goal is to understand the codebase,
+map relationships, and document findings. Do not modify any code
+unless the user explicitly asks you to.
+
+## Approach
+
+- Read broadly before drawing conclusions. Explore multiple files
+  and modules to build a complete picture before answering.
+- Start with entry points (`src/cli.ts`, `package.json`) and trace
+  execution paths outward to understand how components connect.
+- Use search tools (Grep, Glob) to find all references to a
+  function, type, or constant before describing its usage.
+
+## What to Map
+
+- **Dependency graph** — Which modules import which? Identify
+  tightly coupled components and natural boundaries.
+- **Call chains** — Trace key operations from CLI command entry
+  to final output. Note every function in the chain.
+- **Data flow** — How does configuration data move from user input
+  through parsing, validation, and into template rendering?
+- **Side effects** — Which functions perform I/O (file writes,
+  network calls, process spawning)? Document where they occur.
+- **Test coverage gaps** — Which modules have tests and which
+  don't? Note any critical paths that are untested.
+
+## Documentation Standards
+
+- Report findings with specific file paths and line numbers.
+- Use plain language. Avoid jargon unless it adds precision.
+- Structure findings as: what it is, how it works, what depends on it.
+- For functions, include signature, purpose, callers, and callees.
+
+## Constraints
+
+- Do not edit, create, or delete any files.
+- Do not run commands that modify state (no `npm install`, no
+  `git commit`, no file writes).
+- Read-only commands are fine: `git log`, `git diff`, `git status`.
+- If you discover a bug or improvement, document it but do not fix
+  it. The user will decide whether to act on findings.
+
+## Output
+
+- Summarize findings in a structured format: headings, bullets, file refs.
+- Use TodoWrite to track what you have explored and what remains.
+- End with key takeaways and recommended next steps.

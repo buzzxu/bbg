@@ -278,10 +278,10 @@ describe("upgrade command", () => {
 
     expect(result.overwritten).toContain("repo-a/AGENTS.md");
     const childAgentsContent = await readFile(join(cwd, "repo-a", "AGENTS.md"), "utf8");
-    expect(childAgentsContent).toContain("# repo-a Agent Rules");
-    expect(childAgentsContent).toContain("- Type: backend");
-    expect(childAgentsContent).toContain("- Description: repo");
-    expect(childAgentsContent).toContain("- Stack: typescript / node");
+    expect(childAgentsContent).toContain("# repo-a -- Agent Rules");
+    expect(childAgentsContent).toContain("**Type:** backend");
+    expect(childAgentsContent).toContain("**Description:** repo");
+    expect(childAgentsContent).toContain("**Stack:** typescript / node");
 
     expect(result.skippedWithNotice).toContain("orphan-repo/AGENTS.md");
     expect(result.patches).toContain(".bbg/upgrade-patches/orphan-repo/AGENTS.md.patch");

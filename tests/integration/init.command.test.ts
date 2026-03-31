@@ -23,11 +23,26 @@ const doctorState = vi.hoisted(() => ({
   runDoctor: vi.fn(),
 }));
 
-vi.mock("../../src/utils/prompts.js", () => ({
-  promptInput: promptState.promptInput,
-  promptConfirm: promptState.promptConfirm,
-  promptSelect: promptState.promptSelect,
-}));
+vi.mock("../../src/utils/prompts.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/utils/prompts.js")>();
+  return {
+    promptInput: promptState.promptInput,
+    promptConfirm: promptState.promptConfirm,
+    promptSelect: promptState.promptSelect,
+    sanitizePromptValue: actual.sanitizePromptValue,
+    collectStackInfo: async (detectedStack: Record<string, string>) => {
+      const useDetected = await promptState.promptConfirm({ message: "Use detected stack info?", default: true });
+      if (useDetected) return detectedStack;
+      return {
+        language: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack language", default: detectedStack.language }), detectedStack.language),
+        framework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack framework", default: detectedStack.framework }), detectedStack.framework),
+        buildTool: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack build tool", default: detectedStack.buildTool }), detectedStack.buildTool),
+        testFramework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack test framework", default: detectedStack.testFramework }), detectedStack.testFramework),
+        packageManager: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack package manager", default: detectedStack.packageManager }), detectedStack.packageManager),
+      };
+    },
+  };
+});
 
 vi.mock("../../src/utils/git.js", () => ({
   ensureGitAvailable: gitState.ensureGitAvailable,
@@ -68,7 +83,7 @@ describe("init command", () => {
     promptState.promptConfirm.mockResolvedValue(false);
     promptState.promptSelect.mockResolvedValue("other");
     gitState.ensureGitAvailable.mockResolvedValue(undefined);
-    gitState.listRemoteBranches.mockResolvedValue(["main"]);
+    gitState.listRemoteBranches.mockResolvedValue({ branches: ["main"], credentials: null });
     gitState.cloneRepo.mockResolvedValue(undefined);
     analyzerState.analyzeRepo.mockResolvedValue({
       stack: {
@@ -296,7 +311,7 @@ describe("init command", () => {
       .mockResolvedValueOnce("main")
       .mockResolvedValueOnce("backend");
 
-    gitState.listRemoteBranches.mockResolvedValue(["main", "develop"]);
+    gitState.listRemoteBranches.mockResolvedValue({ branches: ["main", "develop"], credentials: null });
 
     analyzerState.analyzeRepo.mockResolvedValue({
       stack: {
@@ -456,9 +471,9 @@ describe("init command", () => {
     expect(result.clonedRepos).toEqual([join(cwd, "repo-a")]);
 
     const childAgents = await readFile(join(cwd, "repo-a", "AGENTS.md"), "utf8");
-    expect(childAgents).toContain("# repo-a Agent Rules");
-    expect(childAgents).toContain("- Type: backend");
-    expect(childAgents).toContain("- Description: repo-a description");
+    expect(childAgents).toContain("# repo-a -- Agent Rules");
+    expect(childAgents).toContain("**Type:** backend");
+    expect(childAgents).toContain("**Description:** repo-a description");
 
     const gitignoreText = await readFile(join(cwd, ".gitignore"), "utf8");
     expect(gitignoreText).toContain("repo-a/");

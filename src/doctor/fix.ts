@@ -3,36 +3,9 @@ import { fileURLToPath } from "node:url";
 import type { BbgConfig } from "../config/schema.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates, type RenderTemplateTask } from "../templates/render.js";
-import { readTextFile, writeTextFile } from "../utils/fs.js";
-
-async function exists(pathValue: string): Promise<boolean> {
-  try {
-    await import("node:fs/promises").then(({ access }) => access(pathValue));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function expectedRepoIgnoreEntries(config: BbgConfig | null): string[] {
-  if (!config) {
-    return [];
-  }
-
-  const seen = new Set<string>();
-  const entries: string[] = [];
-  for (const repo of config.repos) {
-    const name = repo.name.trim().replace(/^\/+|\/+$/g, "");
-    if (name.length === 0 || seen.has(name)) {
-      continue;
-    }
-
-    seen.add(name);
-    entries.push(`${name}/`);
-  }
-
-  return entries;
-}
+import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
+import { resolveBuiltinTemplatesRoot } from "../utils/paths.js";
+import { expectedRepoIgnoreEntries } from "./shared.js";
 
 export interface DoctorFixResult {
   changed: string[];
@@ -42,19 +15,6 @@ const ROOT_FIX_TEMPLATES: RenderTemplateTask[] = [
   { source: "handlebars/AGENTS.md.hbs", destination: "AGENTS.md", mode: "handlebars" },
   { source: "handlebars/README.md.hbs", destination: "README.md", mode: "handlebars" },
 ];
-
-async function resolveBuiltinTemplatesRoot(): Promise<string> {
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [join(commandDir, "..", "..", "templates"), join(commandDir, "..", "templates")];
-
-  for (const candidate of candidates) {
-    if (await exists(candidate)) {
-      return candidate;
-    }
-  }
-
-  return candidates[0] ?? join(commandDir, "..", "..", "templates");
-}
 
 async function applyRootGovernanceFileFixes(cwd: string, config: BbgConfig | null): Promise<string[]> {
   if (!config) {
@@ -72,7 +32,8 @@ async function applyRootGovernanceFileFixes(cwd: string, config: BbgConfig | nul
     return [];
   }
 
-  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot();
+  const commandDir = dirname(fileURLToPath(import.meta.url));
+  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(commandDir);
   return renderProjectTemplates({
     workspaceRoot: cwd,
     builtinTemplatesRoot,

@@ -1,0 +1,72 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/scripts/security-scan.js",
+            "description": "Block destructive commands and detect hardcoded secrets",
+            "rules": [
+              "Block rm -rf / and rm -rf ~",
+              "Block git push --force to main/master",
+              "Detect secret patterns: sk-, ghp_, AKIA, password=, token="
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/scripts/pre-edit-check.js",
+            "description": "Warn about console.log, debugger, TODO without ticket, secrets in TS files"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/scripts/post-edit-typecheck.js",
+            "description": "Auto-typecheck after editing .ts files"
+          },
+          {
+            "type": "command",
+            "command": "node hooks/scripts/suggest-compact.js",
+            "description": "Estimate token usage and suggest compaction when approaching limits"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/scripts/session-end.js",
+            "description": "Save session state and summarize changes to .bbg/session-state.json"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/scripts/session-start.js",
+            "description": "Load previous session context and display project status"
+          }
+        ]
+      }
+    ]
+  }
+}

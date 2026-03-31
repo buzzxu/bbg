@@ -1,23 +1,7 @@
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { StackInfo } from "../config/schema.js";
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readIfExists(path: string): Promise<string> {
-  if (!(await exists(path))) {
-    return "";
-  }
-
-  return readFile(path, "utf8");
-}
+import { exists, readIfExists } from "../utils/fs.js";
 
 async function detectNodeStack(repoPath: string): Promise<StackInfo> {
   const packageJsonPath = resolve(repoPath, "package.json");
@@ -63,7 +47,7 @@ async function detectNodeStack(repoPath: string): Promise<StackInfo> {
   return {
     language: (await exists(tsconfigPath)) ? "typescript" : "javascript",
     framework,
-    buildTool: "npm",
+    buildTool: packageManager,
     testFramework,
     packageManager,
   };

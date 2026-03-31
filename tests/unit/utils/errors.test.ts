@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  BbgAnalyzerError,
   BbgConfigError,
   BbgError,
   BbgGitError,
@@ -26,7 +25,6 @@ describe("utils/errors", () => {
       "E_GIT",
       "check git installation",
     );
-    const analyzerError = new BbgAnalyzerError("analyzer failed", "E_ANALYZER");
     const templateError = new BbgTemplateError("template failed", "E_TEMPLATE");
 
     expect(configError).toBeInstanceOf(BbgError);
@@ -36,9 +34,6 @@ describe("utils/errors", () => {
     expect(gitError.name).toBe("BbgGitError");
     expect(gitError.code).toBe("E_GIT");
     expect(gitError.hint).toBe("check git installation");
-
-    expect(analyzerError).toBeInstanceOf(BbgError);
-    expect(analyzerError.name).toBe("BbgAnalyzerError");
 
     expect(templateError).toBeInstanceOf(BbgError);
     expect(templateError.name).toBe("BbgTemplateError");

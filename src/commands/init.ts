@@ -1,20 +1,38 @@
-import { constants as fsConstants } from "node:fs";
-import { access } from "node:fs/promises";
-import { basename, dirname, join, relative, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyzeRepo } from "../analyzers/index.js";
 import { serializeConfig } from "../config/read-write.js";
 import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
-import type { BbgConfig, RepoEntry, RepoType, StackInfo } from "../config/schema.js";
+import type { BbgConfig } from "../config/schema.js";
 import { CLI_VERSION } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
-import { renderProjectTemplates, type RenderTemplateTask } from "../templates/render.js";
-import { readTextFile, writeTextFile } from "../utils/fs.js";
-import { cloneRepo, ensureGitAvailable, listRemoteBranches } from "../utils/git.js";
+import { buildGovernanceManifest } from "../templates/governance.js";
+import { renderProjectTemplates } from "../templates/render.js";
+import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
+import {
+  normalizeWorkspaceRelativePath,
+  resolveBuiltinTemplatesRoot,
+  resolvePackageRoot,
+  toSnapshotRelativePath,
+} from "../utils/paths.js";
 import { makeExecutable } from "../utils/platform.js";
-import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
 import { runDoctor, type RunDoctorResult } from "./doctor.js";
+import { ROOT_TEMPLATE_MANIFEST, TOOL_CONFIG_TEMPLATES, buildTemplatePlan } from "./init-manifest.js";
+import { collectInitConfig } from "./init-prompts.js";
+import { ensureRootGitignore } from "./init-gitignore.js";
+
+/* ------------------------------------------------------------------ */
+/*  Re-exports for backward compatibility (upgrade.ts, tests, etc.)   */
+/* ------------------------------------------------------------------ */
+
+export { getRootTemplateManifest, getToolConfigTemplates, buildTemplatePlan } from "./init-manifest.js";
+export type { InitCollectionResult } from "./init-prompts.js";
+export { collectInitConfig } from "./init-prompts.js";
+export { buildRepoIgnoreEntries, ensureRootGitignore } from "./init-gitignore.js";
+
+/* ------------------------------------------------------------------ */
+/*  Public types                                                       */
+/* ------------------------------------------------------------------ */
 
 export interface RunInitOptions {
   cwd: string;
@@ -28,476 +46,18 @@ export interface RunInitResult {
   doctor: RunDoctorResult;
 }
 
-const REPO_TYPE_CHOICES: Array<{ name: RepoType; value: RepoType }> = [
-  { name: "backend", value: "backend" },
-  { name: "frontend-pc", value: "frontend-pc" },
-  { name: "frontend-h5", value: "frontend-h5" },
-  { name: "frontend-web", value: "frontend-web" },
-  { name: "other", value: "other" },
-];
-const MANAGED_GITIGNORE_BLOCK_START = "# >>> bbg managed repos >>>";
-const MANAGED_GITIGNORE_BLOCK_END = "# <<< bbg managed repos <<<";
-const DEFAULT_STACK: StackInfo = {
-  language: "unknown",
-  framework: "unknown",
-  buildTool: "unknown",
-  testFramework: "unknown",
-  packageManager: "unknown",
-};
-
-const ROOT_TEMPLATE_MANIFEST: RenderTemplateTask[] = [
-  { source: "handlebars/AGENTS.md.hbs", destination: "AGENTS.md", mode: "handlebars" },
-  { source: "handlebars/README.md.hbs", destination: "README.md", mode: "handlebars" },
-  {
-    source: "generic/docs/workflows/code-review-policy.md",
-    destination: "docs/workflows/code-review-policy.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/workflows/cross-audit-policy.md",
-    destination: "docs/workflows/cross-audit-policy.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/workflows/harness-engineering-playbook.md",
-    destination: "docs/workflows/harness-engineering-playbook.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/workflows/ai-task-prompt-template.md",
-    destination: "docs/workflows/ai-task-prompt-template.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/workflows/requirement-template.md",
-    destination: "docs/workflows/requirement-template.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/security/backend-red-team-playbook.md",
-    destination: "docs/security/backend-red-team-playbook.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/workflows/regression-checklist.md",
-    destination: "docs/workflows/regression-checklist.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/tasks/TEMPLATE.md",
-    destination: "docs/tasks/TEMPLATE.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/changes/TEMPLATE.md",
-    destination: "docs/changes/TEMPLATE.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/handoffs/TEMPLATE.md",
-    destination: "docs/handoffs/TEMPLATE.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/reports/cross-audit-report-TEMPLATE.md",
-    destination: "docs/reports/cross-audit-report-TEMPLATE.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/reports/red-team-report-TEMPLATE.md",
-    destination: "docs/reports/red-team-report-TEMPLATE.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/cleanup/secrets-and-config-governance.md",
-    destination: "docs/cleanup/secrets-and-config-governance.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/environments/env-overview.md",
-    destination: "docs/environments/env-overview.md",
-    mode: "copy",
-  },
-  {
-    source: "handlebars/docs/architecture/order-lifecycle.md.hbs",
-    destination: "docs/architecture/order-lifecycle.md",
-    mode: "handlebars",
-  },
-  {
-    source: "scaffold/docs/domains/core.md",
-    destination: "docs/domains/core.md",
-    mode: "copy",
-  },
-  {
-    source: "handlebars/docs/system-architecture-and-ai-workflow.md.hbs",
-    destination: "docs/system-architecture-and-ai-workflow.md",
-    mode: "handlebars",
-  },
-  {
-    source: "handlebars/docs/workflows/development-standards.md.hbs",
-    destination: "docs/workflows/development-standards.md",
-    mode: "handlebars",
-  },
-  {
-    source: "handlebars/docs/workflows/release-checklist.md.hbs",
-    destination: "docs/workflows/release-checklist.md",
-    mode: "handlebars",
-  },
-  {
-    source: "handlebars/.githooks/pre-commit.hbs",
-    destination: ".githooks/pre-commit",
-    mode: "handlebars",
-  },
-  {
-    source: "handlebars/.githooks/pre-push.hbs",
-    destination: ".githooks/pre-push",
-    mode: "handlebars",
-  },
-  {
-    source: "handlebars/scripts/doctor.py.hbs",
-    destination: "scripts/doctor.py",
-    mode: "handlebars",
-  },
-  {
-    source: "handlebars/scripts/sync_versions.py.hbs",
-    destination: "scripts/sync_versions.py",
-    mode: "handlebars",
-  },
-];
-
-export function getRootTemplateManifest(): RenderTemplateTask[] {
-  return ROOT_TEMPLATE_MANIFEST.map((template) => ({ ...template }));
-}
-
-export function buildTemplatePlan(config: BbgConfig): RenderTemplateTask[] {
-  const childAgentTemplates: RenderTemplateTask[] = config.repos.map((repo) => ({
-    source: "handlebars/child-AGENTS.md.hbs",
-    destination: `${repo.name}/AGENTS.md`,
-    mode: "handlebars",
-  }));
-
-  return [...getRootTemplateManifest(), ...childAgentTemplates];
-}
-
-function buildBaselineConfig(nowIso: string): BbgConfig {
-  return {
-    version: CLI_VERSION,
-    projectName: "bbg-project",
-    projectDescription: "Generated by bbg init",
-    createdAt: nowIso,
-    updatedAt: nowIso,
-    repos: [],
-    governance: {
-      riskThresholds: {
-        high: { grade: "A+", minScore: 99 },
-        medium: { grade: "A", minScore: 95 },
-        low: { grade: "B", minScore: 85 },
-      },
-      enableRedTeam: true,
-      enableCrossAudit: true,
-    },
-    context: {},
-  };
-}
-
-async function exists(pathValue: string): Promise<boolean> {
-  try {
-    await access(pathValue, fsConstants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
+/* ------------------------------------------------------------------ */
+/*  Planning helper                                                    */
+/* ------------------------------------------------------------------ */
 
 function buildPlannedFiles(cwd: string, config: BbgConfig): string[] {
   const plannedTemplateFiles = buildTemplatePlan(config).map((template) => join(cwd, template.destination));
   return [join(cwd, ".bbg", "config.json"), join(cwd, ".bbg", "file-hashes.json"), join(cwd, ".gitignore"), ...plannedTemplateFiles];
 }
 
-function normalizeWorkspaceRelativePath(cwd: string, filePath: string): string {
-  return relative(cwd, filePath).split(sep).join("/");
-}
-
-function toSnapshotRelativePath(filePath: string): string {
-  return `.bbg/generated-snapshots/${filePath}.gen`;
-}
-
-function sanitizePromptValue(value: string, fallback: string): string {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
-}
-
-function inferRepoName(url: string): string {
-  const normalized = url.trim().replace(/\/+$/, "");
-  const slashName = normalized.split("/").at(-1) ?? normalized;
-  const colonName = slashName.split(":").at(-1) ?? slashName;
-  const withoutGit = colonName.replace(/\.git$/i, "");
-  const safe = withoutGit.trim();
-  if (safe.length === 0) {
-    throw new Error(`Unable to infer repository name from URL: ${url}`);
-  }
-
-  return basename(safe);
-}
-
-function isParseableGitUrl(value: string): boolean {
-  const raw = value.trim();
-  if (raw.length === 0) {
-    return false;
-  }
-
-  if (/^[^@\s]+@[^:\s]+:[^\s]+$/.test(raw)) {
-    return true;
-  }
-
-  try {
-    const parsed = new URL(raw);
-    return ["https:", "http:", "ssh:", "git:"].includes(parsed.protocol);
-  } catch {
-    return false;
-  }
-}
-
-async function collectStackInfo(detectedStack: StackInfo): Promise<StackInfo> {
-  const useDetectedStack = await promptConfirm({ message: "Use detected stack info?", default: true });
-  if (useDetectedStack) {
-    return detectedStack;
-  }
-
-  return {
-    language: sanitizePromptValue(
-      await promptInput({ message: "Stack language", default: detectedStack.language }),
-      detectedStack.language,
-    ),
-    framework: sanitizePromptValue(
-      await promptInput({ message: "Stack framework", default: detectedStack.framework }),
-      detectedStack.framework,
-    ),
-    buildTool: sanitizePromptValue(
-      await promptInput({ message: "Stack build tool", default: detectedStack.buildTool }),
-      detectedStack.buildTool,
-    ),
-    testFramework: sanitizePromptValue(
-      await promptInput({ message: "Stack test framework", default: detectedStack.testFramework }),
-      detectedStack.testFramework,
-    ),
-    packageManager: sanitizePromptValue(
-      await promptInput({ message: "Stack package manager", default: detectedStack.packageManager }),
-      detectedStack.packageManager,
-    ),
-  };
-}
-
-function parseRiskThresholdInput(
-  raw: string,
-  fallback: { grade: string; minScore: number },
-): { grade: string; minScore: number } {
-  const parts = raw.split(":").map((part) => part.trim());
-  if (parts.length !== 2 || parts[0]?.length === 0) {
-    return fallback;
-  }
-
-  const score = Number(parts[1]);
-  if (!Number.isFinite(score)) {
-    return fallback;
-  }
-
-  return {
-    grade: parts[0],
-    minScore: score,
-  };
-}
-
-interface InitCollectionResult {
-  config: BbgConfig;
-  clonedRepos: string[];
-}
-
-async function collectInitConfig(nowIso: string, options: RunInitOptions): Promise<InitCollectionResult> {
-  const defaults = buildBaselineConfig(nowIso);
-  if (options.yes) {
-    return {
-      config: defaults,
-      clonedRepos: [],
-    };
-  }
-
-  await ensureGitAvailable();
-
-  const projectName = sanitizePromptValue(
-    await promptInput({ message: "Project name", default: defaults.projectName }),
-    defaults.projectName,
-  );
-  const projectDescription = sanitizePromptValue(
-    await promptInput({ message: "Project description", default: defaults.projectDescription }),
-    defaults.projectDescription,
-  );
-
-  const repos: RepoEntry[] = [];
-  const clonedRepos: string[] = [];
-  let shouldAddRepo = await promptConfirm({ message: "Add repository now?", default: true });
-
-  while (shouldAddRepo) {
-    const gitUrl = sanitizePromptValue(
-      await promptInput({ message: "Repository git URL" }),
-      "",
-    );
-    if (!isParseableGitUrl(gitUrl)) {
-      throw new Error("Repository git URL is invalid. Please provide a parseable git URL.");
-    }
-    const remoteBranches = await listRemoteBranches(gitUrl);
-    const branchChoices = (remoteBranches.length > 0 ? remoteBranches : ["main"]).map((branch) => ({
-      name: branch,
-      value: branch,
-    }));
-    const branch = await promptSelect<string>({
-      message: "Select default branch",
-      choices: branchChoices,
-      default: branchChoices[0]?.value,
-    });
-    const repoName = inferRepoName(gitUrl);
-    const targetDir = join(options.cwd, repoName);
-
-    let stack = DEFAULT_STACK;
-    if (!options.dryRun) {
-      await cloneRepo({ url: gitUrl, branch, targetDir });
-      clonedRepos.push(targetDir);
-      const analysis = await analyzeRepo(targetDir);
-      stack = await collectStackInfo(analysis.stack);
-    }
-
-    const type = await promptSelect<RepoType>({
-      message: "Repository type",
-      choices: REPO_TYPE_CHOICES,
-      default: "other",
-    });
-    const description = sanitizePromptValue(
-      await promptInput({ message: "Repository description", default: "" }),
-      "",
-    );
-
-    repos.push({
-      name: repoName,
-      gitUrl,
-      branch,
-      type,
-      stack,
-      description,
-    });
-
-    shouldAddRepo = await promptConfirm({ message: "Add another repository?", default: false });
-  }
-
-  const overrideThresholds = await promptConfirm({
-    message: "Override default governance risk thresholds?",
-    default: false,
-  });
-
-  const riskThresholds = overrideThresholds
-    ? {
-        high: parseRiskThresholdInput(
-          await promptInput({ message: "High risk threshold (GRADE:score)", default: "A+:99" }),
-          defaults.governance.riskThresholds.high,
-        ),
-        medium: parseRiskThresholdInput(
-          await promptInput({ message: "Medium risk threshold (GRADE:score)", default: "A:95" }),
-          defaults.governance.riskThresholds.medium,
-        ),
-        low: parseRiskThresholdInput(
-          await promptInput({ message: "Low risk threshold (GRADE:score)", default: "B:85" }),
-          defaults.governance.riskThresholds.low,
-        ),
-      }
-    : defaults.governance.riskThresholds;
-
-  const enableRedTeam = await promptConfirm({
-    message: "Enable red-team workflow?",
-    default: defaults.governance.enableRedTeam,
-  });
-  const enableCrossAudit = await promptConfirm({
-    message: "Enable cross-audit workflow?",
-    default: defaults.governance.enableCrossAudit,
-  });
-
-  return {
-    config: {
-      ...defaults,
-      projectName,
-      projectDescription,
-      repos,
-      governance: {
-        riskThresholds,
-        enableRedTeam,
-        enableCrossAudit,
-      },
-    },
-    clonedRepos,
-  };
-}
-
-function buildRepoIgnoreEntries(repos: RepoEntry[]): string[] {
-  const seen = new Set<string>();
-  const entries: string[] = [];
-
-  for (const repo of repos) {
-    const cleanedName = repo.name.trim().replace(/^\/+|\/+$/g, "");
-    if (cleanedName.length === 0 || seen.has(cleanedName)) {
-      continue;
-    }
-
-    seen.add(cleanedName);
-    entries.push(`${cleanedName}/`);
-  }
-
-  return entries;
-}
-
-async function ensureRootGitignore(cwd: string, repos: RepoEntry[]): Promise<string> {
-  const gitignorePath = join(cwd, ".gitignore");
-  const hasGitignore = await exists(gitignorePath);
-  const existingContent = hasGitignore ? await readTextFile(gitignorePath) : "";
-  const originalLines = existingContent.length > 0 ? existingContent.split(/\r?\n/) : [];
-  const lines = [...originalLines];
-  const managedStartIndex = lines.findIndex((line) => line.trim() === MANAGED_GITIGNORE_BLOCK_START);
-  const managedEndIndex = lines.findIndex((line, index) => index > managedStartIndex && line.trim() === MANAGED_GITIGNORE_BLOCK_END);
-
-  if (managedStartIndex >= 0 && managedEndIndex > managedStartIndex) {
-    lines.splice(managedStartIndex, managedEndIndex - managedStartIndex + 1);
-  }
-
-  while (lines.length > 0 && lines[lines.length - 1]?.trim() === "") {
-    lines.pop();
-  }
-
-  const managedEntries = buildRepoIgnoreEntries(repos);
-  if (managedEntries.length > 0) {
-    if (lines.length > 0) {
-      lines.push("");
-    }
-
-    lines.push(MANAGED_GITIGNORE_BLOCK_START, ...managedEntries, MANAGED_GITIGNORE_BLOCK_END);
-  }
-
-  const outputLines = lines;
-  await writeTextFile(gitignorePath, `${outputLines.join("\n")}\n`);
-  return gitignorePath;
-}
-
-async function resolveBuiltinTemplatesRoot(): Promise<string> {
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    join(commandDir, "..", "..", "templates"),
-    join(commandDir, "..", "templates"),
-  ];
-
-  for (const candidate of candidates) {
-    if (await exists(candidate)) {
-      return candidate;
-    }
-  }
-
-  return candidates[0] ?? join(commandDir, "..", "..", "templates");
-}
+/* ------------------------------------------------------------------ */
+/*  Main orchestrator                                                  */
+/* ------------------------------------------------------------------ */
 
 export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   const bbgDirPath = join(options.cwd, ".bbg");
@@ -535,13 +95,28 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   await writeTextFile(configPath, serializeConfig(baselineConfig));
   await ensureRootGitignore(options.cwd, baselineConfig.repos);
 
-  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot();
+  const commandDir = dirname(fileURLToPath(import.meta.url));
+  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(commandDir);
+  const packageRoot = await resolvePackageRoot(commandDir);
+  const templateContext = buildTemplateContext(baselineConfig);
+  const governanceTemplates = buildGovernanceManifest(templateContext);
+
   const rootRenderedFiles = await renderProjectTemplates({
     workspaceRoot: options.cwd,
     builtinTemplatesRoot,
-    context: buildTemplateContext(baselineConfig),
-    templates: ROOT_TEMPLATE_MANIFEST,
+    packageRoot,
+    context: templateContext,
+    templates: [...ROOT_TEMPLATE_MANIFEST, ...TOOL_CONFIG_TEMPLATES],
   });
+
+  const governanceRenderedFiles = await renderProjectTemplates({
+    workspaceRoot: options.cwd,
+    builtinTemplatesRoot,
+    packageRoot,
+    context: templateContext,
+    templates: governanceTemplates,
+  });
+
   makeExecutable(join(options.cwd, ".githooks", "pre-commit"));
   makeExecutable(join(options.cwd, ".githooks", "pre-push"));
 
@@ -550,7 +125,8 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
     const childRendered = await renderProjectTemplates({
       workspaceRoot: options.cwd,
       builtinTemplatesRoot,
-      context: { ...buildTemplateContext(baselineConfig), repo },
+      packageRoot,
+      context: { ...templateContext, repo },
       templates: [
         {
           source: "handlebars/child-AGENTS.md.hbs",
@@ -564,7 +140,7 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
 
   const generatedAt = new Date().toISOString();
   const hashRecord: FileHashRecord = {};
-  const trackedFiles = [configPath, gitignorePath, ...rootRenderedFiles, ...childAgentFiles];
+  const trackedFiles = [configPath, gitignorePath, ...rootRenderedFiles, ...governanceRenderedFiles, ...childAgentFiles];
   for (const generatedFile of trackedFiles) {
     const content = await readTextFile(generatedFile);
     const relativePath = normalizeWorkspaceRelativePath(options.cwd, generatedFile);
@@ -589,7 +165,7 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   }
 
   return {
-    createdFiles: [configPath, fileHashesPath, gitignorePath, ...rootRenderedFiles, ...childAgentFiles],
+    createdFiles: [configPath, fileHashesPath, gitignorePath, ...rootRenderedFiles, ...governanceRenderedFiles, ...childAgentFiles],
     clonedRepos: initData.clonedRepos,
     doctor: doctorResult,
   };

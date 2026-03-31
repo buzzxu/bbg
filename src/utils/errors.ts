@@ -14,6 +14,4 @@ export class BbgConfigError extends BbgError {}
 
 export class BbgGitError extends BbgError {}
 
-export class BbgAnalyzerError extends BbgError {}
-
 export class BbgTemplateError extends BbgError {}

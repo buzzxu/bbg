@@ -22,11 +22,26 @@ const doctorState = vi.hoisted(() => ({
   runDoctor: vi.fn(),
 }));
 
-vi.mock("../../src/utils/prompts.js", () => ({
-  promptInput: promptState.promptInput,
-  promptSelect: promptState.promptSelect,
-  promptConfirm: promptState.promptConfirm,
-}));
+vi.mock("../../src/utils/prompts.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/utils/prompts.js")>();
+  return {
+    promptInput: promptState.promptInput,
+    promptSelect: promptState.promptSelect,
+    promptConfirm: promptState.promptConfirm,
+    sanitizePromptValue: actual.sanitizePromptValue,
+    collectStackInfo: async (detectedStack: Record<string, string>) => {
+      const useDetected = await promptState.promptConfirm({ message: "Use detected stack info?", default: true });
+      if (useDetected) return detectedStack;
+      return {
+        language: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack language", default: detectedStack.language }), detectedStack.language),
+        framework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack framework", default: detectedStack.framework }), detectedStack.framework),
+        buildTool: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack build tool", default: detectedStack.buildTool }), detectedStack.buildTool),
+        testFramework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack test framework", default: detectedStack.testFramework }), detectedStack.testFramework),
+        packageManager: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack package manager", default: detectedStack.packageManager }), detectedStack.packageManager),
+      };
+    },
+  };
+});
 
 vi.mock("../../src/utils/git.js", () => ({
   listRemoteBranches: gitState.listRemoteBranches,
@@ -118,7 +133,7 @@ describe("add-repo command", () => {
     promptState.promptInput.mockResolvedValue("new repo description");
     promptState.promptSelect.mockResolvedValue("other");
     promptState.promptConfirm.mockResolvedValue(true);
-    gitState.listRemoteBranches.mockResolvedValue(["main", "develop"]);
+    gitState.listRemoteBranches.mockResolvedValue({ branches: ["main", "develop"], credentials: null });
     gitState.cloneRepo.mockResolvedValue(undefined);
     analyzerState.analyzeRepo.mockResolvedValue({
       stack: {
@@ -176,7 +191,7 @@ describe("add-repo command", () => {
     const rootAgents = await readFile(join(cwd, "AGENTS.md"), "utf8");
     const childAgents = await readFile(join(cwd, "new-repo", "AGENTS.md"), "utf8");
     expect(rootAgents).toContain("new-repo");
-    expect(childAgents).toContain("# new-repo Agent Rules");
+    expect(childAgents).toContain("# new-repo -- Agent Rules");
 
     const hashes = JSON.parse(await readFile(join(cwd, ".bbg", "file-hashes.json"), "utf8")) as Record<
       string,
@@ -192,6 +207,7 @@ describe("add-repo command", () => {
       url: "https://example.com/new-repo.git",
       branch: "main",
       targetDir: join(cwd, "new-repo"),
+      credentials: undefined,
     });
   });
 
@@ -316,6 +332,7 @@ describe("add-repo command", () => {
       url: "git@host:group/repo.git",
       branch: "main",
       targetDir: join(cwd, "repo"),
+      credentials: undefined,
     });
 
     const config = JSON.parse(await readFile(join(cwd, ".bbg", "config.json"), "utf8")) as {

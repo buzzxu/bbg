@@ -1,18 +1,19 @@
-import { constants as fsConstants } from "node:fs";
-import { access, rm, unlink } from "node:fs/promises";
-import { basename, dirname, join, relative, sep } from "node:path";
+import { rm, unlink } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeRepo } from "../analyzers/index.js";
 import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
 import { parseConfig, serializeConfig } from "../config/read-write.js";
-import type { RepoEntry, RepoType, StackInfo } from "../config/schema.js";
-import { CLI_VERSION } from "../constants.js";
+import type { RepoEntry, RepoType } from "../config/schema.js";
+import { CLI_VERSION, REPO_TYPE_CHOICES } from "../constants.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates } from "../templates/render.js";
-import { readTextFile, writeTextFile } from "../utils/fs.js";
+import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { cloneRepo, listRemoteBranches } from "../utils/git.js";
-import { promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
+import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
+import { normalizeWorkspaceRelativePath, resolveBuiltinTemplatesRoot } from "../utils/paths.js";
+import { collectStackInfo, promptConfirm, promptInput, promptSelect, sanitizePromptValue } from "../utils/prompts.js";
 import { runDoctor } from "./doctor.js";
 
 export interface RunAddRepoInput {
@@ -25,93 +26,6 @@ export interface RunAddRepoResult {
   addedRepoName: string;
 }
 
-const REPO_TYPE_CHOICES: Array<{ name: RepoType; value: RepoType }> = [
-  { name: "backend", value: "backend" },
-  { name: "frontend-pc", value: "frontend-pc" },
-  { name: "frontend-h5", value: "frontend-h5" },
-  { name: "frontend-web", value: "frontend-web" },
-  { name: "other", value: "other" },
-];
-
-async function exists(pathValue: string): Promise<boolean> {
-  try {
-    await access(pathValue, fsConstants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function sanitizePromptValue(value: string, fallback = ""): string {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
-}
-
-function isParseableGitUrl(value: string): boolean {
-  const raw = value.trim();
-  if (raw.length === 0) {
-    return false;
-  }
-
-  if (/^[^@\s]+@[^:\s]+:[^\s]+$/.test(raw)) {
-    return true;
-  }
-
-  try {
-    const parsed = new URL(raw);
-    return ["https:", "http:", "ssh:", "git:"].includes(parsed.protocol);
-  } catch {
-    return false;
-  }
-}
-
-function inferRepoName(url: string): string {
-  const normalized = url.trim().replace(/\/+$/, "");
-  const slashName = normalized.split("/").at(-1) ?? normalized;
-  const colonName = slashName.split(":").at(-1) ?? slashName;
-  const withoutGit = colonName.replace(/\.git$/i, "");
-  const safe = withoutGit.trim();
-  if (safe.length === 0) {
-    throw new Error(`Unable to infer repository name from URL: ${url}`);
-  }
-
-  return basename(safe);
-}
-
-function normalizeWorkspaceRelativePath(cwd: string, filePath: string): string {
-  return relative(cwd, filePath).split(sep).join("/");
-}
-
-async function collectStackInfo(detectedStack: StackInfo): Promise<StackInfo> {
-  const useDetectedStack = await promptConfirm({ message: "Use detected stack info?", default: true });
-  if (useDetectedStack) {
-    return detectedStack;
-  }
-
-  return {
-    language: sanitizePromptValue(
-      await promptInput({ message: "Stack language", default: detectedStack.language }),
-      detectedStack.language,
-    ),
-    framework: sanitizePromptValue(
-      await promptInput({ message: "Stack framework", default: detectedStack.framework }),
-      detectedStack.framework,
-    ),
-    buildTool: sanitizePromptValue(
-      await promptInput({ message: "Stack build tool", default: detectedStack.buildTool }),
-      detectedStack.buildTool,
-    ),
-    testFramework: sanitizePromptValue(
-      await promptInput({ message: "Stack test framework", default: detectedStack.testFramework }),
-      detectedStack.testFramework,
-    ),
-    packageManager: sanitizePromptValue(
-      await promptInput({ message: "Stack package manager", default: detectedStack.packageManager }),
-      detectedStack.packageManager,
-    ),
-  };
-}
-
 async function restoreFile(pathValue: string, previousContent: string | null): Promise<void> {
   if (previousContent === null) {
     if (await exists(pathValue)) {
@@ -121,19 +35,6 @@ async function restoreFile(pathValue: string, previousContent: string | null): P
   }
 
   await writeTextFile(pathValue, previousContent);
-}
-
-async function resolveBuiltinTemplatesRoot(): Promise<string> {
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [join(commandDir, "..", "..", "templates"), join(commandDir, "..", "templates")];
-
-  for (const candidate of candidates) {
-    if (await exists(candidate)) {
-      return candidate;
-    }
-  }
-
-  return candidates[0] ?? join(commandDir, "..", "..", "templates");
 }
 
 export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResult> {
@@ -151,7 +52,7 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     throw new Error("Repository git URL is invalid. Please provide a parseable git URL.");
   }
 
-  const branches = await listRemoteBranches(resolvedUrl);
+  const { branches, credentials } = await listRemoteBranches(resolvedUrl);
   const branchChoices = (branches.length > 0 ? branches : ["main"]).map((branch) => ({
     name: branch,
     value: branch,
@@ -169,13 +70,24 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
   }
 
   const repoName = inferRepoName(resolvedUrl);
-  if (config.repos.some((repo) => repo.name === repoName)) {
-    throw new Error(`Repository ${repoName} is already registered in config.`);
+  const existingIndex = config.repos.findIndex((repo) => repo.name === repoName);
+  if (existingIndex !== -1) {
+    const overwrite = await promptConfirm({
+      message: `Repository ${repoName} is already registered. Overwrite it?`,
+      default: false,
+    });
+    if (!overwrite) {
+      throw new Error(`Repository ${repoName} is already registered in config.`);
+    }
   }
 
   const targetDir = join(input.cwd, repoName);
+  // Remove existing directory if present so clone doesn't fail
+  if (await exists(targetDir)) {
+    await rm(targetDir, { recursive: true, force: true });
+  }
   let clonedInThisRun = false;
-  await cloneRepo({ url: resolvedUrl, branch: resolvedBranch, targetDir });
+  await cloneRepo({ url: resolvedUrl, branch: resolvedBranch, targetDir, credentials: credentials ?? undefined });
   clonedInThisRun = true;
   const analysis = await analyzeRepo(targetDir);
   const stack = await collectStackInfo(analysis.stack);
@@ -209,16 +121,22 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     (await exists(childAgentsPath)) ? readTextFile(childAgentsPath) : Promise.resolve<string | null>(null),
   ]);
 
+  const nextRepos =
+    existingIndex !== -1
+      ? config.repos.map((repo, i) => (i === existingIndex ? repoEntry : repo))
+      : [...config.repos, repoEntry];
+
   const nextConfig = {
     ...config,
-    repos: [...config.repos, repoEntry],
+    repos: nextRepos,
     updatedAt: new Date().toISOString(),
   };
 
   try {
     await writeTextFile(configPath, serializeConfig(nextConfig));
 
-    const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot();
+    const commandDir = dirname(fileURLToPath(import.meta.url));
+    const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(commandDir);
     const templateContext = buildTemplateContext(nextConfig);
 
     const [rootAgentsFiles, childAgentsFiles] = await Promise.all([
