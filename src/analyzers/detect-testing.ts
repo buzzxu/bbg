@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import fg from "fast-glob";
-import { exists } from "../utils/fs.js";
+import { exists, readIfExists } from "../utils/fs.js";
 
 export interface TestingInfo {
   framework: string;
@@ -86,12 +86,4 @@ export async function detectTesting(repoPath: string): Promise<TestingInfo> {
   }
 
   return { framework, hasTestDir, testPattern };
-}
-
-async function readIfExists(path: string): Promise<string> {
-  if (!(await exists(path))) {
-    return "";
-  }
-
-  return readFile(path, "utf8");
 }

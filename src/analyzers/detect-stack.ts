@@ -1,15 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { StackInfo } from "../config/schema.js";
-import { exists } from "../utils/fs.js";
-
-async function readIfExists(path: string): Promise<string> {
-  if (!(await exists(path))) {
-    return "";
-  }
-
-  return readFile(path, "utf8");
-}
+import { exists, readIfExists } from "../utils/fs.js";
 
 async function detectNodeStack(repoPath: string): Promise<StackInfo> {
   const packageJsonPath = resolve(repoPath, "package.json");

@@ -20,6 +20,18 @@ export async function readTextFile(filePath: string): Promise<string> {
   return readFile(filePath, "utf8");
 }
 
+/**
+ * Read a file if it exists, returning its contents as a UTF-8 string.
+ * Returns an empty string if the file does not exist.
+ */
+export async function readIfExists(filePath: string): Promise<string> {
+  if (!(await exists(filePath))) {
+    return "";
+  }
+
+  return readFile(filePath, "utf8");
+}
+
 export async function writeTextFile(filePath: string, content: string): Promise<void> {
   const tempFilePath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
 
