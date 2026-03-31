@@ -141,7 +141,7 @@ src/config/             -> Configuration management
 src/doctor/             -> Health checks and auto-fix
 src/templates/          -> Template rendering engine (Handlebars)
 src/upgrade/            -> Template upgrade diffing
-src/utils/              -> Shared utilities (fs, logger)
+src/utils/              -> Shared utilities (fs, git, git-url, paths, platform, prompts, errors)
 templates/              -> 3-tier template system (generic, handlebars, scaffold)
 tests/                  -> Unit + integration tests (vitest)
 ```
