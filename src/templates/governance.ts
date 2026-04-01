@@ -50,6 +50,7 @@ const CORE_SKILLS = [
   "security-review",
   "verification-loop",
   "search-first",
+  "writing-plans",
   "continuous-learning",
   "eval-harness",
   "strategic-compact",
@@ -146,11 +147,11 @@ const CORE_COMMANDS = [
 ];
 
 const LANGUAGE_COMMANDS: Record<string, string[]> = {
-  typescript: ["ts-review"],
-  python: ["python-review"],
+  typescript: ["ts-review", "ts-build", "ts-test"],
+  python: ["python-review", "python-build", "python-test"],
   go: ["go-review", "go-test", "go-build"],
-  java: ["java-review"],
-  rust: ["rust-review"],
+  java: ["java-review", "java-build", "java-test"],
+  rust: ["rust-review", "rust-build", "rust-test"],
   kotlin: ["kotlin-review"],
 };
 
@@ -165,7 +166,7 @@ const HOOK_FILES = [
   "scripts/suggest-compact.js",
 ];
 
-const CONTEXT_FILES = ["dev.md", "review.md", "research.md"];
+const CONTEXT_HBS_FILES = ["dev.md", "review.md", "research.md"];
 
 const MCP_CONFIG_FILES = ["mcp-servers.json", "README.md"];
 
@@ -175,6 +176,10 @@ const MCP_CONFIG_FILES = ["mcp-servers.json", "README.md"];
 
 function copyTask(source: string, destination: string): RenderTemplateTask {
   return { source, destination, mode: "copy" };
+}
+
+function handlebarsTask(source: string, destination: string): RenderTemplateTask {
+  return { source, destination, mode: "handlebars" };
 }
 
 /* ------------------------------------------------------------------ */
@@ -268,9 +273,11 @@ export function buildGovernanceManifest(ctx: TemplateContext): RenderTemplateTas
     tasks.push(copyTask(`hooks/${hookFile}`, `hooks/${hookFile}`));
   }
 
-  // --- Contexts ---
-  for (const ctxFile of CONTEXT_FILES) {
-    tasks.push(copyTask(`contexts/${ctxFile}`, `contexts/${ctxFile}`));
+  // --- Contexts (Handlebars-rendered) ---
+  for (const ctxFile of CONTEXT_HBS_FILES) {
+    tasks.push(
+      handlebarsTask(`handlebars/contexts/${ctxFile}.hbs`, `contexts/${ctxFile}`),
+    );
   }
 
   // --- MCP Configs ---

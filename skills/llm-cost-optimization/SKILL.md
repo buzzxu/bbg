@@ -80,3 +80,9 @@ Load this skill when building LLM-powered products where inference cost, latency
 - [ ] Cost alerts set for daily spend anomalies
 - [ ] Context window optimized with RAG or summarization for large inputs
 - [ ] Model abstraction layer in place — switching providers is a config change
+
+
+## Related
+
+- **Agents**: [harness-optimizer](../../agents/harness-optimizer.md)
+- **Commands**: [/model-route](../../commands/model-route.md)

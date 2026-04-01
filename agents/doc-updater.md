@@ -68,3 +68,7 @@ Track these documentation touchpoints:
 - All code examples syntax-checked
 - No orphaned documentation for removed code
 ```
+
+## Related
+
+- **Commands**: [/update-docs](../commands/update-docs.md)

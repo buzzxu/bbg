@@ -42,3 +42,9 @@ Remove dead code, fix DRY violations, clean unused imports, and improve code org
 /refactor-clean src/analyzers/    # Focus on one directory
 /refactor-clean --aggressive      # Include risky removals
 ```
+
+## Related
+
+- **Agents**: [refactor-cleaner](../agents/refactor-cleaner.md)
+- **Skills**: [coding-standards](../skills/coding-standards/SKILL.md), [search-first](../skills/search-first/SKILL.md)
+- **Rules**: [coding-style](../rules/common/coding-style.md), [patterns](../rules/common/patterns.md)

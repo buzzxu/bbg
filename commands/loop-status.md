@@ -47,3 +47,8 @@ Recent iterations:
 /loop-status               # Quick summary
 /loop-status --detailed    # Full iteration history
 ```
+
+## Related
+
+- **Agents**: [loop-operator](../agents/loop-operator.md)
+- **Skills**: [autonomous-loops](../skills/autonomous-loops/SKILL.md)

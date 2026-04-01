@@ -183,3 +183,10 @@ func main() {
 - Test route groups by asserting that protected routes return 401 without auth
 - Use `testify/assert` for response body and status code assertions
 - Integration test the full server with `httptest.NewServer`
+
+
+## Related
+
+- **Agents**: [go-reviewer](../../agents/go-reviewer.md)
+- **Rules**: [golang/patterns](../../rules/golang/patterns.md)
+- **Commands**: [/go-review](../../commands/go-review.md)

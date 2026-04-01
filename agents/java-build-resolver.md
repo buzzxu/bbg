@@ -93,3 +93,9 @@ You are a Java build error resolution specialist. You fix compilation failures, 
 - Compile: PASS
 - Tests: PASS
 ```
+
+## Related
+
+- **Skills**: [java-patterns](../skills/java-patterns/SKILL.md), [springboot-patterns](../skills/springboot-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/java/coding-style.md)
+- **Commands**: [/build-fix](../commands/build-fix.md), [/java-build](../commands/java-build.md)

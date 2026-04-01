@@ -89,3 +89,9 @@ You are a security vulnerability detection specialist. You review code, configur
 
 ### Verdict: [PASS / FAIL / CONDITIONAL PASS]
 ```
+
+## Related
+
+- **Skills**: [security-review](../skills/security-review/SKILL.md), [security-hardening](../skills/security-hardening/SKILL.md), [secrets-management](../skills/secrets-management/SKILL.md)
+- **Rules**: [security](../rules/common/security.md)
+- **Commands**: [/security-scan](../commands/security-scan.md)

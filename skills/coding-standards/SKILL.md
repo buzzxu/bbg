@@ -72,3 +72,10 @@ Apply these standards to every code change. They ensure consistency, maintainabi
 - [ ] No duplicated logic — shared code is extracted to utilities
 - [ ] No magic numbers or strings — all extracted to constants
 - [ ] No unused code left in the codebase
+
+
+## Related
+
+- **Agents**: [code-reviewer](../../agents/code-reviewer.md), [refactor-cleaner](../../agents/refactor-cleaner.md)
+- **Rules**: [coding-style](../../rules/common/coding-style.md)
+- **Commands**: [/code-review](../../commands/code-review.md), [/refactor-clean](../../commands/refactor-clean.md)

@@ -85,3 +85,10 @@ Run this loop after every meaningful code change. It catches issues incrementall
 - [ ] No new security vulnerabilities in dependencies
 - [ ] No hardcoded secrets detected
 - [ ] CI pipeline is green
+
+
+## Related
+
+- **Agents**: [tdd-guide](../../agents/tdd-guide.md)
+- **Rules**: [testing](../../rules/common/testing.md)
+- **Commands**: [/verify](../../commands/verify.md)

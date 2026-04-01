@@ -49,3 +49,9 @@ Final summary:
 /go-build ./cmd/server/      # Build specific package
 /go-build --vet              # Include go vet findings
 ```
+
+## Related
+
+- **Agents**: [go-build-resolver](../agents/go-build-resolver.md)
+- **Skills**: [golang-patterns](../skills/golang-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/golang/coding-style.md)

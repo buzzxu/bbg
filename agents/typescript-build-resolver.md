@@ -88,3 +88,9 @@ You are a TypeScript build error resolution specialist. You fix compilation and 
 - Build: PASS
 - Tests: PASS
 ```
+
+## Related
+
+- **Skills**: [typescript-patterns](../skills/typescript-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/typescript/coding-style.md)
+- **Commands**: [/build-fix](../commands/build-fix.md), [/ts-build](../commands/ts-build.md)

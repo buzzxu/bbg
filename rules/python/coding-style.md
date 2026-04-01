@@ -63,3 +63,10 @@ message = f"User {user.name} logged in at {timestamp}"
 # Bad: format
 message = "User {} logged in at {}".format(user.name, timestamp)
 ```
+
+
+## Related
+
+- **Agents**: [python-reviewer](../../agents/python-reviewer.md), [python-build-resolver](../../agents/python-build-resolver.md)
+- **Skills**: [python-patterns](../../skills/python-patterns/SKILL.md)
+- **Commands**: [/python-review](../../commands/python-review.md), [/python-build](../../commands/python-build.md)

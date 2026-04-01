@@ -64,3 +64,10 @@ orders = Order.objects.all()
 for order in orders:
     print(order.customer.name)  # Hits DB each iteration
 ```
+
+
+## Related
+
+- **Agents**: [python-reviewer](../../agents/python-reviewer.md)
+- **Skills**: [django-patterns](../../skills/django-patterns/SKILL.md)
+- **Commands**: [/python-review](../../commands/python-review.md)

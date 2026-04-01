@@ -13,7 +13,7 @@ src/doctor/             Health checks and auto-fix
 src/templates/          Template rendering engine (Handlebars)
 src/upgrade/            Template upgrade diffing
 src/utils/              Shared utilities (always use these, never duplicate)
-templates/              3-tier system: generic (verbatim), handlebars (rendered), scaffold (AI-fill)
+templates/              2-tier system: generic (verbatim copy), handlebars (rendered)
 agents/                 25 specialized AI agents (core, language reviewers, build resolvers)
 skills/                 60 workflow skills (coding, testing, security, framework patterns)
 rules/                  35 rule files organized by language (common + 7 languages)
@@ -45,9 +45,9 @@ contexts/               Dynamic system prompt contexts (dev, review, research)
 
 ## Available Resources
 - **25 agents** in `agents/` — delegate complex tasks to specialized agents
-- **60 skills** in `skills/` — workflow definitions and domain knowledge
-- **32 commands** in `commands/` — slash commands for quick execution
-- **35 rules** in `rules/` — organized by language (common + ts + py + go + java + rust + kotlin + php)
+- **61 skills** in `skills/` — workflow definitions and domain knowledge
+- **40 commands** in `commands/` — slash commands for quick execution
+- **34 rules** in `rules/` — organized by language (common + ts + py + go + java + rust + kotlin + php)
 - **hooks** in `hooks/` — automated checks on session start/end, edit, security
 
 ## Build & Test

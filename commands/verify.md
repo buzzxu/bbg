@@ -45,3 +45,8 @@ Detailed regression info for any failing checks.
 /verify --against "pre-migration"     # Compare against named checkpoint
 /verify --strict                      # Treat warnings as regressions too
 ```
+
+## Related
+
+- **Skills**: [verification-loop](../skills/verification-loop/SKILL.md)
+- **Rules**: [testing](../rules/common/testing.md)

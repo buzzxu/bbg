@@ -51,3 +51,10 @@ function getUser(id: any): any { ... }
 // Good: satisfies
 const config = { port: 3000, host: "localhost" } satisfies ServerConfig;
 ```
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md), [typescript-build-resolver](../../agents/typescript-build-resolver.md)
+- **Skills**: [typescript-patterns](../../skills/typescript-patterns/SKILL.md)
+- **Commands**: [/ts-review](../../commands/ts-review.md), [/ts-build](../../commands/ts-build.md)

@@ -70,3 +70,10 @@ void canDelete_returnsExpected(String role, boolean expected) {
     assertThat(Permissions.canDelete(role)).isEqualTo(expected);
 }
 ```
+
+
+## Related
+
+- **Agents**: [java-reviewer](../../agents/java-reviewer.md)
+- **Skills**: [springboot-testing](../../skills/springboot-testing/SKILL.md), [tdd-workflow](../../skills/tdd-workflow/SKILL.md)
+- **Commands**: [/java-test](../../commands/java-test.md), [/tdd](../../commands/tdd.md)

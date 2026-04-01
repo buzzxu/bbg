@@ -88,11 +88,6 @@ export const ROOT_TEMPLATE_MANIFEST: ReadonlyArray<RenderTemplateTask> = [
     mode: "handlebars",
   },
   {
-    source: "scaffold/docs/domains/core.md",
-    destination: "docs/domains/core.md",
-    mode: "copy",
-  },
-  {
     source: "handlebars/docs/system-architecture-and-ai-workflow.md.hbs",
     destination: "docs/system-architecture-and-ai-workflow.md",
     mode: "handlebars",

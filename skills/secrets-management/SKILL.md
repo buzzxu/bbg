@@ -83,3 +83,9 @@ Load this skill when handling API keys, database credentials, tokens, certificat
 - [ ] Application validates required secrets at startup with clear error messages
 - [ ] Secrets access is audit-logged in the vault
 - [ ] Incident response plan covers secret compromise scenarios
+
+
+## Related
+
+- **Agents**: [security-reviewer](../../agents/security-reviewer.md)
+- **Rules**: [security](../../rules/common/security.md)

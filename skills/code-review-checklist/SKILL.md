@@ -82,3 +82,10 @@ Load this skill when reviewing pull requests, preparing code for review, or esta
 - [ ] Functions are small, named clearly, and do one thing
 - [ ] Change is consistent with existing codebase patterns
 - [ ] PR is appropriately sized — under 400 lines of logic changes
+
+
+## Related
+
+- **Agents**: [code-reviewer](../../agents/code-reviewer.md)
+- **Rules**: [coding-style](../../rules/common/coding-style.md), [testing](../../rules/common/testing.md), [security](../../rules/common/security.md)
+- **Commands**: [/code-review](../../commands/code-review.md)

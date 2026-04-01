@@ -63,3 +63,9 @@ Load this skill when designing, debugging, or optimizing CI/CD pipelines. Applie
 - [ ] Flaky tests are quarantined and tracked for resolution
 - [ ] Action/image versions are pinned to specific SHA or digest
 - [ ] Pipeline runs complete in under 10 minutes for PR checks
+
+
+## Related
+
+- **Agents**: [build-error-resolver](../../agents/build-error-resolver.md), [devops-reviewer](../../agents/devops-reviewer.md), [typescript-build-resolver](../../agents/typescript-build-resolver.md), [python-build-resolver](../../agents/python-build-resolver.md), [go-build-resolver](../../agents/go-build-resolver.md), [java-build-resolver](../../agents/java-build-resolver.md), [rust-build-resolver](../../agents/rust-build-resolver.md), [cpp-build-resolver](../../agents/cpp-build-resolver.md)
+- **Commands**: [/build-fix](../../commands/build-fix.md)

@@ -55,3 +55,10 @@ function UserList({ ids }) {
   return <ul>{users.map((u, i) => <li key={i}>{u.name}</li>)}</ul>;
 }
 ```
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md)
+- **Skills**: [react-patterns](../../skills/react-patterns/SKILL.md), [frontend-patterns](../../skills/frontend-patterns/SKILL.md)
+- **Commands**: [/ts-review](../../commands/ts-review.md)

@@ -68,3 +68,10 @@ ring::rand::SecureRandom::fill(&rng, &mut token)?;
 // Bad: Unsafe without justification
 unsafe { std::ptr::read(some_ptr) }  // No SAFETY comment
 ```
+
+
+## Related
+
+- **Agents**: [rust-reviewer](../../agents/rust-reviewer.md)
+- **Skills**: [rust-patterns](../../skills/rust-patterns/SKILL.md), [security-review](../../skills/security-review/SKILL.md)
+- **Commands**: [/rust-review](../../commands/rust-review.md), [/security-scan](../../commands/security-scan.md)

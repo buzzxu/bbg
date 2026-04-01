@@ -154,3 +154,10 @@ try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
 - Test sealed hierarchies exhaustively — one test case per permitted subclass
 - Use `CompletableFuture` testing utilities for async code assertions
 - Run `NullAway` or `Checker Framework` for compile-time null safety
+
+
+## Related
+
+- **Agents**: [java-reviewer](../../agents/java-reviewer.md), [java-build-resolver](../../agents/java-build-resolver.md)
+- **Rules**: [java/coding-style](../../rules/java/coding-style.md), [java/testing](../../rules/java/testing.md)
+- **Commands**: [/java-review](../../commands/java-review.md), [/java-build](../../commands/java-build.md)

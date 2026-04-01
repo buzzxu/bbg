@@ -6,10 +6,23 @@ AI Development Workflow Governance CLI -- scaffolds agent instructions, rules, h
 
 - **Multi-tool support** -- Generates configurations for Claude Code, OpenCode, Cursor, Codex CLI, GitHub Copilot, and Kiro
 - **Project analysis** -- Auto-detects stack, structure, dependencies, and testing setup
-- **3-tier template system** -- Generic (verbatim copy), Handlebars (rendered), and Scaffold (AI-fill markers)
+- **2-tier template system** -- Generic (verbatim copy) and Handlebars (rendered with project-specific variables)
 - **Health checks** -- `bbg doctor` audits governance config and auto-fixes issues
 - **Template upgrades** -- Diff-based upgrades when templates evolve
-- **Comprehensive governance scaffold** -- 25 agents, 60 skills, 35 rules, 32 commands, hooks, MCP configs
+- **Comprehensive governance scaffold** -- 25 agents, 61 skills, 34 rules, 40 commands, hooks, MCP configs
+
+## Language Support
+
+| Language | Reviewer | Build Resolver | Commands | Skills | Rules | Status |
+|----------|:--------:|:--------------:|:--------:|:------:|:-----:|--------|
+| TypeScript | Y | Y | 3 | 4 | 5 | Full |
+| Python | Y | Y | 3 | 4 | 4 | Full |
+| Go | Y | Y | 3 | 3 | 4 | Full |
+| Java | Y | Y | 3 | 4 | 4 | Full |
+| Rust | Y | Y | 3 | 3 | 3 | Full |
+| Kotlin | Y | -- | 1 | 3 | 3 | Partial |
+| PHP | -- | -- | -- | 2 | 3 | Partial |
+| C++ | -- | Y | -- | 1 | -- | Partial |
 
 ## Quick Start
 
@@ -63,7 +76,7 @@ src/doctor/             Health checks and auto-fix
 src/templates/          Template rendering engine (Handlebars)
 src/upgrade/            Template upgrade diffing
 src/utils/              Shared utilities (fs, logger)
-templates/              3-tier template system (generic, handlebars, scaffold)
+templates/              2-tier template system (generic, handlebars)
 tests/                  Unit + integration tests (vitest)
 ```
 
@@ -71,11 +84,11 @@ tests/                  Unit + integration tests (vitest)
 
 ```
 agents/                 25 agent definitions (core, language, build resolvers)
-skills/                 60 skill directories with SKILL.md workflows
-rules/                  35 rule files (common + 7 language-specific directories)
-commands/               32 slash command definitions
+skills/                 61 skill directories with SKILL.md workflows
+rules/                  34 rule files (common + 7 language-specific directories)
+commands/               40 slash command definitions
 hooks/                  Hook automation (hooks.json + 6 scripts)
-mcp-configs/            12 MCP server configurations
+mcp-configs/            14 MCP server configurations
 contexts/               3 operational contexts (dev, review, research)
 ```
 
@@ -88,15 +101,15 @@ contexts/               3 operational contexts (dev, review, research)
 | Language | 6 | typescript-reviewer, python-reviewer, go-reviewer, java-reviewer, rust-reviewer, kotlin-reviewer |
 | Build Resolvers | 6 | typescript-build-resolver, python-build-resolver, go-build-resolver, java-build-resolver, rust-build-resolver, cpp-build-resolver |
 
-### Skills (60)
+### Skills (61)
 
 | Category | Count | Examples |
 |----------|-------|----------|
-| Core | 20 | tdd-workflow, security-review, verification-loop, api-design, harness-engineering |
+| Core | 21 | tdd-workflow, security-review, verification-loop, api-design, harness-engineering, writing-plans |
 | Language | 24 | typescript-patterns, react-patterns, python-patterns, golang-patterns, rust-patterns |
 | Operations | 16 | ci-cd-patterns, monitoring-patterns, incident-response, prompt-engineering |
 
-### Rules (35)
+### Rules (34)
 
 | Directory | Count | Scope |
 |-----------|-------|-------|
@@ -109,13 +122,13 @@ contexts/               3 operational contexts (dev, review, research)
 | kotlin/ | 3 | coding-style, testing, security |
 | php/ | 3 | coding-style, testing, security |
 
-### Commands (32)
+### Commands (40)
 
 | Category | Count | Commands |
 |----------|-------|----------|
 | Core Workflow | 10 | plan, tdd, code-review, build-fix, security-scan, refactor-clean, e2e, test-coverage, update-docs, doctor |
 | Learning & Session | 6 | learn, learn-eval, checkpoint, verify, sessions, eval |
-| Language-Specific | 8 | ts-review, python-review, go-review, go-test, go-build, java-review, rust-review, kotlin-review |
+| Language-Specific | 16 | ts-review, ts-test, ts-build, python-review, python-test, python-build, go-review, go-test, go-build, java-review, java-test, java-build, rust-review, rust-test, rust-build, kotlin-review |
 | Orchestration | 8 | orchestrate, loop-start, loop-status, quality-gate, harness-audit, model-route, setup-pm, sync |
 
 ### Hooks
@@ -129,9 +142,9 @@ contexts/               3 operational contexts (dev, review, research)
 | security-scan.js | Detect secrets, block destructive commands |
 | suggest-compact.js | Track token usage and suggest compaction |
 
-### MCP Servers (12)
+### MCP Servers (14)
 
-github, filesystem, postgres, sqlite, brave-search, puppeteer, memory, fetch, sequential-thinking, context7, supabase, redis
+github, filesystem, postgres, sqlite, brave-search, puppeteer, memory, fetch, sequential-thinking, context7, magic, playwright, supabase, redis
 
 See `mcp-configs/README.md` for setup instructions.
 

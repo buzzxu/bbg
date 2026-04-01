@@ -65,3 +65,9 @@ Load this skill when instrumenting applications, setting up alerting, defining S
 - [ ] Sensitive data excluded from all logs and trace attributes
 - [ ] On-call runbooks link alerts to dashboards and remediation steps
 - [ ] Observability stack tested — verify traces and metrics flow end-to-end
+
+
+## Related
+
+- **Agents**: [devops-reviewer](../../agents/devops-reviewer.md)
+- **Rules**: [performance](../../rules/common/performance.md)

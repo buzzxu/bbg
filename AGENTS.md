@@ -61,7 +61,7 @@ This file provides instructions for AI coding agents (Claude Code, Codex, OpenCo
 | rust-build-resolver | `agents/rust-build-resolver.md` | Rust/Cargo |
 | cpp-build-resolver | `agents/cpp-build-resolver.md` | C++/CMake |
 
-## Skills (60)
+## Skills (61)
 
 Skills are detailed workflow instructions in `skills/*/SKILL.md`. Key skills for this project:
 
@@ -76,7 +76,7 @@ Skills are detailed workflow instructions in `skills/*/SKILL.md`. Key skills for
 | Continuous Learning | `skills/continuous-learning/SKILL.md` | Learning from mistakes |
 | Search First | `skills/search-first/SKILL.md` | Read before writing |
 
-See `skills/` directory for all 60 skill workflows covering core patterns (20), language-specific (24), and operations (16).
+See `skills/` directory for all 61 skill workflows covering core patterns (21), language-specific (24), and operations (16).
 
 ## Rules (35)
 
@@ -95,7 +95,7 @@ Rules are organized by language in `rules/`:
 
 See `rules/README.md` for installation and usage guide.
 
-## Commands (32)
+## Commands (40)
 
 Slash commands are defined in `commands/*.md`:
 
@@ -121,8 +121,8 @@ Hook automation is configured in `hooks/hooks.json` with 6 scripts:
 
 ## MCP Servers
 
-12 MCP server configurations in `mcp-configs/mcp-servers.json`:
-github, filesystem, postgres, sqlite, brave-search, puppeteer, memory, fetch, sequential-thinking, context7, supabase, redis.
+14 MCP server configurations in `mcp-configs/mcp-servers.json`:
+github, filesystem, postgres, sqlite, brave-search, puppeteer, memory, fetch, sequential-thinking, context7, magic, playwright, supabase, redis.
 
 ## Contexts
 
@@ -154,7 +154,7 @@ src/utils/                   -> Shared utilities
   platform.ts                -> Platform detection
   prompts.ts                 -> CLI prompts + sanitization + collectStackInfo
   errors.ts                  -> Custom error classes (BbgError, BbgConfigError, etc.)
-templates/                   -> 3-tier template system (generic, handlebars, scaffold)
+templates/                   -> 2-tier template system (generic, handlebars)
 tests/                       -> Unit + integration tests (vitest)
 ```
 

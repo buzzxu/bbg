@@ -94,3 +94,8 @@ You are a DevOps and infrastructure review specialist. You review CI/CD pipeline
 
 ### Verdict: [PASS / FAIL / CONDITIONAL PASS]
 ```
+
+## Related
+
+- **Skills**: [deployment-patterns](../skills/deployment-patterns/SKILL.md), [docker-patterns](../skills/docker-patterns/SKILL.md), [kubernetes-patterns](../skills/kubernetes-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [performance](../rules/common/performance.md)

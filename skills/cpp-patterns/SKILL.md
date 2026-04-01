@@ -226,3 +226,9 @@ Task<std::string> fetch_data(std::string url) {
 - Use AddressSanitizer (`-fsanitize=address`) and UBSan in CI
 - Benchmark with Google Benchmark to catch performance regressions
 - Use `static_assert` with concepts to verify type constraints at compile time
+
+
+## Related
+
+- **Agents**: [cpp-build-resolver](../../agents/cpp-build-resolver.md)
+- **Commands**: [/build-fix](../../commands/build-fix.md)

@@ -41,3 +41,7 @@ Extract reusable patterns, decisions, and techniques from the current session an
 /learn "error-boundary-pattern"     # Extract a specific named pattern
 /learn --from-session               # Review full session history
 ```
+
+## Related
+
+- **Skills**: [continuous-learning](../skills/continuous-learning/SKILL.md)

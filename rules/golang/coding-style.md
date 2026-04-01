@@ -65,3 +65,10 @@ type Database interface {
     FindUser(...) / CreateUser(...) / DeleteUser(...) / FindOrder(...) // etc.
 }
 ```
+
+
+## Related
+
+- **Agents**: [go-reviewer](../../agents/go-reviewer.md), [go-build-resolver](../../agents/go-build-resolver.md)
+- **Skills**: [golang-patterns](../../skills/golang-patterns/SKILL.md)
+- **Commands**: [/go-review](../../commands/go-review.md), [/go-build](../../commands/go-build.md)

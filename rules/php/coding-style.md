@@ -76,3 +76,8 @@ $response = sendEmail(to: $user->email, subject: 'Welcome', html: true);
 // Bad: Positional booleans
 $response = sendEmail($user->email, 'Welcome', true, false, true);
 ```
+
+
+## Related
+
+- **Skills**: [laravel-patterns](../../skills/laravel-patterns/SKILL.md)

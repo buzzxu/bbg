@@ -81,3 +81,9 @@ You are a Go code review specialist. You enforce Go idioms, proper error handlin
 
 ### Verdict: [PASS / FAIL / CONDITIONAL PASS]
 ```
+
+## Related
+
+- **Skills**: [golang-patterns](../skills/golang-patterns/SKILL.md), [golang-testing](../skills/golang-testing/SKILL.md), [gin-patterns](../skills/gin-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/golang/coding-style.md), [testing](../rules/golang/testing.md), [patterns](../rules/golang/patterns.md), [security](../rules/golang/security.md)
+- **Commands**: [/go-review](../commands/go-review.md), [/go-test](../commands/go-test.md), [/go-build](../commands/go-build.md)

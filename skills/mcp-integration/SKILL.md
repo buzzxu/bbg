@@ -146,3 +146,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 - [ ] Error handling prevents server crashes from affecting the agent
 - [ ] Multi-server setup uses namespaced tools
 - [ ] Health monitoring in place for production servers
+
+
+## Related
+
+- **Commands**: [/setup-pm](../../commands/setup-pm.md)

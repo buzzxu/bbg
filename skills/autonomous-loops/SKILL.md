@@ -124,3 +124,9 @@ Safety mechanisms for autonomous operation:
 - [ ] Guard rails prevent out-of-scope changes
 - [ ] Failure context captured for debugging
 - [ ] Escalation path defined for unrecoverable errors
+
+
+## Related
+
+- **Agents**: [loop-operator](../../agents/loop-operator.md)
+- **Commands**: [/loop-start](../../commands/loop-start.md), [/loop-status](../../commands/loop-status.md)

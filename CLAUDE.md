@@ -34,22 +34,20 @@ src/
 │   ├── checks.ts             # Governance health checks
 │   └── fix.ts                # Auto-fix for detected issues
 ├── templates/                # Template rendering engine
-│   └── render.ts             # Handlebars + scaffold rendering
+│   └── render.ts             # Handlebars template rendering
 ├── upgrade/                  # Template upgrade diffing
 │   └── diff.ts               # Template version comparison
 └── utils/                    # Shared utilities
     ├── fs.ts                 # Filesystem helpers (exists, readJson, etc.)
     └── logger.ts             # Logger utility
 
-templates/                    # 3-tier template system
+templates/                    # 2-tier template system
 ├── generic/                  # Verbatim copy templates
-├── handlebars/               # Rendered with project context
-│   ├── AGENTS.md.hbs         # Root AGENTS.md template
-│   ├── child-AGENTS.md.hbs   # Per-repo AGENTS.md template
-│   ├── README.md.hbs         # README template
-│   └── ...                   # Git hooks, scripts, docs
-└── scaffold/                 # AI-fill marker templates
-    └── docs/                 # Task/review templates with <!-- AI-FILL --> markers
+└── handlebars/               # Rendered with project context
+    ├── AGENTS.md.hbs         # Root AGENTS.md template
+    ├── child-AGENTS.md.hbs   # Per-repo AGENTS.md template
+    ├── README.md.hbs         # README template
+    └── ...                   # Git hooks, scripts, docs
 ```
 
 ## Governance Scaffold Architecture
@@ -67,9 +65,10 @@ agents/                       # 25 agent definitions
                               go-build-resolver, java-build-resolver,
                               rust-build-resolver, cpp-build-resolver
 
-skills/                       # 60 skill directories (each with SKILL.md)
-├── Core (20):                coding-standards, tdd-workflow, security-review,
-│                             verification-loop, search-first, continuous-learning,
+skills/                       # 61 skill directories (each with SKILL.md)
+├── Core (21):                coding-standards, tdd-workflow, security-review,
+│                             verification-loop, search-first, writing-plans,
+│                             continuous-learning,
 │                             eval-harness, strategic-compact, api-design,
 │                             backend-patterns, database-migrations, postgres-patterns,
 │                             frontend-patterns, e2e-testing, deployment-patterns,
@@ -91,7 +90,7 @@ skills/                       # 60 skill directories (each with SKILL.md)
                               data-modeling, api-versioning, prompt-engineering,
                               llm-cost-optimization, agent-orchestration
 
-rules/                        # 35 rule files
+rules/                        # 34 rule files
 ├── common/ (8):              coding-style, git-workflow, testing, security,
 │                             performance, patterns, hooks, agents
 ├── typescript/ (5):          coding-style, testing, react, node, security
@@ -102,12 +101,14 @@ rules/                        # 35 rule files
 ├── kotlin/ (3):              coding-style, testing, security
 └── php/ (3):                 coding-style, testing, security
 
-commands/                     # 32 slash commands
+commands/                     # 40 slash commands
 ├── Core (10):                plan, tdd, code-review, build-fix, security-scan,
 │                             refactor-clean, e2e, test-coverage, update-docs, doctor
 ├── Learning (6):             learn, learn-eval, checkpoint, verify, sessions, eval
-├── Language (8):             ts-review, python-review, go-review, go-test,
-│                             go-build, java-review, rust-review, kotlin-review
+├── Language (16):            ts-review, ts-build, ts-test, python-review,
+│                             python-build, python-test, go-review, go-test,
+│                             go-build, java-review, java-build, java-test,
+│                             rust-review, rust-build, rust-test, kotlin-review
 └── Orchestration (8):        orchestrate, loop-start, loop-status, quality-gate,
                               harness-audit, model-route, setup-pm, sync
 
@@ -159,7 +160,7 @@ npx bbg upgrade        # Upgrade templates
 ## Key Design Decisions
 
 - **ESM-only**: All imports use `.js` extensions for Node.js ESM compatibility
-- **3-tier templates**: generic (verbatim), handlebars (rendered), scaffold (AI-fill markers)
+- **2-tier templates**: generic (verbatim copy), handlebars (rendered with project variables)
 - **4 analyzers**: detect-stack, detect-structure, detect-deps, detect-testing
 - **Supported stacks**: Node.js, Java (Maven/Gradle), Python, Go
 - **Template manifest**: All template paths are declared in `src/constants.ts`
@@ -169,7 +170,6 @@ npx bbg upgrade        # Upgrade templates
 
 - File naming: lowercase with hyphens (e.g., `detect-stack.ts`, `add-repo.ts`)
 - Template rendering uses Handlebars with `{{variable}}` syntax
-- Scaffold templates use `<!-- AI-FILL -->` markers for AI agents to complete
 - `import ... with { type: "json" }` syntax is used for JSON imports (Node 18+)
 - All async functions use proper error handling with try/catch
 

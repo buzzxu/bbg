@@ -86,3 +86,9 @@ ls src/utils/
 - [ ] Read existing tests to understand expected behavior and test style
 - [ ] No duplicated logic — reused existing utilities where possible
 - [ ] Planned the change before writing code
+
+
+## Related
+
+- **Agents**: [planner](../../agents/planner.md), [refactor-cleaner](../../agents/refactor-cleaner.md)
+- **Rules**: [coding-style](../../rules/common/coding-style.md)

@@ -217,3 +217,10 @@ WorkManager.getInstance(context).enqueueUniquePeriodicWork("sync", KEEP, syncReq
 - Test Room DAOs with in-memory database (`Room.inMemoryDatabaseBuilder`)
 - Use Hilt testing (`@HiltAndroidTest`) for integration tests with DI
 - Use Robolectric for unit tests that need Android framework classes
+
+
+## Related
+
+- **Agents**: [kotlin-reviewer](../../agents/kotlin-reviewer.md)
+- **Rules**: [kotlin/coding-style](../../rules/kotlin/coding-style.md)
+- **Commands**: [/kotlin-review](../../commands/kotlin-review.md)

@@ -49,8 +49,9 @@ describe("buildGovernanceManifest", () => {
     const ctx = buildTemplateContext(config);
     const tasks = buildGovernanceManifest(ctx);
 
-    // All tasks should be copy mode
-    for (const task of tasks) {
+    // All non-context tasks should be copy mode
+    const nonContextTasks = tasks.filter((t) => !t.destination.startsWith("contexts/"));
+    for (const task of nonContextTasks) {
       expect(task.mode).toBe("copy");
     }
 
@@ -60,9 +61,9 @@ describe("buildGovernanceManifest", () => {
     expect(agentTasks.map((t) => t.destination)).toContain("agents/planner.md");
     expect(agentTasks.map((t) => t.destination)).toContain("agents/devops-reviewer.md");
 
-    // Core + operations skills: 20 + 16 = 36
+    // Core + operations skills: 21 + 16 = 37
     const skillTasks = tasks.filter((t) => t.destination.startsWith("skills/"));
-    expect(skillTasks).toHaveLength(36);
+    expect(skillTasks).toHaveLength(37);
     expect(skillTasks.map((t) => t.destination)).toContain("skills/coding-standards/SKILL.md");
     expect(skillTasks.map((t) => t.destination)).toContain("skills/agent-orchestration/SKILL.md");
 
@@ -84,16 +85,20 @@ describe("buildGovernanceManifest", () => {
     expect(hookTasks.map((t) => t.destination)).toContain("hooks/hooks.json");
     expect(hookTasks.map((t) => t.destination)).toContain("hooks/scripts/security-scan.js");
 
-    // Contexts: 3
+    // Contexts: 3 (handlebars mode)
     const contextTasks = tasks.filter((t) => t.destination.startsWith("contexts/"));
     expect(contextTasks).toHaveLength(3);
+    for (const task of contextTasks) {
+      expect(task.mode).toBe("handlebars");
+      expect(task.source).toMatch(/^handlebars\/contexts\/.*\.hbs$/);
+    }
 
     // MCP configs: 2
     const mcpTasks = tasks.filter((t) => t.destination.startsWith("mcp-configs/"));
     expect(mcpTasks).toHaveLength(2);
 
-    // Total: 13 + 36 + 8 + 24 + 8 + 3 + 2 = 94
-    expect(tasks).toHaveLength(94);
+    // Total: 13 + 37 + 8 + 24 + 8 + 3 + 2 = 95
+    expect(tasks).toHaveLength(95);
   });
 
   it("includes typescript-specific governance files when typescript repo present", () => {
@@ -122,11 +127,13 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("rules/typescript/node.md");
     expect(destinations).toContain("rules/typescript/security.md");
 
-    // TypeScript commands: ts-review
+    // TypeScript commands: ts-review, ts-build, ts-test
     expect(destinations).toContain("commands/ts-review.md");
+    expect(destinations).toContain("commands/ts-build.md");
+    expect(destinations).toContain("commands/ts-test.md");
 
-    // Total: 94 core + 2 agents + 4 skills + 5 rules + 1 command = 106
-    expect(tasks).toHaveLength(106);
+    // Total: 95 core + 2 agents + 4 skills + 5 rules + 3 commands = 109
+    expect(tasks).toHaveLength(109);
   });
 
   it("includes files for multiple languages (python + typescript)", () => {
@@ -173,8 +180,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("skills/coding-standards/SKILL.md");
     expect(destinations).toContain("rules/common/coding-style.md");
 
-    // 94 core + TS(2+4+5+1) + Python(2+4+4+1) = 94 + 12 + 11 = 117
-    expect(tasks).toHaveLength(117);
+    // 95 core + TS(2+4+5+3) + Python(2+4+4+3) = 95 + 14 + 13 = 122
+    expect(tasks).toHaveLength(122);
   });
 
   it("ensures all task source and destination paths are non-empty strings", () => {

@@ -157,3 +157,10 @@ def test_report_output(snapshot):
 - Use `pytest-xdist` for parallel execution: `pytest -n auto`
 - Generate coverage with `pytest --cov=src --cov-report=html`
 - Use Hypothesis profiles: quick for local, thorough for CI
+
+
+## Related
+
+- **Agents**: [python-reviewer](../../agents/python-reviewer.md)
+- **Rules**: [python/testing](../../rules/python/testing.md)
+- **Commands**: [/python-test](../../commands/python-test.md)

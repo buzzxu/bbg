@@ -43,3 +43,9 @@ Rust-specific findings:
 /rust-review src/lib/parser/
 /rust-review crates/core/
 ```
+
+## Related
+
+- **Agents**: [rust-reviewer](../agents/rust-reviewer.md)
+- **Skills**: [rust-patterns](../skills/rust-patterns/SKILL.md), [axum-patterns](../skills/axum-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/rust/coding-style.md)

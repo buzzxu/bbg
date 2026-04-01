@@ -84,3 +84,9 @@ You are a TypeScript and JavaScript code review specialist. You enforce strict m
 
 ### Verdict: [PASS / FAIL / CONDITIONAL PASS]
 ```
+
+## Related
+
+- **Skills**: [typescript-patterns](../skills/typescript-patterns/SKILL.md), [react-patterns](../skills/react-patterns/SKILL.md), [nextjs-patterns](../skills/nextjs-patterns/SKILL.md), [vue-patterns](../skills/vue-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/typescript/coding-style.md), [testing](../rules/typescript/testing.md), [react](../rules/typescript/react.md), [node](../rules/typescript/node.md), [security](../rules/typescript/security.md)
+- **Commands**: [/ts-review](../commands/ts-review.md), [/ts-build](../commands/ts-build.md), [/ts-test](../commands/ts-test.md)

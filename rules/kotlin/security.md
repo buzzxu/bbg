@@ -67,3 +67,10 @@ val promptInfo = BiometricPrompt.PromptInfo.Builder()
     .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
     .build()
 ```
+
+
+## Related
+
+- **Agents**: [kotlin-reviewer](../../agents/kotlin-reviewer.md)
+- **Skills**: [kotlin-patterns](../../skills/kotlin-patterns/SKILL.md), [security-review](../../skills/security-review/SKILL.md)
+- **Commands**: [/kotlin-review](../../commands/kotlin-review.md), [/security-scan](../../commands/security-scan.md)

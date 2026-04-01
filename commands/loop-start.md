@@ -51,3 +51,8 @@ Final report:
 /loop-start --max-iterations 5           # Quick loop
 /loop-start --checks "build,typecheck"   # Skip tests
 ```
+
+## Related
+
+- **Agents**: [loop-operator](../agents/loop-operator.md)
+- **Skills**: [autonomous-loops](../skills/autonomous-loops/SKILL.md)

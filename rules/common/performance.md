@@ -44,3 +44,10 @@ Bad:  for (const id of ids) { await db.query("SELECT * FROM users WHERE id = $1"
 Good: import("heavy-lib").then(lib => lib.process(data));
 Bad:  import heavyLib from "heavy-lib";  // loaded even if never used
 ```
+
+
+## Related
+
+- **Agents**: [architect](../../agents/architect.md), [devops-reviewer](../../agents/devops-reviewer.md)
+- **Skills**: [deployment-patterns](../../skills/deployment-patterns/SKILL.md), [performance-optimization](../../skills/performance-optimization/SKILL.md)
+- **Commands**: [/quality-gate](../../commands/quality-gate.md)

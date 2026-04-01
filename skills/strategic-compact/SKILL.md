@@ -104,3 +104,8 @@ Do NOT compact when:
 - [ ] Active file paths and purposes preserved
 - [ ] Uncommitted changes tracked
 - [ ] Post-compact verification passed
+
+
+## Related
+
+- **Commands**: [/sessions](../../commands/sessions.md)

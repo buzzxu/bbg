@@ -153,3 +153,8 @@ spec:
 - [ ] PodDisruptionBudget set for production deployments
 - [ ] Deployment strategy appropriate for the workload type
 - [ ] Minimum 2 replicas for production services
+
+
+## Related
+
+- **Agents**: [devops-reviewer](../../agents/devops-reviewer.md)

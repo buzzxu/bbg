@@ -46,3 +46,9 @@ After each cycle:
 /go-test "ParseConfig handles empty YAML gracefully"
 /go-test "Cache expires entries after TTL"
 ```
+
+## Related
+
+- **Agents**: [go-reviewer](../agents/go-reviewer.md)
+- **Skills**: [golang-testing](../skills/golang-testing/SKILL.md), [tdd-workflow](../skills/tdd-workflow/SKILL.md)
+- **Rules**: [testing](../rules/golang/testing.md)

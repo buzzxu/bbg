@@ -93,3 +93,9 @@ You are a Go build error resolution specialist. You fix compilation errors, modu
 - Vet: PASS
 - Tests: PASS
 ```
+
+## Related
+
+- **Skills**: [golang-patterns](../skills/golang-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/golang/coding-style.md)
+- **Commands**: [/build-fix](../commands/build-fix.md), [/go-build](../commands/go-build.md)

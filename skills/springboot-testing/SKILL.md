@@ -211,3 +211,10 @@ class AdminControllerTest { /* ... */ }
 - Integration tests: `@SpringBootTest` + Testcontainers for end-to-end flows
 - Contract tests: WireMock for external APIs, Spring Cloud Contract for internal
 - Run fast unit tests on every push; integration tests in CI pipeline
+
+
+## Related
+
+- **Agents**: [java-reviewer](../../agents/java-reviewer.md)
+- **Rules**: [java/testing](../../rules/java/testing.md)
+- **Commands**: [/java-test](../../commands/java-test.md)

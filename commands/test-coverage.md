@@ -42,3 +42,8 @@ Analyze test coverage to identify untested code paths, suggest test strategies, 
 /test-coverage src/commands/
 /test-coverage --threshold 80    # Flag files below 80%
 ```
+
+## Related
+
+- **Skills**: [tdd-workflow](../skills/tdd-workflow/SKILL.md)
+- **Rules**: [testing](../rules/common/testing.md)

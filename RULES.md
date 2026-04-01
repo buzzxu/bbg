@@ -60,9 +60,8 @@ See `rules/README.md` for the full guide on how rules are loaded by each AI tool
 
 ## Template System
 
-- Templates live in `templates/` with three tiers: generic, handlebars, scaffold
+- Templates live in `templates/` with two tiers: generic (verbatim copy) and handlebars (rendered)
 - Handlebars templates use `{{variable}}` syntax with `.hbs` extension
-- Scaffold templates use `<!-- AI-FILL -->` markers
 - All template paths must be registered in `src/constants.ts` manifest
 
 ## Commit Style

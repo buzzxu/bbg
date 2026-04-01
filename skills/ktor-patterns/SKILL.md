@@ -207,3 +207,10 @@ fun Application.configureWebSocket() {
 - Test authentication by sending valid/invalid JWT tokens
 - Test WebSocket endpoints with `client.webSocket` in test scope
 - Mock services with MockK when testing routes in isolation
+
+
+## Related
+
+- **Agents**: [kotlin-reviewer](../../agents/kotlin-reviewer.md)
+- **Rules**: [kotlin/coding-style](../../rules/kotlin/coding-style.md)
+- **Commands**: [/kotlin-review](../../commands/kotlin-review.md)

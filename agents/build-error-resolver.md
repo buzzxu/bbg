@@ -74,3 +74,9 @@ You are a build and type error resolution specialist. You fix compilation errors
 - Build: PASS
 - Tests: PASS ([N] passed, [M] skipped)
 ```
+
+## Related
+
+- **Skills**: [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/common/coding-style.md)
+- **Commands**: [/build-fix](../commands/build-fix.md)

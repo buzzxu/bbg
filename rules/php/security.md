@@ -69,3 +69,9 @@ if (!in_array($mimeType, $allowedTypes, true)) {
 // Bad: Trusting user-provided MIME type
 $type = $_FILES['upload']['type'];  // User-controlled, not reliable
 ```
+
+
+## Related
+
+- **Skills**: [laravel-patterns](../../skills/laravel-patterns/SKILL.md), [security-review](../../skills/security-review/SKILL.md)
+- **Commands**: [/security-scan](../../commands/security-scan.md)

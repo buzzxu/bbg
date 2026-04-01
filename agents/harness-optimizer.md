@@ -70,3 +70,8 @@ You are an AI harness configuration tuning specialist. You optimize the configur
 - After: ~[N] tokens total
 - Reduction: [percentage]
 ```
+
+## Related
+
+- **Skills**: [harness-engineering](../skills/harness-engineering/SKILL.md), [eval-harness](../skills/eval-harness/SKILL.md)
+- **Commands**: [/harness-audit](../commands/harness-audit.md)

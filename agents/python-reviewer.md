@@ -82,3 +82,9 @@ You are a Python code review specialist. You enforce type hints, PEP 8 complianc
 
 ### Verdict: [PASS / FAIL / CONDITIONAL PASS]
 ```
+
+## Related
+
+- **Skills**: [python-patterns](../skills/python-patterns/SKILL.md), [python-testing](../skills/python-testing/SKILL.md), [django-patterns](../skills/django-patterns/SKILL.md), [fastapi-patterns](../skills/fastapi-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/python/coding-style.md), [testing](../rules/python/testing.md), [django](../rules/python/django.md), [security](../rules/python/security.md)
+- **Commands**: [/python-review](../commands/python-review.md), [/python-build](../commands/python-build.md), [/python-test](../commands/python-test.md)

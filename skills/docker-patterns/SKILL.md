@@ -145,3 +145,8 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 - [ ] Image scanned for vulnerabilities
 - [ ] Compose uses named networks with proper isolation
 - [ ] Volumes use named volumes for persistent data
+
+
+## Related
+
+- **Agents**: [devops-reviewer](../../agents/devops-reviewer.md)

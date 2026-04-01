@@ -80,3 +80,9 @@ Load this skill when diagnosing slow responses, optimizing database queries, red
 - [ ] Performance budgets set and enforced in CI
 - [ ] Load tests validate optimization under realistic concurrency
 - [ ] Monitoring alerts configured for latency regression (p99 drift)
+
+
+## Related
+
+- **Rules**: [performance](../../rules/common/performance.md)
+- **Commands**: [/quality-gate](../../commands/quality-gate.md)

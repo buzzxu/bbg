@@ -41,3 +41,9 @@ Python-specific findings:
 /python-review app/
 /python-review --strict    # Include style nitpicks
 ```
+
+## Related
+
+- **Agents**: [python-reviewer](../agents/python-reviewer.md)
+- **Skills**: [python-patterns](../skills/python-patterns/SKILL.md), [django-patterns](../skills/django-patterns/SKILL.md), [fastapi-patterns](../skills/fastapi-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/python/coding-style.md), [testing](../rules/python/testing.md)

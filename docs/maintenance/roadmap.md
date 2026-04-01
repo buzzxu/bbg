@@ -1,7 +1,7 @@
 # BBG Maintenance Roadmap
 
-**Last updated**: 2026-03-31  
-**Current version**: v0.2.0  
+**Last updated**: 2026-04-01  
+**Current version**: v0.3.0  
 **Architecture**: [Self-Governance Feedback Loop](specs/self-governance-architecture.md)
 
 ---
@@ -57,27 +57,29 @@
 
 ---
 
-## v0.3.0 — Governance Quality
+## v0.3.0 — Governance Quality ✅
 
 **Theme**: Make governance content production-quality with full cross-references.  
-**Status**: Not started
+**Status**: Complete
 
-### P0
+### P0 ✅
 
-- [ ] Governance cross-reference system (130+ docs interlinked: agent↔skill↔rule↔command)
-- [ ] Fix hardcoded BBG paths in `contexts/` (dev.md, review.md, research.md)
+- [x] Governance cross-reference system (160 docs interlinked: agent↔skill↔rule↔command)
+- [x] Context file templatization with Handlebars (dev.md, review.md, research.md)
 
-### P1
+### P1 ✅
 
-- [ ] Template consistency validation in `bbg doctor`
-- [ ] MCP server documentation sync (14 actual → docs updated)
-- [ ] `bbg doctor --self` self-check mode
+- [x] MCP server documentation sync (14 servers documented across all config files)
+- [x] Added 8 language-specific build+test commands (all 5 mainstream languages now have 3 commands each)
+- [x] Fixed flaky test timeouts (all 210 tests passing)
+- [x] Added coverage configuration
 
-### P2
+### P2 ✅
 
-- [ ] Activate scaffold tier (expand from 1 vestigial file)
-- [ ] Complete Kotlin/PHP/C++ command coverage
-- [ ] Language coverage audit and alignment
+- [x] Remove scaffold tier (vestigial — replaced by two-tier system)
+- [x] Language coverage audit and alignment (language support matrix added to README)
+- [x] Created writing-plans skill (61 total skills)
+- [x] Updated doc counts (25 agents, 61 skills, 34 rules, 40 commands)
 
 ---
 
@@ -89,6 +91,9 @@
 - [ ] Plugin architecture for user-extensible agents/skills/rules
 - [ ] Multi-agent collaboration workflow patterns in skills
 - [ ] `bbg upgrade` smart diff/merge with user customization preservation
+- [ ] Template consistency validation in `bbg doctor`
+- [ ] `bbg doctor --self` self-check mode
+- [ ] Complete Kotlin/PHP/C++ command coverage
 - [ ] New language support based on community demand
 
 ---
@@ -108,10 +113,29 @@
 
 ## Completed
 
-### v0.1.0 — Initial Bootstrap (current)
+### v0.3.0 — Governance Quality
+- [x] Full cross-reference system (160 governance docs interlinked)
+- [x] Removed scaffold tier (two-tier template system)
+- [x] 8 language-specific build+test commands added
+- [x] Context file templatization with Handlebars
+- [x] Fixed flaky tests (all 210 passing)
+- [x] Coverage configuration added
+- [x] MCP docs updated (14 servers)
+- [x] Created writing-plans skill (61 total skills)
+- [x] Updated doc counts (25 agents, 61 skills, 34 rules, 40 commands)
+
+### v0.2.0 — Foundation Hardening
+- [x] Extracted 10 duplicated functions to shared modules
+- [x] Split init.ts (553 → 172 lines, 4 focused modules)
+- [x] 106+ tests added across 10 new test files
+- [x] ESLint + Prettier configuration
+- [x] GitHub Actions CI with Node 18/20/22 matrix
+- [x] Coverage reporting with @vitest/coverage-v8
+
+### v0.1.0 — Initial Bootstrap
 - [x] Core CLI: init, add-repo, doctor, sync, release, upgrade commands
-- [x] Template system: 3-tier (generic, handlebars, scaffold)
-- [x] Governance content: 25 agents, 60 skills, 34 rules, 32 commands
+- [x] Template system: 2-tier (generic, handlebars) — scaffold tier removed in v0.3.0
+- [x] Governance content: 25 agents, 61 skills, 34 rules, 40 commands
 - [x] 6 AI tool support: Claude Code, OpenCode, Cursor, Codex CLI, Copilot, Kiro
 - [x] 93/93 tests passing
 - [x] Bug fixes: CLI silent exit, double git prompts, add-repo overwrite, OpenCode/Codex configs

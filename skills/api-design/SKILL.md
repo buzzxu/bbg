@@ -115,3 +115,9 @@ GET /api/v1/users?page=2&limit=20
 - [ ] Authentication required on all non-public endpoints
 - [ ] Versioning strategy defined and applied
 - [ ] OpenAPI/Swagger documentation generated
+
+
+## Related
+
+- **Agents**: [architect](../../agents/architect.md)
+- **Rules**: [patterns](../../rules/common/patterns.md), [performance](../../rules/common/performance.md)

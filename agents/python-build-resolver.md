@@ -93,3 +93,9 @@ You are a Python build and import error resolution specialist. You fix dependenc
 - Build/Import: PASS
 - Tests: PASS
 ```
+
+## Related
+
+- **Skills**: [python-patterns](../skills/python-patterns/SKILL.md), [ci-cd-patterns](../skills/ci-cd-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/python/coding-style.md)
+- **Commands**: [/build-fix](../commands/build-fix.md), [/python-build](../commands/python-build.md)

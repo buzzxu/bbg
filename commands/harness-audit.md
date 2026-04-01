@@ -50,3 +50,8 @@ Harness audit report:
 /harness-audit --scope hooks  # Audit only hooks
 /harness-audit --deep         # Include content analysis of all files
 ```
+
+## Related
+
+- **Agents**: [harness-optimizer](../agents/harness-optimizer.md)
+- **Skills**: [harness-engineering](../skills/harness-engineering/SKILL.md), [eval-harness](../skills/eval-harness/SKILL.md)

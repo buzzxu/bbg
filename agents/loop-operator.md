@@ -90,3 +90,8 @@ while (tests fail):
 ### Escalations (if any)
 - [Blocking issue that could not be auto-resolved]
 ```
+
+## Related
+
+- **Skills**: [autonomous-loops](../skills/autonomous-loops/SKILL.md)
+- **Commands**: [/loop-start](../commands/loop-start.md), [/loop-status](../commands/loop-status.md)

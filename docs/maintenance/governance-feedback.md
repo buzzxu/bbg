@@ -20,7 +20,7 @@ Each entry follows: Date | Category | Finding | Action | Status
 | Cross-references | No agent references its related rules or commands | Systematic cross-reference pass needed | Pending |
 | Contexts | `contexts/dev.md` contains BBG-specific file paths | Templatize or make generic | Pending |
 | Contexts | `contexts/review.md` references BBG source structure | Same as above | Pending |
-| Documentation | AGENTS.md says 12 MCP servers, actual JSON has 14 | Update AGENTS.md count | Pending |
+| Documentation | AGENTS.md says 14 MCP servers, matching actual JSON | Updated AGENTS.md, README.md, mcp-configs/README.md | Done |
 | Documentation | AGENTS.md references `src/utils/logger.ts` which doesn't exist | Remove or create the file | Pending |
 | Documentation | AGENTS.md references `src/templates/manifest.ts` which doesn't exist | Manifest logic is inline in init.ts | Pending |
 | Templates | Scaffold tier has only 1 file (4 lines) — not useful | Either expand or document as planned-future | Pending |

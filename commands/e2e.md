@@ -40,3 +40,9 @@ Generate end-to-end tests using Playwright with Page Object Model pattern. Cover
 /e2e "Doctor command detects and fixes missing files"
 /e2e "User can add and sync multiple repositories"
 ```
+
+## Related
+
+- **Agents**: [e2e-runner](../agents/e2e-runner.md)
+- **Skills**: [e2e-testing](../skills/e2e-testing/SKILL.md)
+- **Rules**: [testing](../rules/common/testing.md)

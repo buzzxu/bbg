@@ -89,3 +89,8 @@ Load this skill when designing schemas, optimizing queries, or scaling PostgreSQ
 - [ ] pg_stat_statements enabled for query monitoring
 - [ ] Autovacuum settings tuned for table write patterns
 - [ ] Cache hit ratio above 99%
+
+
+## Related
+
+- **Agents**: [database-reviewer](../../agents/database-reviewer.md)

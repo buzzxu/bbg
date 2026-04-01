@@ -101,3 +101,8 @@ Each phase is a separate deployment — never combine them.
 - [ ] Execution time measured and acceptable
 - [ ] Application code works with both old and new schemas
 - [ ] No code references to dropped columns/tables
+
+
+## Related
+
+- **Agents**: [database-reviewer](../../agents/database-reviewer.md)

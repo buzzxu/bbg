@@ -86,3 +86,8 @@ For each pattern worth preserving:
 - [ ] Validated patterns against recent examples
 - [ ] Placed patterns in the correct location (rules/, skills/, AGENTS.md)
 - [ ] Pruned any stale or contradicting patterns
+
+
+## Related
+
+- **Commands**: [/learn](../../commands/learn.md), [/learn-eval](../../commands/learn-eval.md)

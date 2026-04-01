@@ -70,3 +70,10 @@ func TestParseAge(t *testing.T) {
     }
 }
 ```
+
+
+## Related
+
+- **Agents**: [go-reviewer](../../agents/go-reviewer.md)
+- **Skills**: [golang-testing](../../skills/golang-testing/SKILL.md), [tdd-workflow](../../skills/tdd-workflow/SKILL.md)
+- **Commands**: [/go-test](../../commands/go-test.md), [/tdd](../../commands/tdd.md)

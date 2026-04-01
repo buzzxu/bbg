@@ -1,6 +1,6 @@
 # Known Issues
 
-**Last updated**: 2026-03-31
+**Last updated**: 2026-04-01
 
 Issues are sorted by severity and tagged with milestone assignment.
 
@@ -20,8 +20,8 @@ Issues are sorted by severity and tagged with milestone assignment.
 | K-010 | ~~No CI/CD pipeline~~ | `.github/workflows/ci.yml` | v0.2.0 | ✅ Resolved — GitHub Actions with Node 18/20/22 matrix |
 | K-011 | ~~No linting (ESLint/Prettier)~~ | `.eslintrc.cjs`, `.prettierrc` | v0.2.0 | ✅ Resolved — ESLint + Prettier configured |
 | K-012 | ~~Missing npm scripts~~ | `package.json` | v0.2.0 | ✅ Resolved — typecheck, coverage, lint, lint:fix added |
-| K-013 | Governance cross-references absent | `agents/`, `skills/`, `rules/`, `commands/` | v0.3.0 | Open — 130+ independent docs with no linking |
-| K-014 | MCP server count mismatch (14 actual vs 12 documented) | `mcp-configs/`, `AGENTS.md` | v0.3.0 | Open |
+| K-013 | ~~Governance cross-references absent~~ | `agents/`, `skills/`, `rules/`, `commands/` | v0.3.0 | ✅ Resolved — 160 docs cross-referenced |
+| K-014 | ~~MCP server count mismatch (14 actual vs 12 documented)~~ | `mcp-configs/`, `AGENTS.md` | v0.3.0 | ✅ Resolved — all docs updated to 14 servers |
 
 ## Medium (P2)
 
@@ -30,11 +30,11 @@ Issues are sorted by severity and tagged with milestone assignment.
 | K-020 | ~~`sync.ts` mutates `repo.stack` directly~~ | `src/commands/sync.ts` | v0.2.0 | ✅ Resolved — immutable `config.repos.map()` pattern |
 | K-021 | ~~`BbgAnalyzerError` exported but never used~~ | `src/utils/errors.ts` | v0.2.0 | ✅ Resolved — removed |
 | K-022 | ~~AGENTS.md references non-existent files~~ | `AGENTS.md` | v0.2.0 | ✅ Resolved — references updated |
-| K-023 | Hardcoded BBG paths in contexts | `contexts/dev.md`, `review.md`, `research.md` | v0.3.0 | Open |
-| K-024 | Scaffold tier vestigial (1 file, 4 lines) | `templates/scaffold/` | v0.3.0 | Open |
-| K-025 | Asymmetric language coverage | `commands/`, `agents/` | v0.3.0 | Open |
-| K-026 | ESLint 8 is EOL | `.eslintrc.cjs` | v0.3.0 | New — migrate to flat config (ESLint 9+) |
-| K-027 | 2 pre-existing test timeouts | `cli.smoke.test.ts`, `bootstrap.test.ts` | v0.3.0 | New — CLI bootstrap tests timeout at 5000ms |
+| K-023 | ~~Hardcoded BBG paths in contexts~~ | `contexts/dev.md`, `review.md`, `research.md` | v0.3.0 | ✅ Resolved — templatized with Handlebars |
+| K-024 | ~~Scaffold tier removed (was vestigial)~~ | `templates/scaffold/` deleted | v0.3.0 | ✅ Resolved |
+| K-025 | ~~Asymmetric language coverage~~ | `commands/`, `agents/` | v0.3.0 | ✅ Resolved — all 5 mainstream languages have 3 commands each |
+| K-026 | ESLint 8 is EOL | `.eslintrc.cjs` | v0.4.0 | Open — migrate to flat config (ESLint 9+) |
+| K-027 | ~~2 pre-existing test timeouts~~ | `cli.smoke.test.ts`, `bootstrap.test.ts` | v0.3.0 | ✅ Resolved — all 210 tests passing |
 
 ## Low (P3)
 

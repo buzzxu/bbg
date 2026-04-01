@@ -47,3 +47,8 @@ Bad:
     // no return value, no error handling
   }
 ```
+
+
+## Related
+
+- **Skills**: [coding-standards](../../skills/coding-standards/SKILL.md)

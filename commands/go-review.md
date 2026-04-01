@@ -42,3 +42,9 @@ Go-specific findings:
 /go-review internal/handlers/
 /go-review ./...
 ```
+
+## Related
+
+- **Agents**: [go-reviewer](../agents/go-reviewer.md)
+- **Skills**: [golang-patterns](../skills/golang-patterns/SKILL.md), [gin-patterns](../skills/gin-patterns/SKILL.md)
+- **Rules**: [coding-style](../rules/golang/coding-style.md), [patterns](../rules/golang/patterns.md)

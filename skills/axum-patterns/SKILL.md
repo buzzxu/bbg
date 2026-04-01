@@ -197,3 +197,10 @@ async fn shutdown_signal() {
 - Test error types by asserting `IntoResponse` produces correct status codes
 - Use `sqlx::test` macro with Postgres fixtures for database handler tests
 - Use `tower::ServiceExt` to call the router as a tower `Service` in tests
+
+
+## Related
+
+- **Agents**: [rust-reviewer](../../agents/rust-reviewer.md)
+- **Rules**: [rust/coding-style](../../rules/rust/coding-style.md)
+- **Commands**: [/rust-review](../../commands/rust-review.md)

@@ -69,3 +69,9 @@ Load this skill when establishing team Git conventions, resolving merge conflict
 - [ ] `.gitignore` covers all generated files and IDE artifacts
 - [ ] Sensitive files excluded — no secrets in commit history
 - [ ] Team trained on interactive rebase, cherry-pick, and worktrees
+
+
+## Related
+
+- **Rules**: [git-workflow](../../rules/common/git-workflow.md)
+- **Commands**: [/checkpoint](../../commands/checkpoint.md)

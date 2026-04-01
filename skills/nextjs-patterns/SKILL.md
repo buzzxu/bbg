@@ -159,3 +159,10 @@ export default function Layout({
 - Test middleware with `NextRequest`/`NextResponse` constructors directly
 - Use Playwright or Cypress for E2E tests covering SSR and navigation
 - Verify caching behavior with integration tests that check response headers
+
+
+## Related
+
+- **Agents**: [typescript-reviewer](../../agents/typescript-reviewer.md)
+- **Rules**: [typescript/node](../../rules/typescript/node.md)
+- **Commands**: [/ts-review](../../commands/ts-review.md)

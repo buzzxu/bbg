@@ -78,3 +78,9 @@ public function test_user(): void
     $user->save();  // What's being tested?
 }
 ```
+
+
+## Related
+
+- **Skills**: [laravel-testing](../../skills/laravel-testing/SKILL.md), [tdd-workflow](../../skills/tdd-workflow/SKILL.md)
+- **Commands**: [/tdd](../../commands/tdd.md)

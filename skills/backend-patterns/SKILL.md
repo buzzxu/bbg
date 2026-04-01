@@ -100,3 +100,9 @@ interface UserRepository {
 - [ ] Queue jobs are idempotent with dead letter queues
 - [ ] All external calls have timeouts and retries
 - [ ] Each layer is testable in isolation
+
+
+## Related
+
+- **Agents**: [architect](../../agents/architect.md)
+- **Rules**: [patterns](../../rules/common/patterns.md), [performance](../../rules/common/performance.md)

@@ -46,3 +46,7 @@ Summary:
 /learn-eval --min-confidence 0.8    # Higher quality threshold
 /learn-eval --dry-run               # Show scores without saving
 ```
+
+## Related
+
+- **Skills**: [continuous-learning](../skills/continuous-learning/SKILL.md)
