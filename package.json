@@ -1,17 +1,57 @@
 {
-  "name": "bbg",
+  "name": "@buzzxu/bbg-cli",
   "version": "0.4.0",
-  "private": true,
+  "description": "AI Development Workflow Governance CLI — generates and maintains agents, skills, rules, and commands for 6 AI coding tools",
+  "private": false,
   "type": "module",
   "bin": {
     "bbg": "./dist/cli.js"
   },
   "files": [
     "dist/",
-    "templates/"
+    "templates/",
+    "agents/",
+    "skills/",
+    "rules/",
+    "commands/",
+    "hooks/",
+    "contexts/",
+    "mcp-configs/"
   ],
+  "exports": {
+    ".": {
+      "import": "./dist/cli.js",
+      "types": "./dist/cli.d.ts"
+    }
+  },
   "engines": {
     "node": ">=18"
+  },
+  "keywords": [
+    "ai",
+    "governance",
+    "cli",
+    "agents",
+    "skills",
+    "rules",
+    "claude",
+    "copilot",
+    "cursor",
+    "codex",
+    "opencode",
+    "kiro",
+    "development-workflow",
+    "scaffolding"
+  ],
+  "author": "buzzxu",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/buzzxu/bbg.git"
+  },
+  "homepage": "https://github.com/buzzxu/bbg#readme",
+  "bugs": {
+    "url": "https://github.com/buzzxu/bbg/issues"
   },
   "scripts": {
     "build": "tsup",
