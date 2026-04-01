@@ -150,6 +150,45 @@ describe("doctor command", () => {
     expect(governanceOnlyReport.checks.some((entry) => entry.id === "hash-integrity")).toBe(false);
   });
 
+  it("detects missing template-tracked files", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+
+    const hashes = {
+      "AGENTS.md": {
+        generatedHash: "abc123",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        templateVersion: "0.1.0",
+      },
+      "nonexistent-file.md": {
+        generatedHash: "def456",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        templateVersion: "0.1.0",
+      },
+    };
+    await writeTextFile(join(cwd, ".bbg", "file-hashes.json"), JSON.stringify(hashes, null, 2));
+
+    const report = await runDoctor({ cwd, json: true, workspace: true });
+
+    const templateCheck = report.checks.find((entry) => entry.id === "template-files-exist");
+    expect(templateCheck).toBeDefined();
+    expect(templateCheck!.passed).toBe(false);
+    expect(templateCheck!.message).toContain("nonexistent-file.md");
+  });
+
+  it("reports template version mismatch as info", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+
+    const report = await runDoctor({ cwd, json: true });
+
+    const versionCheck = report.checks.find((entry) => entry.id === "template-version-match");
+    expect(versionCheck).toBeDefined();
+    // Config has version "0.1.0", CLI_VERSION is "0.3.0" — should not match
+    expect(versionCheck!.passed).toBe(false);
+    expect(versionCheck!.message).toContain("differs");
+  });
+
   it("counts both AI-FILL marker forms", async () => {
     const cwd = await makeTempDir();
     await createMinimalWorkspace(cwd);

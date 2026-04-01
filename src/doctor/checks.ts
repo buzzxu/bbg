@@ -287,5 +287,51 @@ export async function runDoctorChecks(options: DoctorChecksOptions): Promise<Doc
 
   checks.push(await runAiFillMarkersCheck(options.cwd));
 
+  // Template file existence check
+  if (config && hasConfig) {
+    const hashesPath = join(options.cwd, ".bbg", "file-hashes.json");
+    if (await exists(hashesPath)) {
+      try {
+        const record = JSON.parse(await readTextFile(hashesPath)) as FileHashRecord;
+        const missingTemplateFiles: string[] = [];
+        for (const relativePath of Object.keys(record)) {
+          if (!(await exists(join(options.cwd, relativePath)))) {
+            missingTemplateFiles.push(relativePath);
+          }
+        }
+        checks.push(
+          buildCheck(
+            "template-files-exist",
+            "warning",
+            missingTemplateFiles.length === 0,
+            missingTemplateFiles.length === 0
+              ? "all template-tracked files exist on disk"
+              : `${missingTemplateFiles.length} template-tracked file(s) missing: ${missingTemplateFiles.slice(0, 5).join(", ")}${missingTemplateFiles.length > 5 ? "..." : ""}`,
+          ),
+        );
+      } catch {
+        checks.push(
+          buildCheck("template-files-exist", "warning", false, "unable to parse .bbg/file-hashes.json for template check"),
+        );
+      }
+    }
+  }
+
+  // Template version match check
+  if (config) {
+    const { CLI_VERSION } = await import("../constants.js");
+    const versionMatch = config.version === CLI_VERSION;
+    checks.push(
+      buildCheck(
+        "template-version-match",
+        "info",
+        versionMatch,
+        versionMatch
+          ? `project version (${config.version}) matches CLI version (${CLI_VERSION})`
+          : `project version (${config.version}) differs from CLI version (${CLI_VERSION}) — consider running bbg upgrade`,
+      ),
+    );
+  }
+
   return { checks, config };
 }
