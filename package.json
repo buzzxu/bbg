@@ -1,6 +1,6 @@
 {
   "name": "@buzzxu/bbg-cli",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "AI Development Workflow Governance CLI — generates and maintains agents, skills, rules, and commands for 6 AI coding tools",
   "private": false,
   "type": "module",
