@@ -1,152 +1,303 @@
-# bbg (BadBoy Genesis)
+# @buzzxu/bbg-cli
 
-AI Development Workflow Governance CLI -- scaffolds agent instructions, rules, hooks, commands, skills, and MCP configurations for every major AI coding tool.
+[![npm version](https://img.shields.io/npm/v/@buzzxu/bbg-cli)](https://www.npmjs.com/package/@buzzxu/bbg-cli)
+[![license](https://img.shields.io/npm/l/@buzzxu/bbg-cli)](./LICENSE)
+[![CI](https://github.com/buzzxu/bbg/actions/workflows/ci.yml/badge.svg)](https://github.com/buzzxu/bbg/actions)
 
-## Features
+**AI Development Workflow Governance CLI** — generates and maintains agents, skills, rules, commands, hooks, and MCP server configurations for 6 major AI coding tools.
 
-- **Multi-tool support** -- Generates configurations for Claude Code, OpenCode, Cursor, Codex CLI, GitHub Copilot, and Kiro
-- **Project analysis** -- Auto-detects stack, structure, dependencies, and testing setup
-- **2-tier template system** -- Generic (verbatim copy) and Handlebars (rendered with project-specific variables)
-- **Health checks** -- `bbg doctor` audits governance config and auto-fixes issues
-- **Template upgrades** -- Diff-based upgrades when templates evolve
-- **Comprehensive governance scaffold** -- 25 agents, 63 skills, 34 rules, 40 commands, hooks, MCP configs
-- **Three-way merge upgrades** -- `bbg upgrade` preserves user customizations via intelligent three-way merge
-- **Auto-changelog** -- `bbg release` generates conventional-commit-based changelogs
-- **Self-checks** -- `bbg doctor --self` validates governance content integrity
-- **Plugin architecture** -- Extend agents, skills, rules, and commands via plugins
+## What is BBG?
 
-## Language Support
+BBG (BadBoy Genesis) is a CLI tool that scaffolds structured AI development workflows for your projects. Instead of manually configuring each AI coding assistant, BBG analyzes your project and generates a complete governance setup — agent definitions, skill workflows, coding rules, slash commands, hook automation, and MCP server configs — tailored to your tech stack.
 
-| Language | Reviewer | Build Resolver | Commands | Skills | Rules | Status |
-|----------|:--------:|:--------------:|:--------:|:------:|:-----:|--------|
-| TypeScript | Y | Y | 3 | 4 | 5 | Full |
-| Python | Y | Y | 3 | 4 | 4 | Full |
-| Go | Y | Y | 3 | 3 | 4 | Full |
-| Java | Y | Y | 3 | 4 | 4 | Full |
-| Rust | Y | Y | 3 | 3 | 3 | Full |
-| Kotlin | Y | -- | 1 | 3 | 3 | Partial |
-| PHP | -- | -- | -- | 2 | 3 | Partial |
-| C++ | -- | Y | -- | 1 | -- | Partial |
+BBG solves the problem of **inconsistent AI-assisted development**. When multiple developers use different AI tools (Claude Code, Cursor, Copilot, etc.) on the same project, their AI assistants behave differently unless given the same rules. BBG generates tool-specific configurations from a single source of truth, ensuring every AI assistant follows the same standards.
+
+### Key Benefits
+
+- **One command, full setup** — `bbg init` analyzes your project and generates everything
+- **Multi-tool consistency** — Same governance rules across 6 AI coding tools
+- **Safe upgrades** — `bbg upgrade` uses three-way merge to preserve your customizations
+- **Health monitoring** — `bbg doctor` validates your governance setup and auto-fixes issues
+- **Extensible** — Plugin system lets you add custom agents, skills, and rules
 
 ## Quick Start
 
 ```bash
-# Install dependencies
-npm install
+# Install globally
+npm install -g @buzzxu/bbg-cli
 
-# Build
-npm run build
-
-# Initialize governance for a project
-npx bbg init
-
-# Add a repository
-npx bbg add-repo
-
-# Run health checks
-npx bbg doctor
-
-# Sync templates
-npx bbg sync
-
-# Upgrade templates
-npx bbg upgrade
-
-# Create a release
-npx bbg release
+# Initialize governance in your project
+cd your-project
+bbg init
 ```
 
-## CLI Commands
+Or use npx without installing:
 
-| Command | Description |
-|---------|-------------|
-| `init` | Initialize governance configuration for a project |
-| `add-repo` | Register a repository under governance |
-| `doctor` | Run health checks and auto-fix issues |
-| `sync` | Synchronize templates to governed repositories |
-| `upgrade` | Upgrade templates with diff-based merging |
-| `release` | Create a governed release |
-
-## Architecture
-
-### Source Code
-
-```
-src/cli.ts              Entry point (Commander + Inquirer)
-src/analyzers/          Project analyzers (stack, structure, deps, testing)
-src/commands/           CLI commands (init, add-repo, doctor, sync, release, upgrade)
-src/config/             Configuration management
-src/doctor/             Health checks and auto-fix
-src/templates/          Template rendering engine (Handlebars)
-src/upgrade/            Template upgrade diffing
-src/utils/              Shared utilities (fs, logger)
-src/plugins/            Plugin architecture (discover, load, merge)
-src/release/            Release management (changelog)
-templates/              2-tier template system (generic, handlebars)
-tests/                  Unit + integration tests (vitest)
+```bash
+npx @buzzxu/bbg-cli init
 ```
 
-### Governance Scaffold
+### What Gets Generated
+
+After running `bbg init`, your project will have:
 
 ```
-agents/                 25 agent definitions (core, language, build resolvers)
-skills/                 63 skill directories with SKILL.md workflows
-rules/                  34 rule files (common + 7 language-specific directories)
-commands/               40 slash command definitions
-hooks/                  Hook automation (hooks.json + 6 scripts)
-mcp-configs/            14 MCP server configurations
-contexts/               3 operational contexts (dev, review, research)
+your-project/
+├── AGENTS.md                          # Shared agent instructions
+├── RULES.md                           # Shared coding rules
+├── .claude/                           # Claude Code configuration
+├── .opencode/                         # OpenCode configuration
+├── .cursor/rules/                     # Cursor rule files
+├── .codex/                            # Codex CLI configuration
+├── .github/copilot-instructions.md    # GitHub Copilot instructions
+├── .kiro/                             # Kiro agents + steering
+├── agents/                            # 25 agent definitions
+├── skills/                            # 63 skill workflows
+├── rules/                             # 34 rule files (8 languages)
+├── commands/                          # 40 slash commands
+├── hooks/                             # Hook automation
+├── mcp-configs/                       # 14 MCP server configs
+├── contexts/                          # Operational contexts
+└── .bbg.json                          # BBG configuration
 ```
+
+## Features
+
+- **Multi-tool support** — Generates configurations for Claude Code, OpenCode, Cursor, Codex CLI, GitHub Copilot, and Kiro
+- **Project analysis** — Auto-detects language, framework, build tool, test framework, and package manager
+- **Two-tier templates** — Generic files (verbatim copy) and Handlebars templates (rendered with project variables)
+- **Three-way merge upgrades** — `bbg upgrade` preserves user customizations via intelligent three-way merge
+- **Auto-changelog** — `bbg release` generates conventional-commit-based changelogs
+- **Self-checks** — `bbg doctor --self` validates governance content integrity (7 checks)
+- **Plugin architecture** _(experimental)_ — Extend with custom agents, skills, rules, and commands
+- **Comprehensive scaffold** — 25 agents, 63 skills, 34 rules, 40 commands
+
+## Supported AI Tools
+
+| Tool           | Config Location                   | What's Generated                          |
+| -------------- | --------------------------------- | ----------------------------------------- |
+| Claude Code    | `CLAUDE.md`, `.claude/`           | Settings, slash commands, MCP configs     |
+| OpenCode       | `.opencode/`                      | Config, instructions, commands            |
+| Cursor         | `.cursor/rules/`                  | Rule files (standards, security, testing) |
+| Codex CLI      | `.codex/`                         | Config, AGENTS.md reference               |
+| GitHub Copilot | `.github/copilot-instructions.md` | Full project instructions                 |
+| Kiro           | `.kiro/`                          | Agents, steering files, hooks             |
+
+All tools also share `AGENTS.md` and `RULES.md` at the project root.
+
+## Language Support
+
+| Language   | Reviewer | Build Resolver | Commands | Skills | Rules | Status  |
+| ---------- | :------: | :------------: | :------: | :----: | :---: | ------- |
+| TypeScript |    ✓     |       ✓        |    3     |   4    |   5   | Full    |
+| Python     |    ✓     |       ✓        |    3     |   4    |   4   | Full    |
+| Go         |    ✓     |       ✓        |    3     |   3    |   4   | Full    |
+| Java       |    ✓     |       ✓        |    3     |   4    |   4   | Full    |
+| Rust       |    ✓     |       ✓        |    3     |   3    |   3   | Full    |
+| Kotlin     |    ✓     |       —        |    1     |   3    |   3   | Partial |
+| PHP        |    —     |       —        |    —     |   2    |   3   | Partial |
+| C++        |    —     |       ✓        |    —     |   1    |   —   | Partial |
+
+BBG auto-detects your project's language and generates language-appropriate rules, reviewers, and build resolvers.
+
+## Commands
+
+### `bbg init`
+
+Initialize governance configuration for a project. Runs interactive prompts to collect project info, analyzes repository structure, and generates all governance files.
+
+```bash
+bbg init              # Interactive mode
+bbg init --yes        # Accept defaults, skip prompts
+bbg init --dry-run    # Show what would be created
+```
+
+### `bbg add-repo`
+
+Add a repository to the current workspace configuration.
+
+```bash
+bbg add-repo                        # Interactive
+bbg add-repo --url <git-url>        # Specify URL
+bbg add-repo --url <url> --branch main
+```
+
+### `bbg doctor`
+
+Validate governance configuration and workspace health.
+
+```bash
+bbg doctor                    # Standard health check
+bbg doctor --fix              # Auto-fix safe issues
+bbg doctor --json             # JSON output
+bbg doctor --governance-only  # Skip repo directory checks
+bbg doctor --workspace        # Include workspace checks
+bbg doctor --self             # Validate bbg's own governance integrity
+```
+
+### `bbg sync`
+
+Synchronize configured repositories and detect stack drift.
+
+```bash
+bbg sync              # Check for drift
+bbg sync --update     # Update config with detected changes
+bbg sync --json       # JSON output
+```
+
+### `bbg upgrade`
+
+Upgrade generated governance files when templates evolve. Uses three-way merge to preserve user customizations.
+
+```bash
+bbg upgrade                # Standard upgrade
+bbg upgrade --dry-run      # Preview changes
+bbg upgrade --force        # Overwrite without merging
+bbg upgrade --interactive  # Step through conflicts
+```
+
+### `bbg release`
+
+Run governed release checklist and record release metadata.
+
+```bash
+bbg release                    # Full release flow
+bbg release --skip-doctor      # Skip doctor check
+bbg release --skip-sync        # Skip sync check
+bbg release --skip-changelog   # Skip changelog generation
+```
+
+## Configuration
+
+BBG stores its configuration in `.bbg.json` at the project root.
+
+### Schema
+
+```json
+{
+  "version": "1.0.0",
+  "projectName": "my-project",
+  "projectDescription": "Project description",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "repos": [
+    {
+      "name": "api-service",
+      "gitUrl": "https://github.com/org/api-service.git",
+      "branch": "main",
+      "type": "backend",
+      "stack": {
+        "language": "typescript",
+        "framework": "express",
+        "buildTool": "npm",
+        "testFramework": "vitest",
+        "packageManager": "npm"
+      },
+      "description": "API service"
+    }
+  ],
+  "governance": {
+    "riskThresholds": {
+      "high": { "grade": "A", "minScore": 90 },
+      "medium": { "grade": "B", "minScore": 70 },
+      "low": { "grade": "C", "minScore": 50 }
+    },
+    "enableRedTeam": false,
+    "enableCrossAudit": false
+  },
+  "context": {},
+  "plugins": {
+    "enabled": false,
+    "directories": []
+  }
+}
+```
+
+**Repository types:** `backend`, `frontend-pc`, `frontend-h5`, `frontend-web`, `other`
+
+## Plugin System (Experimental)
+
+BBG supports plugins for extending governance content with custom agents, skills, rules, and commands.
+
+### Plugin Structure
+
+```
+my-plugins/
+├── plugin.json        # Plugin manifest
+├── agents/            # Custom agent definitions
+├── skills/            # Custom skill workflows
+├── rules/             # Custom rule files
+└── commands/          # Custom slash commands
+```
+
+### Enabling Plugins
+
+In `.bbg.json`:
+
+```json
+{
+  "plugins": {
+    "enabled": true,
+    "directories": ["./my-plugins"]
+  }
+}
+```
+
+Plugin content merges with built-in governance content during generation. Plugin items with the same name as built-in items override them.
+
+> **Note:** The plugin system is experimental and may change in future versions.
+
+## Governance Content
 
 ### Agents (25)
 
-| Category | Count | Agents |
-|----------|-------|--------|
-| Core | 8 | planner, architect, tdd-guide, code-reviewer, security-reviewer, build-error-resolver, refactor-cleaner, e2e-runner |
-| Support | 5 | doc-updater, loop-operator, harness-optimizer, database-reviewer, devops-reviewer |
-| Language | 6 | typescript-reviewer, python-reviewer, go-reviewer, java-reviewer, rust-reviewer, kotlin-reviewer |
-| Build Resolvers | 6 | typescript-build-resolver, python-build-resolver, go-build-resolver, java-build-resolver, rust-build-resolver, cpp-build-resolver |
+| Category        | Count | Examples                                                        |
+| --------------- | ----- | --------------------------------------------------------------- |
+| Core            | 8     | planner, architect, tdd-guide, code-reviewer, security-reviewer |
+| Support         | 5     | doc-updater, loop-operator, harness-optimizer                   |
+| Language        | 6     | typescript-reviewer, python-reviewer, go-reviewer               |
+| Build Resolvers | 6     | typescript-build-resolver, go-build-resolver                    |
 
 ### Skills (63)
 
-| Category | Count | Examples |
-|----------|-------|----------|
-| Core | 21 | tdd-workflow, security-review, verification-loop, api-design, harness-engineering, writing-plans |
-| Language | 24 | typescript-patterns, react-patterns, python-patterns, golang-patterns, rust-patterns |
-| Operations | 18 | ci-cd-patterns, monitoring-patterns, incident-response, prompt-engineering, agent-handoff, agent-pipeline |
+| Category   | Count | Examples                                                     |
+| ---------- | ----- | ------------------------------------------------------------ |
+| Core       | 21    | tdd-workflow, security-review, verification-loop, api-design |
+| Language   | 24    | typescript-patterns, react-patterns, python-patterns         |
+| Operations | 18    | ci-cd-patterns, monitoring-patterns, agent-handoff           |
 
 ### Rules (34)
 
-| Directory | Count | Scope |
-|-----------|-------|-------|
-| common/ | 8 | coding-style, git-workflow, testing, security, performance, patterns, hooks, agents |
-| typescript/ | 5 | coding-style, testing, react, node, security |
-| python/ | 4 | coding-style, testing, django, security |
-| golang/ | 4 | coding-style, testing, patterns, security |
-| java/ | 4 | coding-style, testing, spring, security |
-| rust/ | 3 | coding-style, testing, security |
-| kotlin/ | 3 | coding-style, testing, security |
-| php/ | 3 | coding-style, testing, security |
+| Directory   | Count | Scope                                                      |
+| ----------- | ----- | ---------------------------------------------------------- |
+| common/     | 8     | coding-style, git-workflow, testing, security, performance |
+| typescript/ | 5     | coding-style, testing, react, node, security               |
+| python/     | 4     | coding-style, testing, django, security                    |
+| golang/     | 4     | coding-style, testing, patterns, security                  |
+| java/       | 4     | coding-style, testing, spring, security                    |
+| rust/       | 3     | coding-style, testing, security                            |
+| kotlin/     | 3     | coding-style, testing, security                            |
+| php/        | 3     | coding-style, testing, security                            |
 
 ### Commands (40)
 
-| Category | Count | Commands |
-|----------|-------|----------|
-| Core Workflow | 10 | plan, tdd, code-review, build-fix, security-scan, refactor-clean, e2e, test-coverage, update-docs, doctor |
-| Learning & Session | 6 | learn, learn-eval, checkpoint, verify, sessions, eval |
-| Language-Specific | 16 | ts-review, ts-test, ts-build, python-review, python-test, python-build, go-review, go-test, go-build, java-review, java-test, java-build, rust-review, rust-test, rust-build, kotlin-review |
-| Orchestration | 8 | orchestrate, loop-start, loop-status, quality-gate, harness-audit, model-route, setup-pm, sync |
+| Category           | Count | Examples                                         |
+| ------------------ | ----- | ------------------------------------------------ |
+| Core Workflow      | 10    | plan, tdd, code-review, build-fix, security-scan |
+| Learning & Session | 6     | learn, checkpoint, verify, sessions              |
+| Language-Specific  | 16    | ts-review, python-test, go-build, java-review    |
+| Orchestration      | 8     | orchestrate, loop-start, quality-gate            |
 
-### Hooks
+### Hooks (6 scripts)
 
-| Script | Purpose |
-|--------|---------|
-| session-start.js | Load session context on start |
-| session-end.js | Save session state on stop |
-| pre-edit-check.js | Block debug code and secrets before edits |
-| post-edit-typecheck.js | Auto-typecheck TypeScript after edits |
-| security-scan.js | Detect secrets, block destructive commands |
-| suggest-compact.js | Track token usage and suggest compaction |
+| Script                 | Purpose                                    |
+| ---------------------- | ------------------------------------------ |
+| session-start.js       | Load session context                       |
+| session-end.js         | Save session state                         |
+| pre-edit-check.js      | Block debug code and secrets               |
+| post-edit-typecheck.js | Auto-typecheck TypeScript                  |
+| security-scan.js       | Detect secrets, block destructive commands |
+| suggest-compact.js     | Track token usage                          |
 
 ### MCP Servers (14)
 
@@ -154,25 +305,28 @@ github, filesystem, postgres, sqlite, brave-search, puppeteer, memory, fetch, se
 
 See `mcp-configs/README.md` for setup instructions.
 
-## AI Tool Configurations
+## Upgrading
 
-| Tool | Config Location | Description |
-|------|----------------|-------------|
-| Claude Code | `CLAUDE.md`, `.claude/` | Settings + 5 slash commands |
-| OpenCode | `.opencode/` | Config + instructions + 6 commands |
-| Cursor | `.cursor/rules/` | 3 rule files (standards, security, testing) |
-| Codex CLI | `.codex/` | Config + AGENTS.md |
-| GitHub Copilot | `.github/copilot-instructions.md` | Full project instructions |
-| Kiro | `.kiro/` | 6 agents + 5 steering files + 3 hooks |
-| Cross-tool | `AGENTS.md`, `RULES.md` | Shared agent and rule instructions |
+When BBG releases new governance content, upgrade your project:
+
+```bash
+bbg upgrade
+```
+
+BBG uses **three-way merge** to preserve your customizations:
+
+1. Compares original template → new template → your version
+2. Auto-merges non-conflicting changes
+3. Marks conflicts for manual resolution (or use `--interactive`)
 
 ## Development
 
 ```bash
-npm run dev            # Run in development mode (tsx)
-npm run build          # Build with tsup
-npm run test           # Run tests with vitest
-npm run test:watch     # Watch mode
+git clone https://github.com/buzzxu/bbg.git
+cd bbg
+npm install
+npm run build
+npm test
 ```
 
 ### Requirements
@@ -180,14 +334,25 @@ npm run test:watch     # Watch mode
 - Node.js >= 18
 - TypeScript (strict mode, ESM-only)
 
-### Coding Conventions
+### Scripts
 
-- File naming: lowercase with hyphens (`detect-stack.ts`)
-- ESM imports with `.js` extensions
-- Functions < 50 lines, focused and well-named
-- Shared utilities in `src/utils/` (never duplicate)
-- Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
+| Script              | Description               |
+| ------------------- | ------------------------- |
+| `npm run build`     | Build with tsup           |
+| `npm test`          | Run tests with vitest     |
+| `npm run dev`       | Development mode with tsx |
+| `npm run typecheck` | TypeScript type checking  |
+| `npm run lint`      | ESLint check              |
+| `npm run coverage`  | Test coverage report      |
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 
-AGPL-3.0
+[AGPL-3.0-only](./LICENSE) — Copyright (C) 2026 buzzxu
