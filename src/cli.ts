@@ -168,14 +168,18 @@ export const buildProgram = (): Command => {
     .description("Upgrade generated governance files safely")
     .option("--dry-run", "Show planned changes without writing", false)
     .option("--force", "Overwrite modified files without patching", false)
-    .action(async (options: { dryRun?: boolean; force?: boolean }) => {
+    .option("--interactive", "Step through conflicts interactively", false)
+    .action(async (options: { dryRun?: boolean; force?: boolean; interactive?: boolean }) => {
       const result = await runUpgrade({
         cwd: process.cwd(),
         dryRun: options.dryRun ?? false,
         force: options.force ?? false,
+        interactive: options.interactive ?? false,
       });
 
       process.stdout.write(`Overwritten: ${result.overwritten.length}\n`);
+      process.stdout.write(`Merged: ${result.merged.length}\n`);
+      process.stdout.write(`Conflicted: ${result.conflicted.length}\n`);
       process.stdout.write(`Patches: ${result.patches.length}\n`);
       process.stdout.write(`Skipped: ${result.skipped.length}\n`);
       process.stdout.write(`Skipped with notice: ${result.skippedWithNotice.length}\n`);

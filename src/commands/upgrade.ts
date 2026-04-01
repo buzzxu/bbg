@@ -9,7 +9,7 @@ import { buildTemplateContext } from "../templates/context.js";
 import { buildGovernanceManifest } from "../templates/governance.js";
 import { getRootTemplateManifest, getToolConfigTemplates } from "./init.js";
 import { renderTemplateContents } from "../templates/render.js";
-import { createUnifiedPatch } from "../upgrade/diff.js";
+import { threeWayMerge } from "../upgrade/merge3.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import {
   resolveBuiltinTemplatesRoot,
@@ -22,10 +22,13 @@ export interface RunUpgradeInput {
   cwd: string;
   dryRun?: boolean;
   force?: boolean;
+  interactive?: boolean;
 }
 
 export interface RunUpgradeResult {
   overwritten: string[];
+  merged: string[];
+  conflicted: string[];
   patches: string[];
   skipped: string[];
   skippedWithNotice: string[];
@@ -192,6 +195,8 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
   }
 
   const overwritten: string[] = [];
+  const merged: string[] = [];
+  const conflicted: string[] = [];
   const patches: string[] = [];
   const skipped: string[] = [];
   const skippedWithNotice: string[] = [];
@@ -284,14 +289,42 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
       continue;
     }
 
-    const patchRelativePath = toPatchRelativePath(trackedFile.path);
-    patches.push(patchRelativePath);
-    if (!input.dryRun) {
-        await writeTextFile(
-          join(input.cwd, patchRelativePath),
-          createUnifiedPatch(oldGeneratedContent ?? currentContent, nextContent, "old-generated", "new-generated"),
-        );
+    // Three-way merge: base=snapshot, ours=current user file, theirs=new template
+    const mergeResult = threeWayMerge(snapshotContent, currentContent, nextContent, {
+      ours: "user",
+      theirs: "template",
+    });
+
+    if (!mergeResult.hasConflicts) {
+      merged.push(trackedFile.path);
+      if (!input.dryRun) {
+        await writeTextFile(absolutePath, mergeResult.merged);
+        await writeSnapshot(input.cwd, trackedFile.path, nextContent);
+        nextHashes[trackedFile.path] = {
+          generatedHash: sha256Hex(nextContent),
+          generatedAt: nowIso,
+          templateVersion: CLI_VERSION,
+        };
       }
+    } else if (input.interactive) {
+      const accept = await promptConfirm({
+        message: `${trackedFile.path} has ${mergeResult.conflictCount} conflict(s). Accept with conflict markers?`,
+        default: true,
+      });
+      if (accept) {
+        conflicted.push(trackedFile.path);
+        if (!input.dryRun) {
+          await writeTextFile(absolutePath, mergeResult.merged);
+        }
+      } else {
+        skipped.push(trackedFile.path);
+      }
+    } else {
+      conflicted.push(trackedFile.path);
+      if (!input.dryRun) {
+        await writeTextFile(absolutePath, mergeResult.merged);
+      }
+    }
     }
 
   if (!input.dryRun) {
@@ -302,5 +335,5 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
     await writeTextFile(hashPath, `${JSON.stringify(nextHashes, null, 2)}\n`);
   }
 
-  return { overwritten, patches, skipped, skippedWithNotice, skippedDeletedTemplate, created };
+  return { overwritten, merged, conflicted, patches, skipped, skippedWithNotice, skippedDeletedTemplate, created };
 }

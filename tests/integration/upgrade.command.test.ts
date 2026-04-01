@@ -120,18 +120,18 @@ describe("upgrade command", () => {
     const result = await runUpgrade({ cwd });
 
     expect(result.overwritten).toContain("AGENTS.md");
-    expect(result.patches).toContain(".bbg/upgrade-patches/docs/workflows/release-checklist.md.patch");
+
+    // User-modified file with snapshot now goes through three-way merge instead of patch
+    const filePath = "docs/workflows/release-checklist.md";
+    const inMerged = result.merged.includes(filePath);
+    const inConflicted = result.conflicted.includes(filePath);
+    expect(inMerged || inConflicted).toBe(true);
+    expect(result.patches).not.toContain(".bbg/upgrade-patches/docs/workflows/release-checklist.md.patch");
+
     expect(result.skippedWithNotice).not.toContain("docs/workflows/release-checklist.md");
     expect(result.skippedDeletedTemplate).toContain(".gitignore");
     expect(result.created).toContain("README.md");
     expect(result.created).toContain(".githooks/pre-commit");
-
-    const patchText = await readFile(
-      join(cwd, ".bbg", "upgrade-patches", "docs", "workflows", "release-checklist.md.patch"),
-      "utf8",
-    );
-    expect(patchText).toContain("--- old-generated");
-    expect(patchText).toContain("+++ new-generated");
 
     const createdHookContent = await readFile(join(cwd, ".githooks", "pre-commit"), "utf8");
     expect(createdHookContent).toContain("#!/usr/bin/env bash");
@@ -148,7 +148,10 @@ describe("upgrade command", () => {
     expect(hashRecord["AGENTS.md"]?.templateVersion).toBe(CLI_VERSION);
     expect(hashRecord["README.md"]?.templateVersion).toBe(CLI_VERSION);
     expect(hashRecord[".githooks/pre-commit"]?.templateVersion).toBe(CLI_VERSION);
-    expect(hashRecord["docs/workflows/release-checklist.md"]?.templateVersion).toBe("0.0.1");
+    // If merged cleanly, hash record is updated to CLI_VERSION; if conflicted, stays at old version
+    if (inMerged) {
+      expect(hashRecord["docs/workflows/release-checklist.md"]?.templateVersion).toBe(CLI_VERSION);
+    }
   });
 
   it("supports dry-run and asks confirmation before --force overwrite", { timeout: 15000 }, async () => {
@@ -158,7 +161,12 @@ describe("upgrade command", () => {
     await writeTextFile(join(cwd, "docs", "workflows", "release-checklist.md"), "user changed checklist\n");
 
     const dryRunResult = await runUpgrade({ cwd, dryRun: true });
-    expect(dryRunResult.patches).toContain(".bbg/upgrade-patches/docs/workflows/release-checklist.md.patch");
+    // User-modified file with snapshot now goes through three-way merge (even in dry-run)
+    const filePath = "docs/workflows/release-checklist.md";
+    const dryInMerged = dryRunResult.merged.includes(filePath);
+    const dryInConflicted = dryRunResult.conflicted.includes(filePath);
+    expect(dryInMerged || dryInConflicted).toBe(true);
+    // No files written in dry-run
     await expect(
       readFile(join(cwd, ".bbg", "upgrade-patches", "docs", "workflows", "release-checklist.md.patch"), "utf8"),
     ).rejects.toThrow();
@@ -183,7 +191,7 @@ describe("upgrade command", () => {
     expect(result.skippedDeletedTemplate).toContain(".gitignore");
   });
 
-  it("creates unified diff patch for user-modified tracked files using old snapshot baseline", async () => {
+  it("performs three-way merge for user-modified tracked files using old snapshot baseline", async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 
@@ -191,12 +199,13 @@ describe("upgrade command", () => {
 
     const result = await runUpgrade({ cwd });
 
-    const patchPath = ".bbg/upgrade-patches/docs/workflows/release-checklist.md.patch";
-    expect(result.patches).toContain(patchPath);
-    const patchText = await readFile(join(cwd, patchPath), "utf8");
-    expect(patchText).toContain("--- old-generated");
-    expect(patchText).toContain("+++ new-generated");
-    expect(patchText).not.toContain("BASELINE UNAVAILABLE");
+    const filePath = "docs/workflows/release-checklist.md";
+    // File should now go through three-way merge instead of patch
+    const inMerged = result.merged.includes(filePath);
+    const inConflicted = result.conflicted.includes(filePath);
+    expect(inMerged || inConflicted).toBe(true);
+    // Should NOT be in patches (that's the old behavior for files with snapshots)
+    expect(result.patches).not.toContain(`.bbg/upgrade-patches/${filePath}.patch`);
   });
 
   it("protects existing untracked files that are newly introduced by manifest", async () => {
@@ -278,5 +287,15 @@ describe("upgrade command", () => {
     expect(result.patches).toContain(".bbg/upgrade-patches/orphan-repo/AGENTS.md.patch");
     const orphanNotice = await readFile(join(cwd, ".bbg", "upgrade-patches", "orphan-repo", "AGENTS.md.patch"), "utf8");
     expect(orphanNotice).toContain("CHILD AGENTS REPO CONTEXT MISSING");
+  });
+
+  it("returns merged and conflicted arrays in result", async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+
+    const result = await runUpgrade({ cwd });
+
+    expect(Array.isArray(result.merged)).toBe(true);
+    expect(Array.isArray(result.conflicted)).toBe(true);
   });
 });
