@@ -9,7 +9,11 @@ AI Development Workflow Governance CLI -- scaffolds agent instructions, rules, h
 - **2-tier template system** -- Generic (verbatim copy) and Handlebars (rendered with project-specific variables)
 - **Health checks** -- `bbg doctor` audits governance config and auto-fixes issues
 - **Template upgrades** -- Diff-based upgrades when templates evolve
-- **Comprehensive governance scaffold** -- 25 agents, 61 skills, 34 rules, 40 commands, hooks, MCP configs
+- **Comprehensive governance scaffold** -- 25 agents, 63 skills, 34 rules, 40 commands, hooks, MCP configs
+- **Three-way merge upgrades** -- `bbg upgrade` preserves user customizations via intelligent three-way merge
+- **Auto-changelog** -- `bbg release` generates conventional-commit-based changelogs
+- **Self-checks** -- `bbg doctor --self` validates governance content integrity
+- **Plugin architecture** -- Extend agents, skills, rules, and commands via plugins
 
 ## Language Support
 
@@ -76,6 +80,8 @@ src/doctor/             Health checks and auto-fix
 src/templates/          Template rendering engine (Handlebars)
 src/upgrade/            Template upgrade diffing
 src/utils/              Shared utilities (fs, logger)
+src/plugins/            Plugin architecture (discover, load, merge)
+src/release/            Release management (changelog)
 templates/              2-tier template system (generic, handlebars)
 tests/                  Unit + integration tests (vitest)
 ```
@@ -84,7 +90,7 @@ tests/                  Unit + integration tests (vitest)
 
 ```
 agents/                 25 agent definitions (core, language, build resolvers)
-skills/                 61 skill directories with SKILL.md workflows
+skills/                 63 skill directories with SKILL.md workflows
 rules/                  34 rule files (common + 7 language-specific directories)
 commands/               40 slash command definitions
 hooks/                  Hook automation (hooks.json + 6 scripts)
@@ -101,13 +107,13 @@ contexts/               3 operational contexts (dev, review, research)
 | Language | 6 | typescript-reviewer, python-reviewer, go-reviewer, java-reviewer, rust-reviewer, kotlin-reviewer |
 | Build Resolvers | 6 | typescript-build-resolver, python-build-resolver, go-build-resolver, java-build-resolver, rust-build-resolver, cpp-build-resolver |
 
-### Skills (61)
+### Skills (63)
 
 | Category | Count | Examples |
 |----------|-------|----------|
 | Core | 21 | tdd-workflow, security-review, verification-loop, api-design, harness-engineering, writing-plans |
 | Language | 24 | typescript-patterns, react-patterns, python-patterns, golang-patterns, rust-patterns |
-| Operations | 16 | ci-cd-patterns, monitoring-patterns, incident-response, prompt-engineering |
+| Operations | 18 | ci-cd-patterns, monitoring-patterns, incident-response, prompt-engineering, agent-handoff, agent-pipeline |
 
 ### Rules (34)
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { threeWayMerge, type MergeResult } from "../../../src/upgrade/merge3.js";
+import { threeWayMerge } from "../../../src/upgrade/merge3.js";
 
 describe("upgrade/merge3 – threeWayMerge", () => {
   describe("no conflicts", () => {

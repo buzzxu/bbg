@@ -161,7 +161,7 @@ export async function appendToChangelog(
   changelogPath: string,
 ): Promise<void> {
   const { exists, readTextFile, writeTextFile } = await import("../utils/fs.js");
-  const { join, resolve } = await import("node:path");
+  const { resolve } = await import("node:path");
   const fullPath = resolve(cwd, changelogPath);
 
   if (!fullPath.startsWith(resolve(cwd))) {

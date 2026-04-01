@@ -1,7 +1,7 @@
 # BBG Maintenance Roadmap
 
 **Last updated**: 2026-04-01  
-**Current version**: v0.3.0  
+**Current version**: v0.4.0  
 **Architecture**: [Self-Governance Feedback Loop](specs/self-governance-architecture.md)
 
 ---
@@ -83,18 +83,19 @@
 
 ---
 
-## v0.4.0 — Capability Expansion
+## v0.4.0 — Capability Expansion ✅
 
 **Theme**: New features and extensibility.  
-**Status**: Not started
+**Status**: Complete
 
-- [ ] Plugin architecture for user-extensible agents/skills/rules
-- [ ] Multi-agent collaboration workflow patterns in skills
-- [ ] `bbg upgrade` smart diff/merge with user customization preservation
-- [ ] Template consistency validation in `bbg doctor`
-- [ ] `bbg doctor --self` self-check mode
-- [ ] Complete Kotlin/PHP/C++ command coverage
-- [ ] New language support based on community demand
+- [x] Plugin architecture for user-extensible agents/skills/rules
+- [x] Multi-agent collaboration workflow patterns in skills (agent-handoff, agent-pipeline)
+- [x] `bbg upgrade` smart diff/merge with user customization preservation (three-way merge via node-diff3)
+- [x] Template consistency validation in `bbg doctor`
+- [x] `bbg doctor --self` self-check mode
+- [x] Auto-changelog generation in `bbg release`
+- [ ] Complete Kotlin/PHP/C++ command coverage (deferred to v1.0.0)
+- [ ] New language support based on community demand (deferred to v1.0.0)
 
 ---
 
@@ -104,14 +105,22 @@
 **Status**: Not started
 
 - [ ] API stability guarantee
-- [ ] Complete documentation
-- [ ] `bbg release` with auto-changelog
-- [ ] Full language coverage across all governance categories
-- [ ] Published to npm registry
+- [ ] Complete documentation (README rewrite, CONTRIBUTING.md, full API docs)
+- [ ] Full language coverage across all governance categories (incl. Kotlin, PHP, C++ gaps)
+- [ ] Published to npm registry as `@buzzxu/bbg-cli`
 
 ---
 
 ## Completed
+
+### v0.4.0 — Capability Expansion
+- [x] Three-way merge for `bbg upgrade` via node-diff3
+- [x] `bbg doctor --self` governance content integrity checks (7 self-checks)
+- [x] Template consistency checks in `bbg doctor` (template-files-exist, template-version-match)
+- [x] Conventional commit changelog parser + auto-generation in `bbg release`
+- [x] Plugin architecture: types, discovery, loading, merge, governance integration
+- [x] Multi-agent collaboration skills (agent-handoff, agent-pipeline — 63 total skills)
+- [x] ~253 tests passing, build clean
 
 ### v0.3.0 — Governance Quality
 - [x] Full cross-reference system (160 governance docs interlinked)

@@ -3,7 +3,7 @@
 This file provides instructions for AI coding agents (Claude Code, Codex, OpenCode, Cursor, Kiro, GitHub Copilot) when working with this repository.
 
 **Project:** bbg (BadBoy Genesis) -- AI Development Workflow Governance CLI  
-**Version:** 0.1.0
+**Version:** 0.4.0
 
 ## Core Principles
 
@@ -61,7 +61,7 @@ This file provides instructions for AI coding agents (Claude Code, Codex, OpenCo
 | rust-build-resolver | `agents/rust-build-resolver.md` | Rust/Cargo |
 | cpp-build-resolver | `agents/cpp-build-resolver.md` | C++/CMake |
 
-## Skills (61)
+## Skills (63)
 
 Skills are detailed workflow instructions in `skills/*/SKILL.md`. Key skills for this project:
 
@@ -76,7 +76,7 @@ Skills are detailed workflow instructions in `skills/*/SKILL.md`. Key skills for
 | Continuous Learning | `skills/continuous-learning/SKILL.md` | Learning from mistakes |
 | Search First | `skills/search-first/SKILL.md` | Read before writing |
 
-See `skills/` directory for all 61 skill workflows covering core patterns (21), language-specific (24), and operations (16).
+See `skills/` directory for all 63 skill workflows covering core patterns (21), language-specific (24), and operations (18).
 
 ## Rules (35)
 
@@ -144,8 +144,10 @@ src/commands/                -> 6 CLI commands (init, add-repo, doctor, sync, re
 src/config/                  -> Configuration management
 src/doctor/                  -> Health checks and auto-fix
   shared.ts                  -> Shared doctor utilities (expectedRepoIgnoreEntries)
+  self-checks.ts              -> Self-check governance content integrity
 src/templates/               -> Template rendering engine (Handlebars)
 src/upgrade/                 -> Template upgrade diffing
+  merge3.ts                   -> Three-way merge with node-diff3
 src/utils/                   -> Shared utilities
   fs.ts                      -> File operations (exists, readIfExists, readTextFile, writeTextFile)
   git.ts                     -> Git operations (clone, branches, credentials)
@@ -154,6 +156,8 @@ src/utils/                   -> Shared utilities
   platform.ts                -> Platform detection
   prompts.ts                 -> CLI prompts + sanitization + collectStackInfo
   errors.ts                  -> Custom error classes (BbgError, BbgConfigError, etc.)
+src/plugins/                 -> Plugin architecture (discover, load, merge)
+src/release/                 -> Release management (changelog generation)
 templates/                   -> 2-tier template system (generic, handlebars)
 tests/                       -> Unit + integration tests (vitest)
 ```
