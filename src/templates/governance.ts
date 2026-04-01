@@ -1,5 +1,7 @@
 import type { RenderTemplateTask } from "./render.js";
 import type { TemplateContext } from "./context.js";
+import type { LoadedPlugin } from "../plugins/types.js";
+import { mergePluginTemplates } from "../plugins/merge.js";
 
 /* ------------------------------------------------------------------ */
 /*  Language → directory name mapping                                  */
@@ -223,7 +225,10 @@ function detectLanguages(ctx: TemplateContext): string[] {
  * language-specific agents / skills / rules / commands are only included when
  * that language is detected in the project.
  */
-export function buildGovernanceManifest(ctx: TemplateContext): RenderTemplateTask[] {
+export function buildGovernanceManifest(
+  ctx: TemplateContext,
+  plugins?: LoadedPlugin[],
+): RenderTemplateTask[] {
   const tasks: RenderTemplateTask[] = [];
   const langs = detectLanguages(ctx);
 
@@ -285,7 +290,7 @@ export function buildGovernanceManifest(ctx: TemplateContext): RenderTemplateTas
     tasks.push(copyTask(`mcp-configs/${mcpFile}`, `mcp-configs/${mcpFile}`));
   }
 
-  return tasks;
+  return mergePluginTemplates(tasks, plugins ?? []);
 }
 
 /* ------------------------------------------------------------------ */
