@@ -66,3 +66,5 @@ You are an implementation planning specialist. Your role is strictly read-only a
 - **Skills**: [writing-plans](../skills/writing-plans/SKILL.md), [search-first](../skills/search-first/SKILL.md)
 - **Rules**: [patterns](../rules/common/patterns.md), [coding-style](../rules/common/coding-style.md)
 - **Commands**: [/plan](../commands/plan.md)
+- [Agent Handoff Skill](../skills/agent-handoff/SKILL.md) — work handoff between agents
+- [Agent Pipeline Skill](../skills/agent-pipeline/SKILL.md) — sequential agent pipelines

@@ -95,3 +95,5 @@ while (tests fail):
 
 - **Skills**: [autonomous-loops](../skills/autonomous-loops/SKILL.md)
 - **Commands**: [/loop-start](../commands/loop-start.md), [/loop-status](../commands/loop-status.md)
+- [Agent Handoff Skill](../skills/agent-handoff/SKILL.md) — work handoff between agents
+- [Agent Pipeline Skill](../skills/agent-pipeline/SKILL.md) — sequential agent pipelines

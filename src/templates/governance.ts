@@ -87,6 +87,8 @@ const OPERATIONS_SKILLS = [
   "prompt-engineering",
   "llm-cost-optimization",
   "agent-orchestration",
+  "agent-handoff",
+  "agent-pipeline",
 ];
 
 const LANGUAGE_SKILLS: Record<string, string[]> = {

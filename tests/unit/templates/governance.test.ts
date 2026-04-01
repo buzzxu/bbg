@@ -61,9 +61,9 @@ describe("buildGovernanceManifest", () => {
     expect(agentTasks.map((t) => t.destination)).toContain("agents/planner.md");
     expect(agentTasks.map((t) => t.destination)).toContain("agents/devops-reviewer.md");
 
-    // Core + operations skills: 21 + 16 = 37
+    // Core + operations skills: 21 + 18 = 39
     const skillTasks = tasks.filter((t) => t.destination.startsWith("skills/"));
-    expect(skillTasks).toHaveLength(37);
+    expect(skillTasks).toHaveLength(39);
     expect(skillTasks.map((t) => t.destination)).toContain("skills/coding-standards/SKILL.md");
     expect(skillTasks.map((t) => t.destination)).toContain("skills/agent-orchestration/SKILL.md");
 
@@ -97,8 +97,8 @@ describe("buildGovernanceManifest", () => {
     const mcpTasks = tasks.filter((t) => t.destination.startsWith("mcp-configs/"));
     expect(mcpTasks).toHaveLength(2);
 
-    // Total: 13 + 37 + 8 + 24 + 8 + 3 + 2 = 95
-    expect(tasks).toHaveLength(95);
+    // Total: 13 + 39 + 8 + 24 + 8 + 3 + 2 = 97
+    expect(tasks).toHaveLength(97);
   });
 
   it("includes typescript-specific governance files when typescript repo present", () => {
@@ -132,8 +132,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("commands/ts-build.md");
     expect(destinations).toContain("commands/ts-test.md");
 
-    // Total: 95 core + 2 agents + 4 skills + 5 rules + 3 commands = 109
-    expect(tasks).toHaveLength(109);
+    // Total: 97 core + 2 agents + 4 skills + 5 rules + 3 commands = 111
+    expect(tasks).toHaveLength(111);
   });
 
   it("includes files for multiple languages (python + typescript)", () => {
@@ -180,8 +180,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("skills/coding-standards/SKILL.md");
     expect(destinations).toContain("rules/common/coding-style.md");
 
-    // 95 core + TS(2+4+5+3) + Python(2+4+4+3) = 95 + 14 + 13 = 122
-    expect(tasks).toHaveLength(122);
+    // 97 core + TS(2+4+5+3) + Python(2+4+4+3) = 97 + 14 + 13 = 124
+    expect(tasks).toHaveLength(124);
   });
 
   it("ensures all task source and destination paths are non-empty strings", () => {

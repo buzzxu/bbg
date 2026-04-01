@@ -97,3 +97,5 @@ You are a senior code reviewer. You review code changes systematically using a p
 - **Skills**: [code-review-checklist](../skills/code-review-checklist/SKILL.md), [coding-standards](../skills/coding-standards/SKILL.md)
 - **Rules**: [coding-style](../rules/common/coding-style.md), [testing](../rules/common/testing.md), [security](../rules/common/security.md)
 - **Commands**: [/code-review](../commands/code-review.md)
+- [Agent Handoff Skill](../skills/agent-handoff/SKILL.md) — work handoff between agents
+- [Agent Pipeline Skill](../skills/agent-pipeline/SKILL.md) — sequential agent pipelines

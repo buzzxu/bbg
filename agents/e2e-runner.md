@@ -80,3 +80,5 @@ Each page object encapsulates:
 - **Skills**: [e2e-testing](../skills/e2e-testing/SKILL.md)
 - **Rules**: [testing](../rules/common/testing.md)
 - **Commands**: [/e2e](../commands/e2e.md)
+- [Agent Handoff Skill](../skills/agent-handoff/SKILL.md) — work handoff between agents
+- [Agent Pipeline Skill](../skills/agent-pipeline/SKILL.md) — sequential agent pipelines
