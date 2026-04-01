@@ -17,6 +17,11 @@ export interface RepoEntry {
   description: string;
 }
 
+export interface PluginConfig {
+  enabled: boolean;
+  directories?: string[];
+}
+
 export interface BbgConfig {
   version: string;
   projectName: string;
@@ -34,4 +39,5 @@ export interface BbgConfig {
     enableCrossAudit: boolean;
   };
   context: Record<string, unknown>;
+  plugins?: PluginConfig;
 }
