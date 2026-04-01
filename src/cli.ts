@@ -153,16 +153,21 @@ export const buildProgram = (): Command => {
     .description("Run governed release checklist and record release")
     .option("--skip-doctor", "Skip doctor check", false)
     .option("--skip-sync", "Skip sync check", false)
-    .action(async (options: { skipDoctor?: boolean; skipSync?: boolean }) => {
+    .option("--skip-changelog", "Skip changelog generation", false)
+    .action(async (options: { skipDoctor?: boolean; skipSync?: boolean; skipChangelog?: boolean }) => {
       const result = await runRelease({
         cwd: process.cwd(),
         skipDoctor: options.skipDoctor ?? false,
         skipSync: options.skipSync ?? false,
+        skipChangelog: options.skipChangelog ?? false,
       });
 
       process.stdout.write(`Release version: ${result.version}\n`);
       process.stdout.write(`Checklist confirmed: ${result.checklistConfirmed ? "yes" : "no"}\n`);
       process.stdout.write(`Release record: ${result.releaseFile}\n`);
+      if (result.changelogGenerated) {
+        process.stdout.write(`Changelog updated: ${result.changelogPath}\n`);
+      }
     });
 
   program

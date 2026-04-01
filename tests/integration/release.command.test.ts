@@ -17,6 +17,11 @@ const syncState = vi.hoisted(() => ({
   runSync: vi.fn(),
 }));
 
+const changelogState = vi.hoisted(() => ({
+  generateChangelog: vi.fn(),
+  appendToChangelog: vi.fn(),
+}));
+
 vi.mock("../../src/utils/prompts.js", () => ({
   promptConfirm: promptState.promptConfirm,
   promptInput: promptState.promptInput,
@@ -28,6 +33,11 @@ vi.mock("../../src/commands/doctor.js", () => ({
 
 vi.mock("../../src/commands/sync.js", () => ({
   runSync: syncState.runSync,
+}));
+
+vi.mock("../../src/release/changelog.js", () => ({
+  generateChangelog: changelogState.generateChangelog,
+  appendToChangelog: changelogState.appendToChangelog,
 }));
 
 import { runRelease } from "../../src/commands/release.js";
@@ -101,6 +111,8 @@ describe("release command", () => {
     promptState.promptInput.mockReset();
     doctorState.runDoctor.mockReset();
     syncState.runSync.mockReset();
+    changelogState.generateChangelog.mockReset();
+    changelogState.appendToChangelog.mockReset();
 
     promptState.promptConfirm.mockResolvedValue(true);
     doctorState.runDoctor.mockResolvedValue({
@@ -118,6 +130,8 @@ describe("release command", () => {
       orphanRepos: [],
       drift: [],
     });
+    changelogState.generateChangelog.mockResolvedValue({ entry: "## [0.1.0] - 2026-04-01\n\n### Added\n\n- test\n", commitCount: 1 });
+    changelogState.appendToChangelog.mockResolvedValue(undefined);
   });
 
   afterEach(async () => {
@@ -220,5 +234,31 @@ describe("release command", () => {
     expect(checklistText).not.toContain("{{else}}");
     expect(checklistText).not.toContain("{{");
     expect(checklistText).not.toMatch(/^\s*-\s*\[\s\]\s*$/m);
+  });
+
+  it("generates changelog when skipChangelog is not set", async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+    promptState.promptInput
+      .mockResolvedValueOnce("v1.3.0")
+      .mockResolvedValueOnce("release notes");
+
+    const result = await runRelease({ cwd });
+
+    expect(typeof result.changelogGenerated).toBe("boolean");
+    expect(result.changelogPath === undefined || typeof result.changelogPath === "string").toBe(true);
+  });
+
+  it("skips changelog when skipChangelog is true", async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+    promptState.promptInput
+      .mockResolvedValueOnce("v1.3.0")
+      .mockResolvedValueOnce("release notes");
+
+    const result = await runRelease({ cwd, skipChangelog: true });
+
+    expect(result.changelogGenerated).toBe(false);
+    expect(result.changelogPath).toBeUndefined();
   });
 });

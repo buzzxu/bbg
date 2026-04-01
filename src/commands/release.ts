@@ -1,5 +1,6 @@
 import { basename, join } from "node:path";
 import { parseConfig } from "../config/read-write.js";
+import { generateChangelog, appendToChangelog } from "../release/changelog.js";
 import { readTextFile, writeTextFile } from "../utils/fs.js";
 import { promptConfirm, promptInput } from "../utils/prompts.js";
 import { runDoctor } from "./doctor.js";
@@ -9,12 +10,15 @@ export interface RunReleaseInput {
   cwd: string;
   skipDoctor?: boolean;
   skipSync?: boolean;
+  skipChangelog?: boolean;
 }
 
 export interface RunReleaseResult {
   version: string;
   checklistConfirmed: boolean;
   releaseFile: string;
+  changelogGenerated: boolean;
+  changelogPath?: string;
 }
 
 interface ChecklistItem {
@@ -144,9 +148,25 @@ export async function runRelease(input: RunReleaseInput): Promise<RunReleaseResu
   const releaseRelativePath = join("docs", "changes", `${toDateYmd(new Date())}-release-${safeVersion}.md`);
   await writeTextFile(join(input.cwd, releaseRelativePath), buildReleaseRecord(version, releaseNotes, confirmations));
 
+  let changelogGenerated = false;
+  let changelogPath: string | undefined;
+
+  if (!input.skipChangelog) {
+    const today = toDateYmd(new Date());
+    const { entry, commitCount } = await generateChangelog(input.cwd, version, today);
+    if (commitCount > 0) {
+      const clPath = "CHANGELOG.md";
+      await appendToChangelog(input.cwd, entry, clPath);
+      changelogGenerated = true;
+      changelogPath = clPath;
+    }
+  }
+
   return {
     version,
     checklistConfirmed: confirmations.every((item) => item.confirmed),
     releaseFile: join("docs", "changes", basename(releaseRelativePath)).split("\\").join("/"),
+    changelogGenerated,
+    changelogPath,
   };
 }
