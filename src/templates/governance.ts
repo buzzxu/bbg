@@ -287,3 +287,22 @@ export function buildGovernanceManifest(ctx: TemplateContext): RenderTemplateTas
 
   return tasks;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Exported constants for self-check validation                       */
+/* ------------------------------------------------------------------ */
+
+export const GOVERNANCE_MANIFEST = {
+  coreAgents: CORE_AGENTS,
+  languageAgents: LANGUAGE_AGENTS,
+  coreSkills: CORE_SKILLS,
+  operationsSkills: OPERATIONS_SKILLS,
+  languageSkills: LANGUAGE_SKILLS,
+  commonRules: COMMON_RULES,
+  languageRules: LANGUAGE_RULES,
+  coreCommands: CORE_COMMANDS,
+  languageCommands: LANGUAGE_COMMANDS,
+  hookFiles: HOOK_FILES,
+  contextHbsFiles: CONTEXT_HBS_FILES,
+  mcpConfigFiles: MCP_CONFIG_FILES,
+} as const;

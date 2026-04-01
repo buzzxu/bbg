@@ -1,5 +1,9 @@
 import { applyDoctorFixes } from "../doctor/fix.js";
 import { runDoctorChecks, type DoctorCheckResult } from "../doctor/checks.js";
+import { runSelfChecks } from "../doctor/self-checks.js";
+import { resolvePackageRoot } from "../utils/paths.js";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export interface RunDoctorInput {
   cwd: string;
@@ -7,11 +11,12 @@ export interface RunDoctorInput {
   fix?: boolean;
   governanceOnly?: boolean;
   workspace?: boolean;
+  self?: boolean;
 }
 
 export interface RunDoctorResult {
   ok: boolean;
-  mode: "full";
+  mode: "full" | "self";
   checks: DoctorCheckResult[];
   errors: DoctorCheckResult[];
   warnings: DoctorCheckResult[];
@@ -21,6 +26,27 @@ export interface RunDoctorResult {
 }
 
 export async function runDoctor(input: RunDoctorInput): Promise<RunDoctorResult> {
+  if (input.self) {
+    const commandDir = dirname(fileURLToPath(import.meta.url));
+    const packageRoot = await resolvePackageRoot(commandDir);
+    const selfResult = await runSelfChecks(packageRoot);
+
+    const errors = selfResult.checks.filter((c) => c.severity === "error" && !c.passed);
+    const warnings = selfResult.checks.filter((c) => c.severity === "warning" && !c.passed);
+    const info = selfResult.checks.filter((c) => c.severity === "info");
+
+    return {
+      ok: selfResult.ok,
+      mode: "self",
+      checks: selfResult.checks,
+      errors,
+      warnings,
+      info,
+      exitCode: selfResult.ok ? 0 : 1,
+      fixesApplied: [],
+    };
+  }
+
   const firstPass = await runDoctorChecks({
     cwd: input.cwd,
     governanceOnly: input.governanceOnly ?? false,

@@ -95,13 +95,15 @@ export const buildProgram = (): Command => {
     .option("--fix", "Apply safe auto-fixes", false)
     .option("--governance-only", "Skip repo directory checks", false)
     .option("--workspace", "Include workspace checks", false)
-    .action(async (options: { json?: boolean; fix?: boolean; governanceOnly?: boolean; workspace?: boolean }) => {
+    .option("--self", "Validate bbg's own governance content integrity", false)
+    .action(async (options: { json?: boolean; fix?: boolean; governanceOnly?: boolean; workspace?: boolean; self?: boolean }) => {
       const report = await runDoctor({
         cwd: process.cwd(),
         json: options.json ?? false,
         fix: options.fix ?? false,
         governanceOnly: options.governanceOnly ?? false,
         workspace: options.workspace ?? false,
+        self: options.self ?? false,
       });
 
       if (options.json) {
