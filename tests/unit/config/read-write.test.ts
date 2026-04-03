@@ -44,6 +44,25 @@ const sampleConfig: BbgConfig = {
       team: "platform",
     },
   },
+  runtime: {
+    telemetry: {
+      enabled: false,
+      file: ".bbg/telemetry/events.json",
+    },
+    evaluation: {
+      enabled: true,
+      file: ".bbg/evaluations/history.json",
+    },
+    policy: {
+      enabled: true,
+      file: ".bbg/policy/decisions.json",
+    },
+    context: {
+      enabled: true,
+      repoMapFile: ".bbg/context/repo-map.json",
+      sessionHistoryFile: ".bbg/sessions/history.json",
+    },
+  },
 };
 
 describe("config read-write", () => {
@@ -72,5 +91,97 @@ describe("config read-write", () => {
 
     expect(() => parseConfig(invalidShape)).toThrow(ConfigValidationError);
     expect(() => parseConfig(invalidShape)).not.toThrow(ConfigParseError);
+  });
+
+  it("throws ConfigValidationError for invalid runtime structure", () => {
+    const invalidShape = JSON.stringify({
+      ...sampleConfig,
+      runtime: {
+        ...sampleConfig.runtime,
+        context: {
+          ...sampleConfig.runtime?.context,
+          repoMapFile: 123,
+        },
+      },
+    });
+
+    expect(() => parseConfig(invalidShape)).toThrow(ConfigValidationError);
+  });
+
+  it("throws ConfigValidationError for runtime paths outside .bbg", () => {
+    const invalidShape = JSON.stringify({
+      ...sampleConfig,
+      runtime: {
+        ...sampleConfig.runtime,
+        telemetry: {
+          ...sampleConfig.runtime?.telemetry,
+          file: "../telemetry.json",
+        },
+      },
+    });
+
+    expect(() => parseConfig(invalidShape)).toThrow(ConfigValidationError);
+  });
+
+  it("throws ConfigValidationError for runtime paths not rooted under .bbg", () => {
+    const invalidShape = JSON.stringify({
+      ...sampleConfig,
+      runtime: {
+        ...sampleConfig.runtime,
+        context: {
+          ...sampleConfig.runtime?.context,
+          repoMapFile: "runtime/repo-map.json",
+        },
+      },
+    });
+
+    expect(() => parseConfig(invalidShape)).toThrow(ConfigValidationError);
+  });
+
+  it("throws ConfigValidationError for runtime command cwd values outside the workspace root", () => {
+    const invalidTraversal = JSON.stringify({
+      ...sampleConfig,
+      runtime: {
+        ...sampleConfig.runtime,
+        commands: {
+          build: {
+            command: "npm",
+            args: ["run", "build"],
+            cwd: "../escape",
+          },
+        },
+      },
+    });
+
+    const invalidAbsolute = JSON.stringify({
+      ...sampleConfig,
+      runtime: {
+        ...sampleConfig.runtime,
+        commands: {
+          build: {
+            command: "npm",
+            args: ["run", "build"],
+            cwd: "/tmp/escape",
+          },
+        },
+      },
+    });
+
+    expect(() => parseConfig(invalidTraversal)).toThrow(ConfigValidationError);
+    expect(() => parseConfig(invalidAbsolute)).toThrow(ConfigValidationError);
+  });
+
+  it("throws ConfigValidationError for repo names with path traversal", () => {
+    const invalidShape = JSON.stringify({
+      ...sampleConfig,
+      repos: [
+        {
+          ...sampleConfig.repos[0],
+          name: "../escape",
+        },
+      ],
+    });
+
+    expect(() => parseConfig(invalidShape)).toThrow(ConfigValidationError);
   });
 });

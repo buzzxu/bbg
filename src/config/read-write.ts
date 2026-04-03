@@ -1,4 +1,6 @@
 import type { BbgConfig } from "./schema.js";
+import { posix, win32 } from "node:path";
+import { isValidRuntimeRelativePath } from "../runtime/paths.js";
 
 export class ConfigParseError extends Error {
   public readonly cause: unknown;
@@ -60,6 +62,7 @@ function isRepoEntry(value: unknown): value is BbgConfig["repos"][number] {
 
   return (
     isString(value.name) &&
+    isValidRepoName(value.name) &&
     isString(value.gitUrl) &&
     isString(value.branch) &&
     isRepoType(value.type) &&
@@ -68,12 +71,83 @@ function isRepoEntry(value: unknown): value is BbgConfig["repos"][number] {
   );
 }
 
+function isValidRepoName(value: string): boolean {
+  if (value.trim().length === 0 || posix.isAbsolute(value) || win32.isAbsolute(value)) {
+    return false;
+  }
+
+  const segments = value.replaceAll("\\", "/").split("/");
+  return segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+}
+
+function isValidRuntimeCommandCwd(value: string): boolean {
+  if (value.trim().length === 0 || posix.isAbsolute(value) || win32.isAbsolute(value)) {
+    return false;
+  }
+
+  const segments = value.replaceAll("\\", "/").split("/");
+  return segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+}
+
 function isRiskThreshold(value: unknown): value is { grade: string; minScore: number } {
   if (!isRecord(value)) {
     return false;
   }
 
   return isString(value.grade) && isNumber(value.minScore);
+}
+
+function isRuntimeFileSetting(value: unknown): value is NonNullable<BbgConfig["runtime"]>["telemetry"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return typeof value.enabled === "boolean" && isString(value.file) && isValidRuntimeRelativePath(value.file);
+}
+
+function isRuntimeContextSetting(value: unknown): value is NonNullable<BbgConfig["runtime"]>["context"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.enabled === "boolean" &&
+    isString(value.repoMapFile) &&
+    isValidRuntimeRelativePath(value.repoMapFile) &&
+    isString(value.sessionHistoryFile) &&
+    isValidRuntimeRelativePath(value.sessionHistoryFile)
+  );
+}
+
+function isRuntimeCommandConfigEntry(value: unknown): value is NonNullable<NonNullable<BbgConfig["runtime"]>["commands"]>["build"] {
+  if (!isRecord(value) || !isString(value.command)) {
+    return false;
+  }
+
+  return (value.args === undefined || (Array.isArray(value.args) && value.args.every(isString)))
+    && (value.cwd === undefined || (isString(value.cwd) && isValidRuntimeCommandCwd(value.cwd)));
+}
+
+function isRuntimeCommandsSetting(value: unknown): value is NonNullable<BbgConfig["runtime"]>["commands"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return [value.build, value.typecheck, value.tests, value.lint].every((entry) => entry === undefined || isRuntimeCommandConfigEntry(entry));
+}
+
+function isRuntimeConfig(value: unknown): value is NonNullable<BbgConfig["runtime"]> {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isRuntimeFileSetting(value.telemetry) &&
+    isRuntimeFileSetting(value.evaluation) &&
+    isRuntimeFileSetting(value.policy) &&
+    isRuntimeContextSetting(value.context) &&
+    (value.commands === undefined || isRuntimeCommandsSetting(value.commands))
+  );
 }
 
 function isBbgConfig(value: unknown): value is BbgConfig {
@@ -100,7 +174,8 @@ function isBbgConfig(value: unknown): value is BbgConfig {
     isRiskThreshold(value.governance.riskThresholds.low) &&
     typeof value.governance.enableRedTeam === "boolean" &&
     typeof value.governance.enableCrossAudit === "boolean" &&
-    isRecord(value.context)
+    isRecord(value.context) &&
+    (typeof value.runtime === "undefined" || isRuntimeConfig(value.runtime))
   );
 }
 

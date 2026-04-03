@@ -1,10 +1,13 @@
-import { dirname, join } from "node:path";
+import { dirname, join, posix, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { serializeConfig } from "../config/read-write.js";
 import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
 import type { BbgConfig } from "../config/schema.js";
 import { CLI_VERSION } from "../constants.js";
+import { resolveRuntimePaths } from "../runtime/paths.js";
+import { createDefaultRepoMap, createDefaultSessionHistory } from "../runtime/schema.js";
+import { writeJsonStore } from "../runtime/store.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { buildGovernanceManifest } from "../templates/governance.js";
 import { renderProjectTemplates } from "../templates/render.js";
@@ -52,7 +55,19 @@ export interface RunInitResult {
 
 function buildPlannedFiles(cwd: string, config: BbgConfig): string[] {
   const plannedTemplateFiles = buildTemplatePlan(config).map((template) => join(cwd, template.destination));
-  return [join(cwd, ".bbg", "config.json"), join(cwd, ".bbg", "file-hashes.json"), join(cwd, ".gitignore"), ...plannedTemplateFiles];
+  const runtimePaths = config.runtime ? resolveRuntimePaths(cwd, config.runtime) : undefined;
+  return [
+    join(cwd, ".bbg", "config.json"),
+    join(cwd, ".bbg", "file-hashes.json"),
+    ...(runtimePaths ? [runtimePaths.sessionHistory, runtimePaths.repoMap] : []),
+    join(cwd, ".gitignore"),
+    ...plannedTemplateFiles,
+  ];
+}
+
+export function deriveGitignorePath(configPath: string): string {
+  const pathApi = configPath.includes("\\") ? win32 : posix;
+  return pathApi.join(pathApi.dirname(pathApi.dirname(configPath)), ".gitignore");
 }
 
 /* ------------------------------------------------------------------ */
@@ -90,9 +105,20 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
 
   const configPath = plannedFiles[0];
   const fileHashesPath = plannedFiles[1];
-  const gitignorePath = plannedFiles[2];
+  const gitignorePath = deriveGitignorePath(configPath);
 
   await writeTextFile(configPath, serializeConfig(baselineConfig));
+  const runtimeCreatedFiles = baselineConfig.runtime
+    ? (() => {
+        const runtimePaths = resolveRuntimePaths(options.cwd, baselineConfig.runtime);
+        return [runtimePaths.sessionHistory, runtimePaths.repoMap];
+      })()
+    : [];
+  if (baselineConfig.runtime) {
+    const [sessionHistoryPath, repoMapPath] = runtimeCreatedFiles;
+    await writeJsonStore(sessionHistoryPath!, createDefaultSessionHistory());
+    await writeJsonStore(repoMapPath!, createDefaultRepoMap());
+  }
   await ensureRootGitignore(options.cwd, baselineConfig.repos);
 
   const commandDir = dirname(fileURLToPath(import.meta.url));
@@ -165,7 +191,15 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   }
 
   return {
-    createdFiles: [configPath, fileHashesPath, gitignorePath, ...rootRenderedFiles, ...governanceRenderedFiles, ...childAgentFiles],
+    createdFiles: [
+      configPath,
+      fileHashesPath,
+      ...runtimeCreatedFiles,
+      gitignorePath,
+      ...rootRenderedFiles,
+      ...governanceRenderedFiles,
+      ...childAgentFiles,
+    ],
     clonedRepos: initData.clonedRepos,
     doctor: doctorResult,
   };

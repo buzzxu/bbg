@@ -1,10 +1,16 @@
 import { constants as fsConstants } from "node:fs";
 import { access } from "node:fs/promises";
-import { join } from "node:path";
+import { extname, isAbsolute, join } from "node:path";
 import fg from "fast-glob";
 import { parseConfig } from "../config/read-write.js";
 import { sha256Hex, type FileHashRecord } from "../config/hash.js";
 import type { BbgConfig } from "../config/schema.js";
+import { getPolicyCoverageReport } from "../policy/engine.js";
+import { POLICY_COMMANDS } from "../policy/schema.js";
+import { resolveRuntimeCommands } from "../runtime/commands.js";
+import { resolveRuntimePaths } from "../runtime/paths.js";
+import { buildDefaultRuntimeConfig, type RuntimeConfig } from "../runtime/schema.js";
+import { readTelemetryDocument } from "../runtime/telemetry.js";
 import { exists, readTextFile } from "../utils/fs.js";
 import { expectedRepoIgnoreEntries } from "./shared.js";
 
@@ -44,6 +50,31 @@ const TASK_TEMPLATES = ["docs/tasks/TEMPLATE.md", "docs/changes/TEMPLATE.md", "d
 
 const REQUIRED_SCRIPTS = ["scripts/doctor.py", "scripts/sync_versions.py"];
 const REQUIRED_HOOKS = [".githooks/pre-commit", ".githooks/pre-push"];
+const REQUIRED_RUNTIME_SCRIPTS = ["build", "typecheck", "test", "lint"] as const;
+const SHELL_BUILTIN_COMMANDS = new Set([
+  ".",
+  ":",
+  "[",
+  "alias",
+  "cd",
+  "command",
+  "echo",
+  "eval",
+  "exit",
+  "export",
+  "false",
+  "hash",
+  "printf",
+  "pwd",
+  "readonly",
+  "set",
+  "shift",
+  "source",
+  "test",
+  "true",
+  "type",
+  "unalias",
+]);
 
 function buildCheck(
   id: string,
@@ -135,6 +166,283 @@ async function runAiFillMarkersCheck(cwd: string): Promise<DoctorCheckResult> {
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function readPackageScripts(cwd: string): Promise<Record<string, string> | null> {
+  const packageJsonPath = join(cwd, "package.json");
+  if (!(await exists(packageJsonPath))) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(await readTextFile(packageJsonPath)) as unknown;
+    if (!isRecord(parsed) || !isRecord(parsed.scripts)) {
+      return null;
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsed.scripts).filter(([, value]) => typeof value === "string"),
+    ) as Record<string, string>;
+  } catch {
+    return null;
+  }
+}
+
+function splitScriptSegments(script: string): string[] {
+  return script
+    .split(/(?:&&|\|\||;|\|)/)
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+}
+
+function extractCommandName(segment: string): string | null {
+  let remaining = segment.trim();
+  while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(remaining)) {
+    const match = remaining.match(/^[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S+)\s*/);
+    if (!match) {
+      break;
+    }
+
+    remaining = remaining.slice(match[0].length).trimStart();
+  }
+
+  const commandMatch = remaining.match(/^(?:"([^"]+)"|'([^']+)'|(\S+))/);
+  const commandName = commandMatch?.[1] ?? commandMatch?.[2] ?? commandMatch?.[3] ?? null;
+  if (commandName !== null && SHELL_BUILTIN_COMMANDS.has(commandName)) {
+    return null;
+  }
+
+  return commandName;
+}
+
+function isRelativeCommandPath(commandName: string): boolean {
+  return commandName.startsWith("./")
+    || commandName.startsWith("../")
+    || commandName.startsWith(".\\")
+    || commandName.startsWith("..\\");
+}
+
+function normalizeRelativeCommandPath(commandName: string): string {
+  return commandName.replace(/\\/g, "/");
+}
+
+function getCandidateCommandPaths(cwd: string, commandName: string): string[] {
+  const extensions = process.platform === "win32"
+    ? (process.env.PATHEXT?.split(";").filter((entry) => entry.length > 0) ?? [".EXE", ".CMD", ".BAT", ".COM"])
+    : [""];
+  const searchPaths = [join(cwd, "node_modules", ".bin"), ...(process.env.PATH?.split(process.platform === "win32" ? ";" : ":") ?? [])];
+
+  if (isAbsolute(commandName)) {
+    if (process.platform === "win32" && extname(commandName).length > 0) {
+      return [commandName];
+    }
+
+    return extensions.map((extension) => `${commandName}${extension}`);
+  }
+
+  if (isRelativeCommandPath(commandName)) {
+    const normalizedCommandName = normalizeRelativeCommandPath(commandName);
+    if (process.platform === "win32" && extname(normalizedCommandName).length > 0) {
+      return [join(cwd, normalizedCommandName)];
+    }
+
+    return extensions.map((extension) => join(cwd, `${normalizedCommandName}${extension}`));
+  }
+
+  return searchPaths.flatMap((searchPath) => extensions.map((extension) => join(searchPath, `${commandName}${extension}`)));
+}
+
+async function hasExecutableCommandCapability(cwd: string, commandName: string): Promise<boolean> {
+  for (const candidatePath of getCandidateCommandPaths(cwd, commandName)) {
+    if (await isExecutable(candidatePath)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function findScriptsMissingExecutableCapabilities(cwd: string, packageScripts: Record<string, string> | null): Promise<string[]> {
+  const missing: string[] = [];
+
+  for (const scriptName of REQUIRED_RUNTIME_SCRIPTS) {
+    const script = packageScripts?.[scriptName];
+    if (typeof script !== "string" || script.trim().length === 0) {
+      continue;
+    }
+
+    const commandNames = splitScriptSegments(script)
+      .map(extractCommandName)
+      .filter((commandName): commandName is string => commandName !== null);
+    let missingCapability = false;
+    for (const commandName of commandNames) {
+      if (!(await hasExecutableCommandCapability(cwd, commandName))) {
+        missingCapability = true;
+        break;
+      }
+    }
+
+    if (missingCapability) {
+      missing.push(scriptName);
+    }
+  }
+
+  return missing;
+}
+
+async function findConfiguredCommandsMissingExecutableCapabilities(cwd: string, config: BbgConfig): Promise<string[]> {
+  const missing: string[] = [];
+
+  for (const commandName of ["build", "typecheck", "tests", "lint"] as const) {
+    const definitions = resolveRuntimeCommands(cwd, config.repos, config.runtime?.commands, commandName);
+    let missingCapability = false;
+    for (const definition of definitions) {
+      if (!(await hasExecutableCommandCapability(definition.cwd, definition.command))) {
+        missingCapability = true;
+        break;
+      }
+    }
+
+    if (missingCapability) {
+      missing.push(commandName === "tests" ? "test" : commandName);
+    }
+  }
+
+  return missing;
+}
+
+export async function runHarnessRuntimeChecks(input: {
+  cwd: string;
+  config: BbgConfig | null;
+  runtime: RuntimeConfig;
+}): Promise<DoctorCheckResult[]> {
+  const checks: DoctorCheckResult[] = [];
+  const runtimePaths = resolveRuntimePaths(input.cwd, input.runtime);
+  const packageScripts = await readPackageScripts(input.cwd);
+  const hasConfiguredRuntimeCommands = input.config?.runtime?.commands !== undefined;
+  const missingRuntimeScripts = REQUIRED_RUNTIME_SCRIPTS.filter((scriptName) => {
+    if (hasConfiguredRuntimeCommands) {
+      return false;
+    }
+
+    const script = packageScripts?.[scriptName];
+    return typeof script !== "string" || script.trim().length === 0;
+  });
+  const missingExecutableCapabilities = hasConfiguredRuntimeCommands && input.config !== null
+    ? await findConfiguredCommandsMissingExecutableCapabilities(input.cwd, input.config)
+    : await findScriptsMissingExecutableCapabilities(input.cwd, packageScripts);
+
+  checks.push(
+    buildCheck(
+      "runtime-configured",
+      "warning",
+      input.config?.runtime !== undefined,
+      input.config?.runtime !== undefined
+        ? "runtime config exists"
+        : "runtime config missing; phase 1 defaults are in use",
+    ),
+  );
+
+  checks.push(
+    buildCheck(
+      "runtime-command-scripts",
+      "warning",
+      missingRuntimeScripts.length === 0 && missingExecutableCapabilities.length === 0,
+      missingRuntimeScripts.length === 0 && missingExecutableCapabilities.length === 0
+        ? "runtime command scripts exist"
+        : [
+          missingRuntimeScripts.length > 0 ? `missing package.json scripts: ${missingRuntimeScripts.join(", ")}` : null,
+          missingExecutableCapabilities.length > 0
+            ? `missing executable command capabilities: ${missingExecutableCapabilities.join(", ")}`
+            : null,
+        ].filter((entry) => entry !== null).join("; "),
+    ),
+  );
+
+  let telemetryCheck = buildCheck("runtime-telemetry", "warning", false, "telemetry disabled in runtime config");
+  if (input.runtime.telemetry.enabled) {
+    if (!(await exists(runtimePaths.telemetry))) {
+      telemetryCheck = buildCheck("runtime-telemetry", "warning", false, `missing telemetry store: ${input.runtime.telemetry.file}`);
+    } else {
+      try {
+        const telemetry = await readTelemetryDocument(input.cwd, input.runtime);
+        telemetryCheck = buildCheck(
+          "runtime-telemetry",
+          "warning",
+          telemetry.events.length > 0,
+          telemetry.events.length > 0
+            ? `${telemetry.events.length} telemetry event(s) recorded`
+            : `telemetry store has no events: ${input.runtime.telemetry.file}`,
+        );
+      } catch {
+        telemetryCheck = buildCheck("runtime-telemetry", "warning", false, `invalid telemetry store: ${input.runtime.telemetry.file}`);
+      }
+    }
+  }
+  checks.push(telemetryCheck);
+
+  const [datasetFiles, experimentFiles] = await Promise.all([
+    fg("evals/*.dataset.json", { cwd: input.cwd, onlyFiles: true, dot: false }),
+    fg("evals/*.experiment.json", { cwd: input.cwd, onlyFiles: true, dot: false }),
+  ]);
+  const missingEvalArtifacts: string[] = [];
+  if (datasetFiles.length === 0) {
+    missingEvalArtifacts.push("dataset");
+  }
+  if (experimentFiles.length === 0) {
+    missingEvalArtifacts.push("experiment");
+  }
+  checks.push(
+    buildCheck(
+      "runtime-eval-datasets",
+      "warning",
+      missingEvalArtifacts.length === 0,
+      missingEvalArtifacts.length === 0
+        ? "eval datasets and experiments exist"
+        : `missing eval artifacts: ${missingEvalArtifacts.join(", ")}`,
+    ),
+  );
+
+  checks.push(
+    buildCheck(
+      "runtime-repo-map",
+      "warning",
+      input.runtime.context.enabled && (await exists(runtimePaths.repoMap)),
+      !input.runtime.context.enabled
+        ? "runtime context disabled in config"
+        : (await exists(runtimePaths.repoMap))
+          ? "repo-map exists"
+          : `missing repo-map: ${input.runtime.context.repoMapFile}`,
+    ),
+  );
+
+  let policyCoverageCheck = buildCheck("runtime-policy-coverage", "warning", false, "runtime policy disabled in config");
+  if (input.runtime.policy.enabled) {
+    try {
+      const coverage = await getPolicyCoverageReport({ cwd: input.cwd, runtime: input.runtime });
+      const missingCoverage = POLICY_COMMANDS.filter((command) => coverage.defaultedCommands.includes(command));
+      const passed = input.config?.runtime !== undefined && missingCoverage.length === 0 && coverage.source === "authored";
+      policyCoverageCheck = buildCheck(
+        "runtime-policy-coverage",
+        "warning",
+        passed,
+        passed
+          ? "runtime policy explicitly covers all governed commands"
+          : coverage.source === "disabled"
+            ? "runtime policy disabled in config"
+            : `policy coverage gap for commands: ${missingCoverage.join(", ") || "all"}`,
+      );
+    } catch {
+      policyCoverageCheck = buildCheck("runtime-policy-coverage", "warning", false, `invalid policy store: ${input.runtime.policy.file}`);
+    }
+  }
+  checks.push(policyCoverageCheck);
+
+  return checks;
+}
+
 export async function runDoctorChecks(options: DoctorChecksOptions): Promise<DoctorChecksRunResult> {
   const checks: DoctorCheckResult[] = [];
   const configPath = join(options.cwd, ".bbg", "config.json");
@@ -161,6 +469,7 @@ export async function runDoctorChecks(options: DoctorChecksOptions): Promise<Doc
   checks.push(buildCheck("root-readme", "error", await exists(rootReadmePath), "root README.md exists"));
 
   const includeWorkspaceChecks = options.workspace === true && options.governanceOnly !== true;
+  const runtime = config?.runtime ?? buildDefaultRuntimeConfig();
 
   if (options.governanceOnly) {
     checks.push(buildCheck("child-agents-md", "error", true, "skipped in governance-only mode"));
@@ -286,6 +595,7 @@ export async function runDoctorChecks(options: DoctorChecksOptions): Promise<Doc
   }
 
   checks.push(await runAiFillMarkersCheck(options.cwd));
+  checks.push(...(await runHarnessRuntimeChecks({ cwd: options.cwd, config, runtime })));
 
   // Template file existence check
   if (config && hasConfig) {

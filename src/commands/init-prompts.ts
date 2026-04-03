@@ -2,6 +2,7 @@ import { join } from "node:path";
 import type { BbgConfig, RepoEntry, RepoType } from "../config/schema.js";
 import { CLI_VERSION, DEFAULT_STACK, REPO_TYPE_CHOICES } from "../constants.js";
 import { analyzeRepo } from "../analyzers/index.js";
+import { buildDefaultRuntimeConfig } from "../runtime/schema.js";
 import { ensureGitAvailable, listRemoteBranches, cloneRepo } from "../utils/git.js";
 import { collectStackInfo, sanitizePromptValue, promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
 import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
@@ -38,6 +39,7 @@ function buildBaselineConfig(nowIso: string): BbgConfig {
       enableCrossAudit: true,
     },
     context: {},
+    runtime: buildDefaultRuntimeConfig(),
   };
 }
 

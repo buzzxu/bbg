@@ -4,6 +4,16 @@ import { execa } from "execa";
 import { analyzeRepo } from "../analyzers/index.js";
 import { parseConfig, serializeConfig } from "../config/read-write.js";
 import type { RepoEntry, StackInfo } from "../config/schema.js";
+import {
+  buildRepoMapDocument,
+  createStoredRepoAnalysis,
+  getCanonicalRepoMapPath,
+  getStoredRepoAnalysisPath,
+  readStoredRepoAnalyses,
+} from "../context/repo-map.js";
+import { buildTaskBundlesDocument } from "../context/task-bundles.js";
+import { buildDefaultRuntimeConfig } from "../runtime/schema.js";
+import { writeJsonStore } from "../runtime/store.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 
 export interface RunSyncInput {
@@ -114,6 +124,7 @@ export async function runSync(input: RunSyncInput): Promise<RunSyncResult> {
   }
 
   const config = parseConfig(await readTextFile(configPath));
+  const runtime = config.runtime ?? buildDefaultRuntimeConfig();
   const repoStatuses: RepoStatus[] = [];
   const drift: StackDriftEntry[] = [];
 
@@ -150,6 +161,9 @@ export async function runSync(input: RunSyncInput): Promise<RunSyncResult> {
     });
 
     const analysis = await analyzeRepo(repoDir);
+    const analysisSnapshot = createStoredRepoAnalysis(repo.name, analysis, new Date().toISOString());
+    await writeJsonStore(getStoredRepoAnalysisPath(input.cwd, repo.name), analysisSnapshot);
+
     if (!sameStack(repo.stack, analysis.stack)) {
       drift.push({
         repoName: repo.name,
@@ -173,6 +187,35 @@ export async function runSync(input: RunSyncInput): Promise<RunSyncResult> {
       updatedAt: new Date().toISOString(),
     };
     await writeTextFile(configPath, serializeConfig(updatedConfig));
+  }
+
+  const configForContext =
+    input.update === true
+      ? {
+          ...config,
+          repos: config.repos.map((repo) => {
+            const driftEntry = drift.find((entry) => entry.repoName === repo.name);
+            return driftEntry ? { ...repo, stack: driftEntry.actual } : repo;
+          }),
+        }
+      : config;
+
+  const storedAnalyses = await readStoredRepoAnalyses(
+    input.cwd,
+    config.repos.map((repo) => repo.name),
+  );
+  if (runtime.context.enabled) {
+    const repoMapGeneratedAt = new Date().toISOString();
+    const repoMap = buildRepoMapDocument(configForContext, storedAnalyses, repoMapGeneratedAt);
+    const taskBundles = buildTaskBundlesDocument(repoMap, repoMapGeneratedAt);
+    const configuredRepoMapPath = join(input.cwd, runtime.context.repoMapFile);
+    const canonicalRepoMapPath = getCanonicalRepoMapPath(input.cwd);
+
+    await writeJsonStore(canonicalRepoMapPath, repoMap);
+    if (configuredRepoMapPath !== canonicalRepoMapPath) {
+      await writeJsonStore(configuredRepoMapPath, repoMap);
+    }
+    await writeJsonStore(join(input.cwd, ".bbg", "context", "task-bundles.json"), taskBundles);
   }
 
   return {

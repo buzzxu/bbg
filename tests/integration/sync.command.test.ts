@@ -28,6 +28,7 @@ vi.mock("../../src/utils/prompts.js", () => ({
 }));
 
 import { runSync } from "../../src/commands/sync.js";
+import { ConfigValidationError } from "../../src/config/read-write.js";
 import { writeTextFile } from "../../src/utils/fs.js";
 
 const tempDirs: string[] = [];
@@ -179,6 +180,54 @@ describe("sync command", () => {
         },
       },
     ]);
+
+    const analysisRepoA = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "analysis", "repos", "repo-a.json"), "utf8")),
+    ) as {
+      repoName: string;
+      stack: { framework: string };
+    };
+    expect(analysisRepoA.repoName).toBe("repo-a");
+    expect(analysisRepoA.stack.framework).toBe("react");
+
+    const repoMap = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "context", "repo-map.json"), "utf8")),
+    ) as {
+      repos: Array<{ name: string; stack: { framework: string }; analysisGeneratedAt: string | null }>;
+    };
+    const taskBundles = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "context", "task-bundles.json"), "utf8")),
+    ) as {
+      bundles: Array<{ repo: string; stack: string[]; testPattern: string | null }>;
+    };
+    expect(repoMap.repos).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "repo-a",
+          stack: expect.objectContaining({ framework: "react" }),
+          analysisGeneratedAt: expect.any(String),
+        }),
+        expect.objectContaining({
+          name: "repo-b",
+          stack: expect.objectContaining({ framework: "gin" }),
+          analysisGeneratedAt: expect.any(String),
+        }),
+      ]),
+    );
+    expect(taskBundles.bundles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          repo: "repo-a",
+          stack: ["typescript", "react", "vite", "vitest"],
+          testPattern: "*.test.ts",
+        }),
+        expect.objectContaining({
+          repo: "repo-b",
+          stack: ["go", "gin", "go", "go test"],
+          testPattern: "*_test.go",
+        }),
+      ]),
+    );
   });
 
   it("updates config stacks when --update is true", async () => {
@@ -384,5 +433,171 @@ describe("sync command", () => {
         behind: 0,
       }),
     );
+  });
+
+  it("skips context artifacts when runtime context is disabled", async () => {
+    const cwd = await makeTempDir();
+    const config = {
+      version: "0.1.0",
+      projectName: "bbg-project",
+      projectDescription: "sync disabled context test",
+      createdAt: "2026-03-29T00:00:00.000Z",
+      updatedAt: "2026-03-29T00:00:00.000Z",
+      repos: [
+        {
+          name: "repo-a",
+          gitUrl: "https://example.com/repo-a.git",
+          branch: "main",
+          type: "frontend-web",
+          stack: {
+            language: "typescript",
+            framework: "react",
+            buildTool: "vite",
+            testFramework: "vitest",
+            packageManager: "pnpm",
+          },
+          description: "repo a",
+        },
+      ],
+      governance: {
+        riskThresholds: {
+          high: { grade: "A+", minScore: 99 },
+          medium: { grade: "A", minScore: 95 },
+          low: { grade: "B", minScore: 85 },
+        },
+        enableRedTeam: true,
+        enableCrossAudit: true,
+      },
+      context: {},
+      runtime: {
+        telemetry: { enabled: false, file: ".bbg/telemetry/events.json" },
+        evaluation: { enabled: true, file: ".bbg/evaluations/history.json" },
+        policy: { enabled: true, file: ".bbg/policy/decisions.json" },
+        context: {
+          enabled: false,
+          repoMapFile: ".bbg/context/repo-map.json",
+          sessionHistoryFile: ".bbg/sessions/history.json",
+        },
+      },
+    };
+
+    await mkdir(join(cwd, ".bbg"), { recursive: true });
+    await writeTextFile(join(cwd, ".bbg", "config.json"), `${JSON.stringify(config, null, 2)}\n`);
+    await mkdir(join(cwd, "repo-a", ".git"), { recursive: true });
+
+    await runSync({ cwd, update: false });
+
+    const analysisRepoA = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "analysis", "repos", "repo-a.json"), "utf8")),
+    ) as { repoName: string };
+    expect(analysisRepoA.repoName).toBe("repo-a");
+    await expect(
+      import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "context", "repo-map.json"), "utf8")),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(
+      import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "context", "task-bundles.json"), "utf8")),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("writes the canonical repo map even when runtime repoMapFile is customized", async () => {
+    const cwd = await makeTempDir();
+    const config = {
+      version: "0.1.0",
+      projectName: "bbg-project",
+      projectDescription: "sync custom repo map path test",
+      createdAt: "2026-03-29T00:00:00.000Z",
+      updatedAt: "2026-03-29T00:00:00.000Z",
+      repos: [
+        {
+          name: "repo-a",
+          gitUrl: "https://example.com/repo-a.git",
+          branch: "main",
+          type: "frontend-web",
+          stack: {
+            language: "typescript",
+            framework: "react",
+            buildTool: "vite",
+            testFramework: "vitest",
+            packageManager: "pnpm",
+          },
+          description: "repo a",
+        },
+      ],
+      governance: {
+        riskThresholds: {
+          high: { grade: "A+", minScore: 99 },
+          medium: { grade: "A", minScore: 95 },
+          low: { grade: "B", minScore: 85 },
+        },
+        enableRedTeam: true,
+        enableCrossAudit: true,
+      },
+      context: {},
+      runtime: {
+        telemetry: { enabled: false, file: ".bbg/telemetry/events.json" },
+        evaluation: { enabled: true, file: ".bbg/evaluations/history.json" },
+        policy: { enabled: true, file: ".bbg/policy/decisions.json" },
+        context: {
+          enabled: true,
+          repoMapFile: ".bbg/runtime/custom-repo-map.json",
+          sessionHistoryFile: ".bbg/sessions/history.json",
+        },
+      },
+    };
+
+    await mkdir(join(cwd, ".bbg"), { recursive: true });
+    await writeTextFile(join(cwd, ".bbg", "config.json"), `${JSON.stringify(config, null, 2)}\n`);
+    await mkdir(join(cwd, "repo-a", ".git"), { recursive: true });
+
+    await runSync({ cwd, update: false });
+
+    const repoMap = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "context", "repo-map.json"), "utf8")),
+    ) as { repos: Array<{ name: string }> };
+
+    expect(repoMap.repos).toEqual([expect.objectContaining({ name: "repo-a" })]);
+  });
+
+  it("rejects repo names that escape the workspace", async () => {
+    const cwd = await makeTempDir();
+    const config = {
+      version: "0.1.0",
+      projectName: "bbg-project",
+      projectDescription: "sync invalid repo path test",
+      createdAt: "2026-03-29T00:00:00.000Z",
+      updatedAt: "2026-03-29T00:00:00.000Z",
+      repos: [
+        {
+          name: "../outside",
+          gitUrl: "https://example.com/repo-a.git",
+          branch: "main",
+          type: "frontend-web",
+          stack: {
+            language: "typescript",
+            framework: "react",
+            buildTool: "vite",
+            testFramework: "vitest",
+            packageManager: "pnpm",
+          },
+          description: "repo a",
+        },
+      ],
+      governance: {
+        riskThresholds: {
+          high: { grade: "A+", minScore: 99 },
+          medium: { grade: "A", minScore: 95 },
+          low: { grade: "B", minScore: 85 },
+        },
+        enableRedTeam: true,
+        enableCrossAudit: true,
+      },
+      context: {},
+    };
+
+    await mkdir(join(cwd, ".bbg"), { recursive: true });
+    await writeTextFile(join(cwd, ".bbg", "config.json"), `${JSON.stringify(config, null, 2)}\n`);
+
+    await expect(runSync({ cwd, update: false })).rejects.toThrow(ConfigValidationError);
+    expect(analyzerState.analyzeRepo).not.toHaveBeenCalled();
   });
 });

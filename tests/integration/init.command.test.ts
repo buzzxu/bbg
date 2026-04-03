@@ -23,6 +23,18 @@ const doctorState = vi.hoisted(() => ({
   runDoctor: vi.fn(),
 }));
 
+const runtimePathState = vi.hoisted(() => ({
+  overridePaths: undefined as
+    | undefined
+    | (() => {
+        telemetry: string;
+        evaluation: string;
+        policy: string;
+        repoMap: string;
+        sessionHistory: string;
+      }),
+}));
+
 vi.mock("../../src/utils/prompts.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../src/utils/prompts.js")>();
   return {
@@ -58,6 +70,14 @@ vi.mock("../../src/commands/doctor.js", () => ({
   runDoctor: doctorState.runDoctor,
 }));
 
+vi.mock("../../src/runtime/paths.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/runtime/paths.js")>();
+  return {
+    resolveRuntimePaths: (cwd: string, runtime: Parameters<typeof actual.resolveRuntimePaths>[1]) =>
+      runtimePathState.overridePaths?.() ?? actual.resolveRuntimePaths(cwd, runtime),
+  };
+});
+
 import { runInit } from "../../src/commands/init.js";
 
 const tempDirs: string[] = [];
@@ -78,6 +98,7 @@ describe("init command", () => {
     gitState.cloneRepo.mockReset();
     analyzerState.analyzeRepo.mockReset();
     doctorState.runDoctor.mockReset();
+    runtimePathState.overridePaths = undefined;
 
     promptState.promptInput.mockResolvedValue("ignored");
     promptState.promptConfirm.mockResolvedValue(false);
@@ -120,6 +141,8 @@ describe("init command", () => {
 
     expect(result.createdFiles).toContain(join(cwd, ".bbg", "config.json"));
     expect(result.createdFiles).toContain(join(cwd, ".bbg", "file-hashes.json"));
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "sessions", "history.json"));
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "context", "repo-map.json"));
     expect(result.createdFiles).toContain(join(cwd, ".gitignore"));
     expect(result.createdFiles).toContain(join(cwd, "AGENTS.md"));
     expect(result.createdFiles).toContain(join(cwd, "README.md"));
@@ -140,6 +163,16 @@ describe("init command", () => {
         enableRedTeam: boolean;
         enableCrossAudit: boolean;
       };
+      runtime: {
+        telemetry: { enabled: boolean; file: string };
+        evaluation: { enabled: boolean; file: string };
+        policy: { enabled: boolean; file: string };
+        context: {
+          enabled: boolean;
+          repoMapFile: string;
+          sessionHistoryFile: string;
+        };
+      };
     };
 
     expect(config.governance.riskThresholds).toEqual({
@@ -149,6 +182,34 @@ describe("init command", () => {
     });
     expect(config.governance.enableRedTeam).toBe(true);
     expect(config.governance.enableCrossAudit).toBe(true);
+    expect(config.runtime).toEqual({
+      telemetry: {
+        enabled: false,
+        file: ".bbg/telemetry/events.json",
+      },
+      evaluation: {
+        enabled: true,
+        file: ".bbg/evaluations/history.json",
+      },
+      policy: {
+        enabled: true,
+        file: ".bbg/policy/decisions.json",
+      },
+      context: {
+        enabled: true,
+        repoMapFile: ".bbg/context/repo-map.json",
+        sessionHistoryFile: ".bbg/sessions/history.json",
+      },
+    });
+
+    expect(JSON.parse(await readFile(join(cwd, ".bbg", "sessions", "history.json"), "utf8"))).toEqual({
+      version: 1,
+      sessions: [],
+    });
+    expect(JSON.parse(await readFile(join(cwd, ".bbg", "context", "repo-map.json"), "utf8"))).toEqual({
+      version: 1,
+      repos: [],
+    });
 
     expect(promptState.promptInput).not.toHaveBeenCalled();
     expect(promptState.promptConfirm).not.toHaveBeenCalled();
@@ -206,6 +267,8 @@ describe("init command", () => {
       expect.arrayContaining([
         join(cwd, ".bbg", "config.json"),
         join(cwd, ".bbg", "file-hashes.json"),
+        join(cwd, ".bbg", "sessions", "history.json"),
+        join(cwd, ".bbg", "context", "repo-map.json"),
         join(cwd, ".gitignore"),
         join(cwd, "AGENTS.md"),
         join(cwd, "README.md"),
@@ -272,6 +335,25 @@ describe("init command", () => {
     expect(analyzerState.analyzeRepo).not.toHaveBeenCalled();
     expect(doctorState.runDoctor).not.toHaveBeenCalled();
     await expect(stat(join(cwd, ".bbg"))).rejects.toThrow();
+  });
+
+  it("reports only the runtime files init writes", async () => {
+    const cwd = await makeTempDir();
+
+    runtimePathState.overridePaths = () => ({
+      telemetry: join(cwd, ".bbg", "telemetry", "events.json"),
+      evaluation: join(cwd, ".bbg", "custom", "history.json"),
+      policy: join(cwd, ".bbg", "custom", "repo-map.json"),
+      repoMap: join(cwd, ".bbg", "context", "repo-map.json"),
+      sessionHistory: join(cwd, ".bbg", "sessions", "history.json"),
+    });
+
+    const result = await runInit({ cwd, yes: true, dryRun: false });
+
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "sessions", "history.json"));
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "context", "repo-map.json"));
+    expect(result.createdFiles).not.toContain(join(cwd, ".bbg", "custom", "history.json"));
+    expect(result.createdFiles).not.toContain(join(cwd, ".bbg", "custom", "repo-map.json"));
   });
 
   it("rejects init when .bbg already exists with upgrade hint", async () => {
@@ -437,6 +519,12 @@ describe("init command", () => {
         enableRedTeam: boolean;
         enableCrossAudit: boolean;
       };
+      runtime: {
+        context: {
+          repoMapFile: string;
+          sessionHistoryFile: string;
+        };
+      };
     };
 
     expect(config.projectName).toBe("custom-project");
@@ -464,6 +552,11 @@ describe("init command", () => {
     });
     expect(config.governance.enableRedTeam).toBe(false);
     expect(config.governance.enableCrossAudit).toBe(true);
+    expect(config.runtime.context).toEqual({
+      enabled: true,
+      repoMapFile: ".bbg/context/repo-map.json",
+      sessionHistoryFile: ".bbg/sessions/history.json",
+    });
 
     expect(result.clonedRepos).toEqual([join(cwd, "repo-a")]);
 

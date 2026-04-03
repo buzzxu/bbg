@@ -1,3 +1,5 @@
+import type { RuntimeConfig } from "../runtime/schema.js";
+
 export type RepoType = "backend" | "frontend-pc" | "frontend-h5" | "frontend-web" | "other";
 
 export interface StackInfo {
@@ -39,5 +41,6 @@ export interface BbgConfig {
     enableCrossAudit: boolean;
   };
   context: Record<string, unknown>;
+  runtime?: RuntimeConfig;
   plugins?: PluginConfig;
 }

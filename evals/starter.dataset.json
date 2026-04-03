@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "setup-failure",
+  "description": "setup command failure",
+  "cases": [
+    {
+      "id": "setup-command-fails",
+      "description": "fails fast when setup commands fail",
+      "workspace": "./fixtures/runtime-starter",
+      "setup": [
+        {
+          "type": "run-command",
+          "command": {
+            "name": "checkpoint",
+            "options": {
+              "name": "baseline"
+            }
+          }
+        }
+      ],
+      "command": {
+        "name": "quality-gate"
+      },
+      "expect": {
+        "ok": true
+      }
+    }
+  ]
+}

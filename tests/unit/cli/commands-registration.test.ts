@@ -17,6 +17,7 @@ const commanderState = vi.hoisted(() => {
     const builder = {
       description: vi.fn(() => builder),
       option: vi.fn(() => builder),
+      command: vi.fn(() => createCommandBuilder()),
       action: vi.fn(() => builder),
     };
 
@@ -75,6 +76,13 @@ vi.mock("../../../src/commands/doctor.js", () => ({ runDoctor: vi.fn() }));
 vi.mock("../../../src/commands/sync.js", () => ({ runSync: vi.fn() }));
 vi.mock("../../../src/commands/release.js", () => ({ runRelease: vi.fn() }));
 vi.mock("../../../src/commands/upgrade.js", () => ({ runUpgrade: vi.fn() }));
+vi.mock("../../../src/commands/quality-gate.js", () => ({ runQualityGateCommand: vi.fn() }));
+vi.mock("../../../src/commands/checkpoint.js", () => ({ runCheckpointCommand: vi.fn() }));
+vi.mock("../../../src/commands/verify.js", () => ({ runVerifyCommand: vi.fn() }));
+vi.mock("../../../src/commands/sessions.js", () => ({ runSessionsCommand: vi.fn() }));
+vi.mock("../../../src/commands/eval.js", () => ({ runEvalCommand: vi.fn() }));
+vi.mock("../../../src/commands/harness-audit.js", () => ({ runHarnessAuditCommand: vi.fn() }));
+vi.mock("../../../src/commands/model-route.js", () => ({ runModelRouteCommand: vi.fn() }));
 
 describe("cli command registration", () => {
   beforeEach(() => {
@@ -83,7 +91,7 @@ describe("cli command registration", () => {
     process.exitCode = undefined;
   });
 
-  it("exports buildProgram and registers all v1 commands", async () => {
+  it("exports buildProgram and registers runtime-backed quality commands", async () => {
     const cliModule = await import("../../../src/cli.js");
 
     expect(cliModule.buildProgram).toBeTypeOf("function");
@@ -98,7 +106,14 @@ describe("cli command registration", () => {
       "sync",
       "release",
       "upgrade",
-    ]);
+      "quality-gate",
+      "checkpoint",
+      "verify",
+        "sessions",
+        "eval",
+        "harness-audit",
+        "model-route [task...]",
+      ]);
   });
 
   it.each([

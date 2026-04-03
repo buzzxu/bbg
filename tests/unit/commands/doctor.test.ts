@@ -1,7 +1,7 @@
 import { access, mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { serializeConfig } from "../../../src/config/read-write.js";
 import type { BbgConfig } from "../../../src/config/schema.js";
 import { writeTextFile } from "../../../src/utils/fs.js";
@@ -60,6 +60,17 @@ async function createMinimalWorkspace(cwd: string): Promise<void> {
   await mkdir(join(cwd, "repo-a"), { recursive: true });
   await writeTextFile(join(cwd, "repo-a", "AGENTS.md"), "# Repo agents\n");
   await writeTextFile(join(cwd, ".gitignore"), "node_modules/\n");
+  await writeTextFile(
+    join(cwd, "package.json"),
+    `${JSON.stringify({
+      name: "doctor-workspace",
+      private: true,
+      scripts: {
+        build: 'node -e "process.exit(0)"',
+        typecheck: 'node -e "process.exit(0)"',
+      },
+    }, null, 2)}\n`,
+  );
 }
 
 async function createGovernanceWorkspaceOnly(cwd: string): Promise<void> {
@@ -187,6 +198,128 @@ describe("doctor command", () => {
     // Config has version "0.1.0", CLI_VERSION is "0.3.0" — should not match
     expect(versionCheck!.passed).toBe(false);
     expect(versionCheck!.message).toContain("differs");
+  });
+
+  it("reports runtime harness gaps for missing config-backed assets", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+
+    const report = await runDoctor({ cwd, json: true, workspace: true });
+
+    expect(report.checks.find((entry) => entry.id === "runtime-configured")?.passed).toBe(false);
+    expect(report.checks.find((entry) => entry.id === "runtime-command-scripts")?.message).toContain("test");
+    expect(report.checks.find((entry) => entry.id === "runtime-telemetry")?.passed).toBe(false);
+    expect(report.checks.find((entry) => entry.id === "runtime-eval-datasets")?.passed).toBe(false);
+    expect(report.checks.find((entry) => entry.id === "runtime-repo-map")?.passed).toBe(false);
+    expect(report.checks.find((entry) => entry.id === "runtime-policy-coverage")?.passed).toBe(false);
+  });
+
+  it("accepts absolute-path runtime command wrappers", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+    await writeTextFile(
+      join(cwd, "package.json"),
+      `${JSON.stringify({
+        name: "doctor-runtime-capabilities-absolute-wrapper",
+        private: true,
+        scripts: {
+          build: '/usr/bin/env node -e "process.exit(0)"',
+          typecheck: '/usr/bin/env node -e "process.exit(0)"',
+          test: '/usr/bin/env node -e "process.exit(0)"',
+          lint: '/usr/bin/env node -e "process.exit(0)"',
+        },
+      }, null, 2)}\n`,
+    );
+
+    const report = await runDoctor({ cwd, json: true, workspace: true });
+
+    expect(report.checks.find((entry) => entry.id === "runtime-command-scripts")).toEqual(expect.objectContaining({
+      passed: true,
+      message: "runtime command scripts exist",
+    }));
+  });
+
+  it("accepts Windows relative executable runtime scripts", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+    const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const originalPathext = process.env.PATHEXT;
+    process.env.PATHEXT = ".EXE;.CMD;.BAT;.COM";
+    await writeTextFile(join(cwd, "runtime-tool.exe"), "@echo off\r\nexit /b 0\r\n");
+    await writeTextFile(
+      join(cwd, "package.json"),
+      `${JSON.stringify({
+        name: "doctor-runtime-capabilities-relative-executable",
+        private: true,
+        scripts: {
+          build: ".\\runtime-tool.exe",
+          typecheck: ".\\runtime-tool.exe",
+          test: ".\\runtime-tool.exe",
+          lint: ".\\runtime-tool.exe",
+        },
+      }, null, 2)}\n`,
+    );
+
+    try {
+      const report = await runDoctor({ cwd, json: true, workspace: true });
+
+      expect(report.checks.find((entry) => entry.id === "runtime-command-scripts")).toEqual(expect.objectContaining({
+        passed: true,
+        message: "runtime command scripts exist",
+      }));
+    } finally {
+      if (originalPathext === undefined) {
+        delete process.env.PATHEXT;
+      } else {
+        process.env.PATHEXT = originalPathext;
+      }
+      platformSpy.mockRestore();
+    }
+  });
+
+  it("accepts configured runtime commands without relying on root package scripts", async () => {
+    const cwd = await makeTempDir();
+    const config = {
+      ...buildConfig(),
+      runtime: {
+        telemetry: {
+          enabled: false,
+          file: ".bbg/telemetry/events.json",
+        },
+        evaluation: {
+          enabled: true,
+          file: ".bbg/evaluations/history.json",
+        },
+        policy: {
+          enabled: true,
+          file: ".bbg/policy/decisions.json",
+        },
+        context: {
+          enabled: true,
+          repoMapFile: ".bbg/context/repo-map.json",
+          sessionHistoryFile: ".bbg/sessions/history.json",
+        },
+        commands: {
+          build: { command: "/usr/bin/env", args: ["node", "-e", "process.exit(0)"] },
+          typecheck: { command: "/usr/bin/env", args: ["node", "-e", "process.exit(0)"] },
+          tests: { command: "/usr/bin/env", args: ["node", "-e", "process.exit(0)"] },
+          lint: { command: "/usr/bin/env", args: ["node", "-e", "process.exit(0)"] },
+        },
+      },
+    } satisfies BbgConfig;
+    await writeTextFile(join(cwd, ".bbg", "config.json"), serializeConfig(config));
+    await writeTextFile(join(cwd, "AGENTS.md"), "# Root agents\n");
+    await writeTextFile(join(cwd, "README.md"), "# Root readme\n");
+    await mkdir(join(cwd, "repo-a"), { recursive: true });
+    await writeTextFile(join(cwd, "repo-a", "AGENTS.md"), "# Repo agents\n");
+    await writeTextFile(join(cwd, ".gitignore"), "node_modules/\n");
+
+    const report = await runDoctor({ cwd, json: true, workspace: true });
+
+    expect(report.checks.find((entry) => entry.id === "runtime-command-scripts")).toEqual(expect.objectContaining({
+      passed: true,
+      message: "runtime command scripts exist",
+    }));
   });
 
   it("counts both AI-FILL marker forms", async () => {

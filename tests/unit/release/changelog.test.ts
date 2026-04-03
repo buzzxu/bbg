@@ -10,6 +10,7 @@ import {
   type ConventionalCommit,
   type ChangelogEntry,
 } from "../../../src/release/changelog.js";
+import type { Result } from "execa";
 
 vi.mock("execa", () => ({
   execa: vi.fn(),
@@ -20,6 +21,36 @@ vi.mock("../../../src/utils/fs.js", () => ({
   readTextFile: vi.fn(),
   writeTextFile: vi.fn(),
 }));
+
+const createExecaResult = (stdout: string, command: string): Result => ({
+  stdout,
+  stderr: "",
+  all: undefined,
+  stdio: [undefined, stdout, ""],
+  ipcOutput: [],
+  pipedFrom: [],
+  command,
+  escapedCommand: command,
+  cwd: "/fake/cwd",
+  durationMs: 0,
+  failed: false,
+  timedOut: false,
+  isCanceled: false,
+  isGracefullyCanceled: false,
+  isMaxBuffer: false,
+  isTerminated: false,
+  isForcefullyTerminated: false,
+  exitCode: 0,
+  signal: undefined,
+  signalDescription: undefined,
+  message: undefined,
+  shortMessage: undefined,
+  originalMessage: undefined,
+  cause: undefined,
+  code: undefined,
+  name: undefined,
+  stack: undefined,
+});
 
 describe("release/changelog", () => {
   describe("parseConventionalCommit", () => {
@@ -175,13 +206,7 @@ describe("release/changelog", () => {
 
     it("returns the latest tag when tags exist", async () => {
       const { execa } = await import("execa");
-      vi.mocked(execa).mockResolvedValue({
-        stdout: "v0.4.0",
-        stderr: "",
-        exitCode: 0,
-        failed: false,
-        command: "git describe --tags --abbrev=0",
-      } as any);
+      vi.mocked(execa).mockResolvedValue(createExecaResult("v0.4.0", "git describe --tags --abbrev=0"));
 
       const result = await getLastTag("/fake/cwd");
 
@@ -199,13 +224,7 @@ describe("release/changelog", () => {
 
     it("returns null when stdout is empty", async () => {
       const { execa } = await import("execa");
-      vi.mocked(execa).mockResolvedValue({
-        stdout: "",
-        stderr: "",
-        exitCode: 0,
-        failed: false,
-        command: "git describe --tags --abbrev=0",
-      } as any);
+      vi.mocked(execa).mockResolvedValue(createExecaResult("", "git describe --tags --abbrev=0"));
 
       const result = await getLastTag("/fake/cwd");
 
@@ -225,13 +244,7 @@ describe("release/changelog", () => {
         "def5678\x00fix: fix bug\x00Author\x002026-04-01T00:00:00+00:00",
       ].join("\n");
 
-      vi.mocked(execa).mockResolvedValue({
-        stdout,
-        stderr: "",
-        exitCode: 0,
-        failed: false,
-        command: "git log",
-      } as any);
+      vi.mocked(execa).mockResolvedValue(createExecaResult(stdout, "git log"));
 
       const result = await getCommitsSinceTag("/fake/cwd", "v0.3.0");
 
@@ -244,13 +257,7 @@ describe("release/changelog", () => {
 
     it("returns empty array when no commits", async () => {
       const { execa } = await import("execa");
-      vi.mocked(execa).mockResolvedValue({
-        stdout: "",
-        stderr: "",
-        exitCode: 0,
-        failed: false,
-        command: "git log",
-      } as any);
+      vi.mocked(execa).mockResolvedValue(createExecaResult("", "git log"));
 
       const result = await getCommitsSinceTag("/fake/cwd", "v0.4.0");
 
@@ -264,13 +271,7 @@ describe("release/changelog", () => {
         "def5678\x00Merge branch 'main'\x00Author\x002026-04-01T00:00:00+00:00",
       ].join("\n");
 
-      vi.mocked(execa).mockResolvedValue({
-        stdout,
-        stderr: "",
-        exitCode: 0,
-        failed: false,
-        command: "git log",
-      } as any);
+      vi.mocked(execa).mockResolvedValue(createExecaResult(stdout, "git log"));
 
       const result = await getCommitsSinceTag("/fake/cwd");
 
@@ -298,24 +299,17 @@ describe("release/changelog", () => {
 
       vi.mocked(execa)
         // Mock getLastTag → returns "v0.3.0"
-        .mockResolvedValueOnce({
-          stdout: "v0.3.0",
-          stderr: "",
-          exitCode: 0,
-          failed: false,
-          command: "git describe",
-        } as any)
+        .mockResolvedValueOnce(createExecaResult("v0.3.0", "git describe"))
         // Mock getCommitsSinceTag → returns 2 commits
-        .mockResolvedValueOnce({
-          stdout: [
-            "abc1234\x00feat: add three-way merge\x00Dev\x002026-04-01T00:00:00+00:00",
-            "def5678\x00fix: fix doctor crash\x00Dev\x002026-04-01T00:00:00+00:00",
-          ].join("\n"),
-          stderr: "",
-          exitCode: 0,
-          failed: false,
-          command: "git log",
-        } as any);
+        .mockResolvedValueOnce(
+          createExecaResult(
+            [
+              "abc1234\x00feat: add three-way merge\x00Dev\x002026-04-01T00:00:00+00:00",
+              "def5678\x00fix: fix doctor crash\x00Dev\x002026-04-01T00:00:00+00:00",
+            ].join("\n"),
+            "git log",
+          ),
+        );
 
       const result = await generateChangelog("/fake/cwd", "0.4.0", "2026-04-01");
 
@@ -334,13 +328,9 @@ describe("release/changelog", () => {
         // Mock getLastTag → rejects (no tags)
         .mockRejectedValueOnce(new Error("No tags"))
         // Mock getCommitsSinceTag → returns 1 commit (no range)
-        .mockResolvedValueOnce({
-          stdout: "abc1234\x00feat: initial release\x00Dev\x002026-03-30T00:00:00+00:00",
-          stderr: "",
-          exitCode: 0,
-          failed: false,
-          command: "git log",
-        } as any);
+        .mockResolvedValueOnce(
+          createExecaResult("abc1234\x00feat: initial release\x00Dev\x002026-03-30T00:00:00+00:00", "git log"),
+        );
 
       const result = await generateChangelog("/fake/cwd", "0.1.0", "2026-03-30");
 

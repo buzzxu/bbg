@@ -7,8 +7,15 @@ import { runAddRepo } from "./commands/add-repo.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runInit } from "./commands/init.js";
 import { runRelease } from "./commands/release.js";
+import { runCheckpointCommand } from "./commands/checkpoint.js";
+import { runQualityGateCommand } from "./commands/quality-gate.js";
+import { runSessionsCommand } from "./commands/sessions.js";
 import { runSync } from "./commands/sync.js";
 import { runUpgrade } from "./commands/upgrade.js";
+import { runVerifyCommand } from "./commands/verify.js";
+import { runEvalCommand } from "./commands/eval.js";
+import { runHarnessAuditCommand } from "./commands/harness-audit.js";
+import { runModelRouteCommand } from "./commands/model-route.js";
 import { ConfigParseError, ConfigValidationError } from "./config/read-write.js";
 import { BbgConfigError, BbgError, BbgGitError, BbgTemplateError } from "./utils/errors.js";
 
@@ -192,6 +199,160 @@ export const buildProgram = (): Command => {
       process.stdout.write(`Skipped with notice: ${result.skippedWithNotice.length}\n`);
       process.stdout.write(`Skipped deleted template: ${result.skippedDeletedTemplate.length}\n`);
       process.stdout.write(`Created: ${result.created.length}\n`);
+    });
+
+  program
+    .command("quality-gate")
+    .description("Run runtime-backed quality checks")
+    .action(async () => {
+      const result = await runQualityGateCommand({ cwd: process.cwd() });
+
+      process.stdout.write(`Quality gate: ${result.ok ? "PASS" : "FAIL"}\n`);
+      for (const check of [result.checks.build, result.checks.typecheck, result.checks.tests, result.checks.lint, result.checks.security]) {
+        process.stdout.write(`[${check.ok ? "PASS" : "FAIL"}] ${check.name} (${check.command})\n`);
+      }
+
+      if (!result.ok) {
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command("checkpoint")
+    .description("Save a runtime verification checkpoint")
+    .option("--name <name>", "Checkpoint name")
+    .action(async (options: { name?: string }) => {
+      const result = await runCheckpointCommand({ cwd: process.cwd(), name: options.name });
+
+      process.stdout.write(`Checkpoint: ${result.name}\n`);
+      process.stdout.write(`Saved to: ${result.checkpointFile}\n`);
+
+      if (!result.ok) {
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command("verify")
+    .description("Compare current verification status to a checkpoint")
+    .option("--checkpoint <name>", "Checkpoint name")
+    .action(async (options: { checkpoint?: string }) => {
+      const result = await runVerifyCommand({ cwd: process.cwd(), checkpoint: options.checkpoint });
+
+      process.stdout.write(`Verify: ${result.ok ? "PASS" : "FAIL"}\n`);
+      process.stdout.write(`Checkpoint: ${result.checkpointName}\n`);
+      process.stdout.write(`Changed files: ${result.changedFiles.length}\n`);
+
+      if (!result.ok) {
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command("sessions")
+    .description("Summarize runtime session history")
+    .action(async () => {
+      const result = await runSessionsCommand({ cwd: process.cwd() });
+
+      process.stdout.write(`Sessions: ${result.totalSessions}\n`);
+      process.stdout.write(`Latest: ${result.latest?.id ?? "none"}\n`);
+      if (result.previous?.id) {
+        process.stdout.write(`Previous: ${result.previous.id}\n`);
+      }
+    });
+
+  const evalCommand = program
+    .command("eval")
+    .description("Seed and run deterministic offline eval experiments");
+
+  evalCommand
+    .command("seed")
+    .description("Seed starter eval dataset, experiment, and fixture workspace")
+    .action(async () => {
+      const result = await runEvalCommand({ cwd: process.cwd(), mode: "seed" });
+      if (result.mode !== "seed") {
+        throw new Error("Unexpected eval mode response.");
+      }
+
+      process.stdout.write(`Dataset: ${result.datasetFile}\n`);
+      process.stdout.write(`Experiment: ${result.experimentFile}\n`);
+      process.stdout.write(`Fixture: ${result.fixtureDirectory}\n`);
+    });
+
+  evalCommand
+    .command("run")
+    .description("Run a seeded dataset or experiment and print a report summary")
+    .option("--dataset <path>", "Dataset JSON path")
+    .option("--experiment <path>", "Experiment JSON path")
+    .action(async (options: { dataset?: string; experiment?: string }) => {
+      const result = await runEvalCommand({
+        cwd: process.cwd(),
+        mode: "run",
+        dataset: options.dataset,
+        experiment: options.experiment,
+      });
+      if (result.mode !== "run") {
+        throw new Error("Unexpected eval mode response.");
+      }
+
+      process.stdout.write(`Experiment: ${result.report.experimentName}\n`);
+      process.stdout.write(`Dataset: ${result.report.datasetName}\n`);
+      process.stdout.write(`Passed: ${result.report.passed}\n`);
+      process.stdout.write(`Failed: ${result.report.failed}\n`);
+      if (result.report.reportFile) {
+        process.stdout.write(`Report: ${result.report.reportFile}\n`);
+      }
+
+      if (result.report.failed > 0) {
+        process.exitCode = 1;
+      }
+    });
+
+  program
+    .command("harness-audit")
+    .description("Summarize harness runtime and policy coverage")
+    .action(async () => {
+      const result = await runHarnessAuditCommand({ cwd: process.cwd() });
+
+      process.stdout.write(`Policy enabled: ${result.runtime.policyEnabled ? "yes" : "no"}\n`);
+      process.stdout.write(`Policy file: ${result.runtime.policyFile}\n`);
+      process.stdout.write(`Policy source: ${result.policy.source}\n`);
+      process.stdout.write(`Audit state: ${result.policy.auditState}\n`);
+      process.stdout.write(`Audit detail: ${result.policy.auditMessage}\n`);
+      process.stdout.write(`Explicit commands: ${result.policy.explicitCommands.length}\n`);
+      process.stdout.write(`Defaulted commands: ${result.policy.defaultedCommands.length}\n`);
+      process.stdout.write(`Blocked commands: ${result.policy.blockedCommands.length}\n`);
+      process.stdout.write(`Approval required commands: ${result.policy.approvalRequiredCommands.length}\n`);
+      process.stdout.write(`Harness gaps: ${result.summary.gaps.length}\n`);
+      for (const gap of result.summary.gaps) {
+        process.stdout.write(`- ${gap}\n`);
+      }
+    });
+
+  program
+    .command("model-route [task...]")
+    .description("Recommend a deterministic local model class")
+    .option("--prefer <mode>", "Preference bias: cost, speed, or quality")
+    .option("--list", "List available model classes", false)
+    .action(async (task: string[] | undefined, options: { prefer?: "cost" | "speed" | "quality"; list?: boolean }) => {
+      const result = await runModelRouteCommand({
+        cwd: process.cwd(),
+        task: task?.join(" "),
+        prefer: options.prefer,
+        list: options.list ?? false,
+      });
+
+      if (result.mode === "list") {
+        for (const profile of result.profiles ?? []) {
+          process.stdout.write(`${profile.modelClass}: ${profile.summary}\n`);
+        }
+        return;
+      }
+
+      process.stdout.write(`Task: ${result.task}\n`);
+      process.stdout.write(`Recommended class: ${result.recommendation?.modelClass ?? "balanced"}\n`);
+      process.stdout.write(`Reason: ${result.recommendation?.reason ?? "Default balanced recommendation."}\n`);
+      process.stdout.write(`Telemetry: ${result.recommendation?.telemetryNote ?? "No local telemetry feedback available."}\n`);
     });
 
   return program;
