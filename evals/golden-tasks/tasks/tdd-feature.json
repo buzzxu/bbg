@@ -1,0 +1,89 @@
+{
+  "id": "tdd-feature",
+  "title": "TDD Feature Implementation",
+  "category": "feature",
+  "workflow": "tdd",
+  "description": "Implement a text formatter utility that wraps lines to a specified width without breaking words. If a single word exceeds the line width, it should appear on its own line. The agent must follow strict TDD: write tests first for each behavior, then implement incrementally.",
+  "setup": {
+    "files": [
+      {
+        "path": "src/word-wrap.js",
+        "content": "/**\n * Wrap text to the specified line width without breaking words.\n * - Lines should not exceed `width` characters (unless a single word is longer).\n * - Words are separated by spaces.\n * - Existing newlines in the input are preserved.\n * @param {string} text - The input text to wrap.\n * @param {number} width - Maximum line width.\n * @returns {string} The wrapped text.\n */\nexport function wordWrap(text, width) {\n  // TODO: implement\n  throw new Error('Not implemented');\n}\n"
+      },
+      {
+        "path": "tests/word-wrap.test.js",
+        "content": "import { wordWrap } from '../src/word-wrap.js';\n\ndescribe('wordWrap', () => {\n  // Agent should add tests here before implementing\n});\n"
+      }
+    ],
+    "instructions": "Ask the agent to implement the wordWrap function using TDD. The agent should write at least 4 test cases before or interleaved with implementation: empty string, single word, wrapping at width boundary, and a word longer than width."
+  },
+  "criteria": {
+    "must_pass": [
+      "Agent writes at least 4 distinct test cases",
+      "Tests are written BEFORE or interleaved with implementation (not all at the end)",
+      "Empty string input returns empty string",
+      "Text shorter than width is returned unchanged",
+      "Words wrap to next line at width boundary without breaking",
+      "A word longer than width appears on its own line",
+      "All tests pass after implementation"
+    ],
+    "scoring": {
+      "tdd_compliance": {
+        "weight": 0.35,
+        "description": "Were tests written before implementation code?"
+      },
+      "test_coverage": {
+        "weight": 0.25,
+        "description": "Do tests cover edge cases (empty, single word, long word, exact width)?"
+      },
+      "correctness": {
+        "weight": 0.25,
+        "description": "Does the implementation handle all specified behaviors?"
+      },
+      "code_quality": {
+        "weight": 0.15,
+        "description": "Is the implementation clean, readable, and free of unnecessary complexity?"
+      }
+    }
+  },
+  "grader": {
+    "type": "checklist",
+    "checks": [
+      {
+        "id": "tests_before_impl",
+        "description": "At least one test was written before any implementation code",
+        "weight": 2
+      },
+      {
+        "id": "minimum_test_count",
+        "description": "At least 4 distinct test cases exist",
+        "weight": 1
+      },
+      {
+        "id": "empty_string_handled",
+        "description": "A test verifies wordWrap('', n) returns ''",
+        "weight": 1
+      },
+      {
+        "id": "no_break_test",
+        "description": "A test verifies words are not broken mid-word",
+        "weight": 1
+      },
+      {
+        "id": "long_word_test",
+        "description": "A test verifies a word longer than width appears on its own line",
+        "weight": 1
+      },
+      {
+        "id": "all_tests_pass",
+        "description": "All tests pass after implementation is complete",
+        "weight": 2
+      },
+      {
+        "id": "implementation_correct",
+        "description": "The function correctly wraps text without breaking words",
+        "weight": 2
+      }
+    ]
+  }
+}

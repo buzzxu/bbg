@@ -1,0 +1,142 @@
+# yaml-language-server: $schema=../schema.json
+# TDD Feature Workflow -- 6 steps (8 for backend projects with red team)
+name: tdd-feature
+title: "TDD Feature Development"
+version: "1.0"
+description: >
+  Complete TDD feature development cycle: plan, write tests, implement,
+  verify, review, and commit. Backend projects get 2 additional red-team
+  steps injected between review and commit.
+
+config:
+  max_retries: 2
+  retry_delay_ms: 5000
+  timeout_ms: 3600000
+  allow_skip: false
+
+steps:
+  - id: plan
+    title: "Requirements Analysis & Planning"
+    agent: planner
+    command: plan
+    outputs:
+      - plan_path
+    success_criteria:
+      - "Implementation plan file created"
+      - "All requirements mapped to tasks"
+      - "Dependencies identified"
+
+  - id: write-test
+    title: "Write Failing Tests (RED)"
+    agent: tdd-guide
+    command: tdd
+    depends_on:
+      - plan
+    inputs:
+      - plan_path
+    outputs:
+      - test_files
+    success_criteria:
+      - "Test files created with failing tests"
+      - "Tests exercise all acceptance criteria from plan"
+      - "Test run confirms RED (failures)"
+
+  - id: implement
+    title: "Minimal Implementation (GREEN)"
+    agent: tdd-guide
+    command: tdd
+    depends_on:
+      - write-test
+    inputs:
+      - plan_path
+      - test_files
+    outputs:
+      - impl_files
+    success_criteria:
+      - "All tests pass (GREEN)"
+      - "Build succeeds"
+      - "No lint errors"
+
+  - id: refactor
+    title: "Refactor & Improve"
+    agent: code-reviewer
+    command: code-review
+    depends_on:
+      - implement
+    inputs:
+      - impl_files
+      - test_files
+    outputs:
+      - review_findings
+    success_criteria:
+      - "Code review completed"
+      - "Refactoring suggestions applied"
+      - "All tests still pass after refactoring"
+
+  - id: security-review
+    title: "Security Review"
+    agent: security-reviewer
+    command: security-scan
+    depends_on:
+      - refactor
+    inputs:
+      - impl_files
+    outputs:
+      - security_findings
+    success_criteria:
+      - "No critical or high severity findings"
+      - "All inputs validated"
+      - "No hardcoded secrets"
+
+  # --- Backend-only steps (condition: backend_project) ---
+
+  - id: red-team-sweep
+    title: "Red Team Round 1 -- Systematic Sweep"
+    agent: security-reviewer
+    command: red-team
+    depends_on:
+      - security-review
+    inputs:
+      - impl_files
+      - security_findings
+    outputs:
+      - red_team_r1_report
+    success_criteria:
+      - "All 6 attack domains checked"
+      - "Every endpoint tested against taxonomy"
+      - "Findings documented with severity scores"
+    condition: "backend_project"
+
+  - id: red-team-creative
+    title: "Red Team Round 2 -- Adversarial Creative Attack"
+    agent: security-reviewer
+    command: red-team
+    depends_on:
+      - red-team-sweep
+    inputs:
+      - red_team_r1_report
+      - impl_files
+    outputs:
+      - red_team_r2_report
+    success_criteria:
+      - "Attack chains explored"
+      - "Timing and boundary attacks attempted"
+      - "No critical findings remain open"
+    condition: "backend_project"
+
+  # --- End backend-only steps ---
+
+  - id: commit
+    title: "Final Verification & Commit"
+    agent: tdd-guide
+    command: verify
+    depends_on:
+      - security-review
+      # Backend projects also depend on red-team-creative, evaluated at runtime
+    outputs:
+      - commit_sha
+    success_criteria:
+      - "All tests pass"
+      - "Build succeeds"
+      - "Lint clean"
+      - "Changes committed with conventional commit message"

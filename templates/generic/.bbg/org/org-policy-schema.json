@@ -1,0 +1,245 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BBG Organization Policy",
+  "description": "Schema for organization-level policy documents. RESERVED -- not yet enforced at runtime. Defines the structure for centralized policy management across all projects in an organization.",
+  "type": "object",
+  "required": ["version", "orgId", "basePolicies"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version for forward compatibility",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "orgId": {
+      "type": "string",
+      "description": "Unique identifier for the organization",
+      "minLength": 1,
+      "examples": ["acme-corp"]
+    },
+    "basePolicies": {
+      "type": "object",
+      "description": "Organization-wide base policies. These are the lowest-priority defaults that all projects inherit. Projects and teams can override according to merge rules.",
+      "properties": {
+        "blockedCommands": {
+          "type": "array",
+          "description": "Shell commands that are blocked organization-wide. Merge strategy: UNION -- project-level policies cannot remove items from this list, only add more.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "default": [],
+          "examples": [["rm -rf /", "DROP DATABASE", "FORMAT"]]
+        },
+        "protectedPaths": {
+          "type": "array",
+          "description": "File paths that require elevated review. Merge strategy: UNION -- projects can only add more restrictions, never remove org-level protections.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "default": [],
+          "examples": [[".env", "src/auth/", "infrastructure/"]]
+        },
+        "sensitiveOperations": {
+          "type": "array",
+          "description": "Operations with assigned risk levels. Merge strategy: when the same operation exists at multiple levels, the HIGHEST risk level wins.",
+          "items": {
+            "type": "object",
+            "required": ["operation", "riskLevel"],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "description": "Name of the sensitive operation",
+                "examples": ["database-migration", "auth-config-change"]
+              },
+              "riskLevel": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"],
+                "description": "Risk classification for this operation"
+              },
+              "requiresApproval": {
+                "type": "boolean",
+                "description": "Whether this operation requires human approval",
+                "default": false
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable explanation of why this is sensitive"
+              }
+            },
+            "additionalProperties": false
+          },
+          "default": []
+        },
+        "commandPolicies": {
+          "type": "array",
+          "description": "Policies for specific BBG commands. Merge rule: requiredApproval=true CANNOT be downgraded to false by project-level overrides.",
+          "items": {
+            "type": "object",
+            "required": ["command"],
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "The BBG command name this policy applies to",
+                "examples": ["release", "deploy", "security-scan"]
+              },
+              "requiredApproval": {
+                "type": "boolean",
+                "description": "If true, this command requires human approval. Once set to true at org level, project-level overrides cannot set it to false.",
+                "default": false
+              },
+              "allowedRoles": {
+                "type": "array",
+                "description": "Roles permitted to execute this command",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              },
+              "maxFrequency": {
+                "type": "string",
+                "description": "Maximum execution frequency (e.g., '1/hour', '10/day')"
+              }
+            },
+            "additionalProperties": false
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "teams": {
+      "type": "array",
+      "description": "Team-level policy overrides. Each team can customize policies within the boundaries set by organization-level merge rules.",
+      "items": {
+        "type": "object",
+        "required": ["teamId"],
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "description": "Unique identifier for the team within the organization",
+            "minLength": 1,
+            "examples": ["platform-team", "frontend-squad"]
+          },
+          "teamName": {
+            "type": "string",
+            "description": "Human-readable team name"
+          },
+          "overrides": {
+            "type": "object",
+            "description": "Team-level policy overrides. Same structure as basePolicies. Subject to merge rules -- cannot weaken org-level protections.",
+            "properties": {
+              "blockedCommands": {
+                "type": "array",
+                "description": "Additional blocked commands for this team (added to org list via union)",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              },
+              "protectedPaths": {
+                "type": "array",
+                "description": "Additional protected paths for this team (added to org list via union)",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              },
+              "sensitiveOperations": {
+                "type": "array",
+                "description": "Team-level sensitive operations (highest risk level wins on conflict)",
+                "items": {
+                  "type": "object",
+                  "required": ["operation", "riskLevel"],
+                  "properties": {
+                    "operation": {
+                      "type": "string"
+                    },
+                    "riskLevel": {
+                      "type": "string",
+                      "enum": ["low", "medium", "high", "critical"]
+                    },
+                    "requiresApproval": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "commandPolicies": {
+                "type": "array",
+                "description": "Team-level command policies (requiredApproval: true cannot be downgraded)",
+                "items": {
+                  "type": "object",
+                  "required": ["command"],
+                  "properties": {
+                    "command": {
+                      "type": "string"
+                    },
+                    "requiredApproval": {
+                      "type": "boolean"
+                    },
+                    "allowedRoles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "uniqueItems": true
+                    },
+                    "maxFrequency": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "projects": {
+            "type": "array",
+            "description": "Project IDs that belong to this team",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "default": []
+    },
+    "mergeStrategy": {
+      "type": "object",
+      "description": "Documents the merge strategy for reference. These rules are hardcoded in BBG -- this section serves as documentation, not configuration.",
+      "properties": {
+        "blockedCommands": {
+          "type": "string",
+          "const": "union",
+          "description": "Org blacklist cannot be removed by project-level overrides"
+        },
+        "protectedPaths": {
+          "type": "string",
+          "const": "union",
+          "description": "Projects can only add more path restrictions"
+        },
+        "sensitiveOperations": {
+          "type": "string",
+          "const": "highest-risk-level",
+          "description": "When same operation exists at multiple levels, highest risk level wins"
+        },
+        "commandPolicies": {
+          "type": "string",
+          "const": "no-downgrade-approval",
+          "description": "requiredApproval=true at org level cannot be set to false at project level"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

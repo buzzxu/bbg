@@ -1,0 +1,84 @@
+{
+  "id": "security-review",
+  "title": "Security Review",
+  "category": "review",
+  "workflow": "security-scan",
+  "description": "Review a file containing multiple deliberate security vulnerabilities: hardcoded credentials, path traversal, missing input validation, and use of eval(). The agent must identify all vulnerabilities, explain their risk, and provide remediation guidance.",
+  "setup": {
+    "files": [
+      {
+        "path": "src/user-service.js",
+        "content": "import fs from 'node:fs';\nimport path from 'node:path';\n\nconst DB_PASSWORD = 'super_secret_123';\nconst API_KEY = 'sk-live-abcdef1234567890';\n\nexport function getUser(id) {\n  return { id, name: 'User ' + id, role: 'member' };\n}\n\nexport function getUserAvatar(userId, filename) {\n  const avatarPath = path.join('/uploads/avatars', userId, filename);\n  return fs.readFileSync(avatarPath);\n}\n\nexport function processUserInput(input) {\n  const result = eval('(' + input + ')');\n  return result;\n}\n\nexport function updateUserRole(requestBody) {\n  const { userId, newRole } = requestBody;\n  // No authentication or authorization check\n  // No input validation on newRole\n  return { userId, role: newRole, updated: true };\n}\n\nexport function buildQuery(tableName, conditions) {\n  return `SELECT * FROM ${tableName} WHERE ${conditions}`;\n}\n"
+      }
+    ],
+    "instructions": "Ask the agent to perform a security review of user-service.js. The file contains at least 5 deliberate vulnerabilities. The agent should identify each one, explain the risk, and suggest specific fixes."
+  },
+  "criteria": {
+    "must_pass": [
+      "Agent identifies hardcoded credentials (DB_PASSWORD, API_KEY)",
+      "Agent identifies path traversal risk in getUserAvatar",
+      "Agent identifies eval() usage in processUserInput",
+      "Agent identifies missing auth/authz in updateUserRole",
+      "Agent identifies SQL injection in buildQuery",
+      "Agent provides actionable remediation for each finding"
+    ],
+    "scoring": {
+      "vulnerability_detection": {
+        "weight": 0.4,
+        "description": "How many of the 5 planted vulnerabilities were found?"
+      },
+      "risk_explanation": {
+        "weight": 0.25,
+        "description": "Were the risks clearly explained with potential attack scenarios?"
+      },
+      "remediation_quality": {
+        "weight": 0.25,
+        "description": "Were fix recommendations specific and correct?"
+      },
+      "false_positives": {
+        "weight": 0.1,
+        "description": "Did the agent avoid flagging non-issues as vulnerabilities?"
+      }
+    }
+  },
+  "grader": {
+    "type": "checklist",
+    "checks": [
+      {
+        "id": "hardcoded_creds",
+        "description": "Identified hardcoded DB_PASSWORD and/or API_KEY",
+        "weight": 2
+      },
+      {
+        "id": "path_traversal",
+        "description": "Identified path traversal risk in getUserAvatar (filename not sanitized)",
+        "weight": 2
+      },
+      {
+        "id": "eval_usage",
+        "description": "Identified eval() as dangerous in processUserInput",
+        "weight": 2
+      },
+      {
+        "id": "missing_auth",
+        "description": "Identified missing authentication/authorization in updateUserRole",
+        "weight": 1
+      },
+      {
+        "id": "sql_injection",
+        "description": "Identified SQL injection risk in buildQuery",
+        "weight": 2
+      },
+      {
+        "id": "remediation_provided",
+        "description": "Provided specific fix recommendations (not just 'fix it')",
+        "weight": 2
+      },
+      {
+        "id": "low_false_positives",
+        "description": "Did not flag more than 1 non-issue as a vulnerability",
+        "weight": 1
+      }
+    ]
+  }
+}

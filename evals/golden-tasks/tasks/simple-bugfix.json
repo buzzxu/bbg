@@ -1,0 +1,76 @@
+{
+  "id": "simple-bugfix",
+  "title": "Simple Bug Fix",
+  "category": "bugfix",
+  "workflow": "tdd",
+  "description": "A function that calculates the total price of items in a cart has an off-by-one error when applying a bulk discount. The discount should apply when the cart has 3 or more items, but it currently requires more than 3 items (using > instead of >=). The agent must identify the bug, write a failing test that exposes it, fix the code, and verify all tests pass.",
+  "setup": {
+    "files": [
+      {
+        "path": "src/cart.js",
+        "content": "/**\n * Calculate total price with bulk discount.\n * Discount: 10% off when 3 or more items in cart.\n * @param {Array<{name: string, price: number}>} items\n * @returns {number} total price after discount\n */\nexport function calculateTotal(items) {\n  const subtotal = items.reduce((sum, item) => sum + item.price, 0);\n  if (items.length > 3) {\n    return subtotal * 0.9;\n  }\n  return subtotal;\n}\n"
+      },
+      {
+        "path": "tests/cart.test.js",
+        "content": "import { calculateTotal } from '../src/cart.js';\n\ndescribe('calculateTotal', () => {\n  it('returns 0 for empty cart', () => {\n    expect(calculateTotal([])).toBe(0);\n  });\n\n  it('returns price for single item', () => {\n    expect(calculateTotal([{ name: 'A', price: 10 }])).toBe(10);\n  });\n});\n"
+      }
+    ],
+    "instructions": "The project uses a standard JS/TS test runner. Set up the files above and ask the agent to fix the bug described in the function's doc comment vs its implementation."
+  },
+  "criteria": {
+    "must_pass": [
+      "Agent writes a failing test BEFORE fixing the code",
+      "Agent identifies the off-by-one error (> should be >=)",
+      "Agent fixes the comparison operator",
+      "All tests pass after the fix including the new test"
+    ],
+    "scoring": {
+      "tdd_compliance": {
+        "weight": 0.4,
+        "description": "Did the agent follow TDD (test first, then fix)?"
+      },
+      "bug_identification": {
+        "weight": 0.3,
+        "description": "Did the agent correctly identify the root cause?"
+      },
+      "test_quality": {
+        "weight": 0.2,
+        "description": "Does the new test specifically target the boundary condition (exactly 3 items)?"
+      },
+      "no_unnecessary_changes": {
+        "weight": 0.1,
+        "description": "Did the agent avoid modifying unrelated code?"
+      }
+    }
+  },
+  "grader": {
+    "type": "checklist",
+    "checks": [
+      {
+        "id": "test_written_first",
+        "description": "A failing test was committed or shown before the fix",
+        "weight": 2
+      },
+      {
+        "id": "correct_fix",
+        "description": "The comparison was changed from > 3 to >= 3",
+        "weight": 2
+      },
+      {
+        "id": "boundary_test",
+        "description": "A test with exactly 3 items verifies discount is applied",
+        "weight": 1
+      },
+      {
+        "id": "all_tests_pass",
+        "description": "All tests pass after the fix",
+        "weight": 2
+      },
+      {
+        "id": "minimal_diff",
+        "description": "Only the comparison operator and test file were changed",
+        "weight": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=../schema.json
+# Bugfix Workflow -- 5 steps (NO red team steps, stays at 5 for all projects)
+name: bugfix
+title: "Bugfix Workflow"
+version: "1.0"
+description: >
+  Systematic bugfix cycle: reproduce, diagnose, fix with TDD, verify,
+  and commit. No red team steps -- bugfixes are scoped changes that go
+  through standard security review only.
+
+config:
+  max_retries: 2
+  retry_delay_ms: 5000
+  timeout_ms: 1800000
+  allow_skip: false
+
+steps:
+  - id: reproduce
+    title: "Reproduce the Bug"
+    agent: tdd-guide
+    command: tdd
+    outputs:
+      - repro_test
+      - bug_analysis
+    success_criteria:
+      - "Failing test that reproduces the bug"
+      - "Root cause identified and documented"
+      - "Reproduction is deterministic"
+
+  - id: fix
+    title: "Implement Fix (GREEN)"
+    agent: tdd-guide
+    command: tdd
+    depends_on:
+      - reproduce
+    inputs:
+      - repro_test
+      - bug_analysis
+    outputs:
+      - fix_files
+    success_criteria:
+      - "Reproduction test now passes"
+      - "No existing tests broken"
+      - "Fix is minimal and focused"
+
+  - id: regression-test
+    title: "Add Regression Tests"
+    agent: tdd-guide
+    command: tdd
+    depends_on:
+      - fix
+    inputs:
+      - fix_files
+      - bug_analysis
+    outputs:
+      - regression_tests
+    success_criteria:
+      - "Additional edge-case tests added"
+      - "Tests cover the root cause, not just the symptom"
+      - "All tests pass"
+
+  - id: review
+    title: "Code Review"
+    agent: code-reviewer
+    command: code-review
+    depends_on:
+      - regression-test
+    inputs:
+      - fix_files
+      - regression_tests
+    outputs:
+      - review_findings
+    success_criteria:
+      - "Code review completed"
+      - "No regressions introduced"
+      - "Fix does not introduce new technical debt"
+
+  - id: commit
+    title: "Final Verification & Commit"
+    agent: tdd-guide
+    command: verify
+    depends_on:
+      - review
+    outputs:
+      - commit_sha
+    success_criteria:
+      - "All tests pass"
+      - "Build succeeds"
+      - "Lint clean"
+      - "Changes committed with conventional commit message"

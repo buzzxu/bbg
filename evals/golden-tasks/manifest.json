@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "name": "default",
+  "description": "Default golden task set for harness evaluation. Each task tests a specific AI agent workflow capability in a language-agnostic way.",
+  "tasks": [
+    {
+      "id": "simple-bugfix",
+      "file": "tasks/simple-bugfix.json",
+      "category": "bugfix",
+      "workflow": "tdd"
+    },
+    {
+      "id": "tdd-feature",
+      "file": "tasks/tdd-feature.json",
+      "category": "feature",
+      "workflow": "tdd"
+    },
+    {
+      "id": "security-review",
+      "file": "tasks/security-review.json",
+      "category": "review",
+      "workflow": "security-scan"
+    },
+    {
+      "id": "refactor-extract",
+      "file": "tasks/refactor-extract.json",
+      "category": "refactor",
+      "workflow": "refactor-clean"
+    }
+  ]
+}

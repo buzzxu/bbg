@@ -1,0 +1,121 @@
+# yaml-language-server: $schema=../schema.json
+# Release Preparation Workflow -- 5 steps (7 for backend projects with red team)
+name: release-prep
+title: "Release Preparation"
+version: "1.0"
+description: >
+  Complete release preparation cycle: version bump, changelog generation,
+  full test suite, security sign-off, and release tag. Backend projects
+  get 2 additional red-team steps before the final sign-off.
+
+config:
+  max_retries: 1
+  retry_delay_ms: 10000
+  timeout_ms: 7200000
+  allow_skip: false
+
+steps:
+  - id: version-check
+    title: "Version & Changelog"
+    agent: planner
+    command: plan
+    outputs:
+      - version_number
+      - changelog_path
+    success_criteria:
+      - "Version number determined (semver)"
+      - "Changelog generated from commits since last release"
+      - "Breaking changes highlighted"
+
+  - id: full-test
+    title: "Full Test Suite"
+    agent: tdd-guide
+    command: verify
+    depends_on:
+      - version-check
+    outputs:
+      - test_report
+    success_criteria:
+      - "All unit tests pass"
+      - "All integration tests pass"
+      - "Test coverage meets threshold"
+
+  - id: security-sign-off
+    title: "Security Sign-off"
+    agent: security-reviewer
+    command: security-scan
+    depends_on:
+      - full-test
+    outputs:
+      - security_report
+    success_criteria:
+      - "No critical or high vulnerabilities"
+      - "Dependency audit clean"
+      - "Security review sign-off documented"
+
+  # --- Backend-only steps (condition: backend_project) ---
+
+  - id: red-team-sweep
+    title: "Red Team Round 1 -- Pre-Release Sweep"
+    agent: security-reviewer
+    command: red-team
+    depends_on:
+      - security-sign-off
+    inputs:
+      - security_report
+    outputs:
+      - red_team_r1_report
+    success_criteria:
+      - "All API endpoints tested against attack taxonomy"
+      - "No critical findings"
+      - "All high findings addressed or accepted with justification"
+    condition: "backend_project"
+
+  - id: red-team-creative
+    title: "Red Team Round 2 -- Pre-Release Adversarial"
+    agent: security-reviewer
+    command: red-team
+    depends_on:
+      - red-team-sweep
+    inputs:
+      - red_team_r1_report
+    outputs:
+      - red_team_r2_report
+    success_criteria:
+      - "Creative attack chains explored"
+      - "No release-blocking findings"
+      - "Risk acceptance documented for any open items"
+    condition: "backend_project"
+
+  # --- End backend-only steps ---
+
+  - id: build-artifacts
+    title: "Build Release Artifacts"
+    agent: build-error-resolver
+    command: build-fix
+    depends_on:
+      - security-sign-off
+      # Backend projects also depend on red-team-creative, evaluated at runtime
+    outputs:
+      - artifact_paths
+    success_criteria:
+      - "Production build succeeds"
+      - "Artifacts generated and verified"
+      - "Build reproducibility confirmed"
+
+  - id: tag-release
+    title: "Tag & Release"
+    agent: planner
+    command: plan
+    depends_on:
+      - build-artifacts
+    inputs:
+      - version_number
+      - changelog_path
+      - artifact_paths
+    outputs:
+      - release_tag
+    success_criteria:
+      - "Git tag created with version number"
+      - "Release notes published"
+      - "Deployment checklist completed"

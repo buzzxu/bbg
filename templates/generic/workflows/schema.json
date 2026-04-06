@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bbg.dev/schemas/workflow-definition.json",
+  "title": "BBG Workflow Definition",
+  "description": "Schema for BBG runtime workflow preset files. Each workflow defines a sequence of agent-driven steps with retry, timeout, and dependency configuration.",
+  "type": "object",
+  "required": ["name", "title", "version", "config", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Unique workflow identifier, lowercase with hyphens."
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable workflow title."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$",
+      "description": "Semantic version of the workflow definition."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional long description of the workflow purpose."
+    },
+    "config": {
+      "type": "object",
+      "required": ["max_retries", "retry_delay_ms", "timeout_ms", "allow_skip"],
+      "additionalProperties": false,
+      "properties": {
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Maximum retry attempts per step."
+        },
+        "retry_delay_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Delay in milliseconds between retries."
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 60000,
+          "description": "Maximum wall-clock time for entire workflow."
+        },
+        "allow_skip": {
+          "type": "boolean",
+          "description": "Whether steps can be manually skipped."
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "agent", "command", "success_criteria"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Unique step identifier within the workflow."
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable step title."
+          },
+          "agent": {
+            "type": "string",
+            "description": "Agent to execute this step (e.g. planner, tdd-guide)."
+          },
+          "command": {
+            "type": "string",
+            "description": "Slash command to invoke for this step."
+          },
+          "depends_on": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Step IDs that must complete before this step runs."
+          },
+          "outputs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Named outputs produced by this step."
+          },
+          "inputs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Named inputs consumed from previous steps."
+          },
+          "success_criteria": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "Human-readable criteria for step completion."
+          },
+          "condition": {
+            "type": "string",
+            "description": "Runtime condition for including this step (e.g. 'backend_project'). Evaluated by the AI tool."
+          }
+        }
+      }
+    }
+  }
+}

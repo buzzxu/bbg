@@ -1,0 +1,86 @@
+{
+  "id": "refactor-extract",
+  "title": "Refactor - Extract Duplicated Logic",
+  "category": "refactor",
+  "workflow": "refactor-clean",
+  "description": "A module has three functions that each duplicate the same validation and formatting logic. The agent must identify the duplication, extract it into a shared helper, update the three functions to use the helper, and ensure existing tests continue to pass.",
+  "setup": {
+    "files": [
+      {
+        "path": "src/notifications.js",
+        "content": "/**\n * Notification module - sends alerts via email, SMS, and push.\n * Note: the validation and formatting logic is duplicated across all three functions.\n */\n\nexport function sendEmail(recipient, subject, body) {\n  if (!recipient || typeof recipient !== 'string') {\n    throw new Error('Invalid recipient');\n  }\n  if (!subject || typeof subject !== 'string') {\n    throw new Error('Invalid subject');\n  }\n  const cleanRecipient = recipient.trim().toLowerCase();\n  const timestamp = new Date().toISOString();\n  const formatted = `[${timestamp}] To: ${cleanRecipient} | ${subject}: ${body}`;\n  return { type: 'email', message: formatted, recipient: cleanRecipient };\n}\n\nexport function sendSms(recipient, subject, body) {\n  if (!recipient || typeof recipient !== 'string') {\n    throw new Error('Invalid recipient');\n  }\n  if (!subject || typeof subject !== 'string') {\n    throw new Error('Invalid subject');\n  }\n  const cleanRecipient = recipient.trim().toLowerCase();\n  const timestamp = new Date().toISOString();\n  const formatted = `[${timestamp}] To: ${cleanRecipient} | ${subject}: ${body}`;\n  return { type: 'sms', message: formatted, recipient: cleanRecipient };\n}\n\nexport function sendPush(recipient, subject, body) {\n  if (!recipient || typeof recipient !== 'string') {\n    throw new Error('Invalid recipient');\n  }\n  if (!subject || typeof subject !== 'string') {\n    throw new Error('Invalid subject');\n  }\n  const cleanRecipient = recipient.trim().toLowerCase();\n  const timestamp = new Date().toISOString();\n  const formatted = `[${timestamp}] To: ${cleanRecipient} | ${subject}: ${body}`;\n  return { type: 'push', message: formatted, recipient: cleanRecipient };\n}\n"
+      },
+      {
+        "path": "tests/notifications.test.js",
+        "content": "import { sendEmail, sendSms, sendPush } from '../src/notifications.js';\n\ndescribe('notifications', () => {\n  it('sendEmail returns correct type and formatted message', () => {\n    const result = sendEmail('Alice@Test.com', 'Hello', 'World');\n    expect(result.type).toBe('email');\n    expect(result.recipient).toBe('alice@test.com');\n    expect(result.message).toContain('Hello: World');\n  });\n\n  it('sendSms returns correct type', () => {\n    const result = sendSms('Bob@Test.com', 'Alert', 'Fire');\n    expect(result.type).toBe('sms');\n    expect(result.recipient).toBe('bob@test.com');\n  });\n\n  it('sendPush returns correct type', () => {\n    const result = sendPush('Carol@Test.com', 'Update', 'New version');\n    expect(result.type).toBe('push');\n    expect(result.recipient).toBe('carol@test.com');\n  });\n\n  it('throws on invalid recipient', () => {\n    expect(() => sendEmail('', 'Hi', 'there')).toThrow('Invalid recipient');\n    expect(() => sendSms(null, 'Hi', 'there')).toThrow('Invalid recipient');\n  });\n\n  it('throws on invalid subject', () => {\n    expect(() => sendEmail('a@b.com', '', 'body')).toThrow('Invalid subject');\n  });\n});\n"
+      }
+    ],
+    "instructions": "Ask the agent to refactor notifications.js to eliminate the duplicated validation and formatting logic across sendEmail, sendSms, and sendPush. All existing tests must continue to pass."
+  },
+  "criteria": {
+    "must_pass": [
+      "Agent identifies the duplicated validation + formatting logic",
+      "Agent extracts a shared helper function",
+      "All three send functions are updated to use the helper",
+      "All existing tests pass without modification",
+      "The extracted helper is tested or covered by existing tests"
+    ],
+    "scoring": {
+      "duplication_identified": {
+        "weight": 0.2,
+        "description": "Did the agent explicitly call out what was duplicated?"
+      },
+      "extraction_quality": {
+        "weight": 0.3,
+        "description": "Is the extracted helper clean, well-named, and properly parameterized?"
+      },
+      "refactor_completeness": {
+        "weight": 0.25,
+        "description": "Were all three functions updated to use the shared helper?"
+      },
+      "tests_preserved": {
+        "weight": 0.15,
+        "description": "Do all existing tests pass without modification?"
+      },
+      "no_behavior_change": {
+        "weight": 0.1,
+        "description": "Does the refactored code produce identical outputs?"
+      }
+    }
+  },
+  "grader": {
+    "type": "checklist",
+    "checks": [
+      {
+        "id": "duplication_called_out",
+        "description": "Agent explicitly identified the repeated validation + formatting pattern",
+        "weight": 1
+      },
+      {
+        "id": "helper_extracted",
+        "description": "A shared function was created for the common logic",
+        "weight": 2
+      },
+      {
+        "id": "helper_well_named",
+        "description": "The extracted function has a descriptive name (not 'helper' or 'util')",
+        "weight": 1
+      },
+      {
+        "id": "all_three_updated",
+        "description": "sendEmail, sendSms, and sendPush all call the shared function",
+        "weight": 2
+      },
+      {
+        "id": "tests_pass",
+        "description": "All existing tests pass without modification",
+        "weight": 2
+      },
+      {
+        "id": "no_behavior_change",
+        "description": "Output format and error behavior are preserved exactly",
+        "weight": 2
+      }
+    ]
+  }
+}

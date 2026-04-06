@@ -1,0 +1,56 @@
+{
+  "version": "2.0",
+  "riskLevels": {
+    "high": { "action": "require-approval" },
+    "medium": { "action": "warn" },
+    "low": { "action": "allow" }
+  },
+  "protectedPaths": {
+    "patterns": [
+      "*.env*",
+      "**/credentials/**",
+      "**/secrets/**",
+      "docker-compose*.yml",
+      "Dockerfile*"{{#if hasBackend}},
+      "**/migrations/**",
+      "**/alembic/**",
+      "**/flyway/**"{{/if}}{{#if hasFrontendWeb}},
+      "next.config.*",
+      "nuxt.config.*",
+      "public/**"{{/if}}{{#if hasFrontendPc}},
+      "public/**",
+      "electron.config.*"{{/if}}{{#if hasFrontendH5}},
+      "public/**"{{/if}},
+      ".github/workflows/**"
+    ],
+    "riskLevel": "high"
+  },
+  "sensitiveOperations": {
+    "fileDelete": "medium",
+    "configChange": "medium",
+    "dependencyAdd": "medium",
+    "dependencyRemove": "high"{{#if hasBackend}},
+    "schemaChange": "high",
+    "migrationChange": "high"{{/if}},
+    "cicdChange": "high",
+    "securityConfigChange": "high"
+  },
+  "blockedCommands": {
+    "patterns": [
+      "rm -rf /",
+      "git push --force main",
+      "git push --force master",
+      "DROP DATABASE",
+      "DROP TABLE"
+    ],
+    "action": "block"
+  },
+  "commandPolicies": {
+    "quality-gate": { "allowed": true, "requiredApproval": false },
+    "checkpoint": { "allowed": true, "requiredApproval": false },
+    "verify": { "allowed": true, "requiredApproval": false },
+    "harness-audit": { "allowed": true, "requiredApproval": false },
+    "eval-run": { "allowed": true, "requiredApproval": false },
+    "release": { "allowed": true, "requiredApproval": true }
+  }
+}

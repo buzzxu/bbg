@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=../schema.json
+# Security Audit Workflow -- 4 steps (6 for backend projects with red team)
+name: security-audit
+title: "Security Audit"
+version: "1.0"
+description: >
+  Comprehensive security audit: dependency scan, static analysis, code
+  review for vulnerabilities, and remediation tracking. Backend projects
+  get 2 additional red-team penetration testing steps.
+
+config:
+  max_retries: 1
+  retry_delay_ms: 10000
+  timeout_ms: 7200000
+  allow_skip: false
+
+steps:
+  - id: dependency-scan
+    title: "Dependency Vulnerability Scan"
+    agent: security-reviewer
+    command: security-scan
+    outputs:
+      - dep_findings
+      - dep_report_path
+    success_criteria:
+      - "All dependencies scanned for known CVEs"
+      - "Findings categorized by severity"
+      - "Outdated dependencies flagged"
+
+  - id: static-analysis
+    title: "Static Security Analysis"
+    agent: security-reviewer
+    command: security-scan
+    depends_on:
+      - dependency-scan
+    inputs:
+      - dep_findings
+    outputs:
+      - static_findings
+    success_criteria:
+      - "Source code scanned for hardcoded secrets"
+      - "SQL injection, XSS, path traversal checks completed"
+      - "Input validation gaps identified"
+
+  # --- Backend-only steps (condition: backend_project) ---
+
+  - id: red-team-sweep
+    title: "Red Team Round 1 -- Systematic Sweep"
+    agent: security-reviewer
+    command: red-team
+    depends_on:
+      - static-analysis
+    inputs:
+      - static_findings
+    outputs:
+      - red_team_r1_report
+    success_criteria:
+      - "All 6 attack domains checked against every endpoint"
+      - "22 attack categories evaluated"
+      - "Findings scored with simplified CVSS"
+    condition: "backend_project"
+
+  - id: red-team-creative
+    title: "Red Team Round 2 -- Adversarial Creative Attack"
+    agent: security-reviewer
+    command: red-team
+    depends_on:
+      - red-team-sweep
+    inputs:
+      - red_team_r1_report
+    outputs:
+      - red_team_r2_report
+    success_criteria:
+      - "Multi-step attack chains attempted"
+      - "Timing attacks and race conditions probed"
+      - "Business logic abuse scenarios tested"
+    condition: "backend_project"
+
+  # --- End backend-only steps ---
+
+  - id: remediation
+    title: "Remediation Plan"
+    agent: security-reviewer
+    command: security-scan
+    depends_on:
+      - static-analysis
+      # Backend projects also depend on red-team-creative, evaluated at runtime
+    inputs:
+      - dep_findings
+      - static_findings
+    outputs:
+      - remediation_plan
+    success_criteria:
+      - "All critical and high findings have remediation steps"
+      - "Fix priority order established"
+      - "Remediation plan documented"
+
+  - id: report
+    title: "Security Audit Report"
+    agent: security-reviewer
+    command: security-scan
+    depends_on:
+      - remediation
+    outputs:
+      - audit_report_path
+    success_criteria:
+      - "Comprehensive audit report generated"
+      - "Executive summary with risk rating"
+      - "All findings tracked with status"

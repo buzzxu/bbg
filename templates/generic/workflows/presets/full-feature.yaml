@@ -1,0 +1,162 @@
+# yaml-language-server: $schema=../schema.json
+# Full Feature Workflow -- 7 steps (9 for backend projects with red team)
+name: full-feature
+title: "Full Feature with Interview"
+version: "1.0"
+description: >
+  Complete feature development with Socratic interview, planning, TDD,
+  security review, documentation, and commit. Backend projects get 2
+  additional red-team steps. This is the most comprehensive workflow.
+
+config:
+  max_retries: 2
+  retry_delay_ms: 5000
+  timeout_ms: 7200000
+  allow_skip: false
+
+steps:
+  - id: interview
+    title: "Socratic Requirements Interview"
+    agent: architect
+    command: plan
+    outputs:
+      - requirements_doc
+      - acceptance_criteria
+    success_criteria:
+      - "Requirements elicited through structured questioning"
+      - "Acceptance criteria defined and agreed"
+      - "Edge cases and constraints identified"
+
+  - id: plan
+    title: "Implementation Planning"
+    agent: planner
+    command: plan
+    depends_on:
+      - interview
+    inputs:
+      - requirements_doc
+      - acceptance_criteria
+    outputs:
+      - plan_path
+    success_criteria:
+      - "Implementation plan created with task breakdown"
+      - "Architecture decisions documented"
+      - "Dependencies and risks identified"
+
+  - id: tdd-cycle
+    title: "TDD Implementation (RED-GREEN-IMPROVE)"
+    agent: tdd-guide
+    command: tdd
+    depends_on:
+      - plan
+    inputs:
+      - plan_path
+    outputs:
+      - impl_files
+      - test_files
+    success_criteria:
+      - "Tests written first (RED)"
+      - "Implementation makes tests pass (GREEN)"
+      - "Code refactored for quality (IMPROVE)"
+      - "All tests pass"
+
+  - id: code-review
+    title: "Code Review"
+    agent: code-reviewer
+    command: code-review
+    depends_on:
+      - tdd-cycle
+    inputs:
+      - impl_files
+      - test_files
+    outputs:
+      - review_findings
+    success_criteria:
+      - "Code review completed"
+      - "All critical findings addressed"
+      - "Code quality meets standards"
+
+  - id: security-review
+    title: "Security Review"
+    agent: security-reviewer
+    command: security-scan
+    depends_on:
+      - code-review
+    inputs:
+      - impl_files
+    outputs:
+      - security_findings
+    success_criteria:
+      - "No critical or high severity findings"
+      - "Input validation complete"
+      - "No hardcoded secrets"
+
+  # --- Backend-only steps (condition: backend_project) ---
+
+  - id: red-team-sweep
+    title: "Red Team Round 1 -- Systematic Sweep"
+    agent: security-reviewer
+    command: red-team
+    depends_on:
+      - security-review
+    inputs:
+      - impl_files
+      - security_findings
+    outputs:
+      - red_team_r1_report
+    success_criteria:
+      - "All endpoints tested against 6 attack domains"
+      - "22 attack categories evaluated"
+      - "Findings documented with CVSS scores"
+    condition: "backend_project"
+
+  - id: red-team-creative
+    title: "Red Team Round 2 -- Adversarial Creative Attack"
+    agent: security-reviewer
+    command: red-team
+    depends_on:
+      - red-team-sweep
+    inputs:
+      - red_team_r1_report
+      - impl_files
+    outputs:
+      - red_team_r2_report
+    success_criteria:
+      - "Multi-step attack chains attempted"
+      - "Timing and race condition probes completed"
+      - "No critical findings remain unresolved"
+    condition: "backend_project"
+
+  # --- End backend-only steps ---
+
+  - id: documentation
+    title: "Update Documentation"
+    agent: doc-updater
+    command: update-docs
+    depends_on:
+      - security-review
+      # Backend projects also depend on red-team-creative, evaluated at runtime
+    inputs:
+      - impl_files
+      - plan_path
+    outputs:
+      - doc_files
+    success_criteria:
+      - "API documentation updated"
+      - "Architecture docs reflect changes"
+      - "README updated if needed"
+
+  - id: commit
+    title: "Final Verification & Commit"
+    agent: tdd-guide
+    command: verify
+    depends_on:
+      - documentation
+    outputs:
+      - commit_sha
+    success_criteria:
+      - "All tests pass"
+      - "Build succeeds"
+      - "Lint clean"
+      - "Documentation complete"
+      - "Changes committed with conventional commit message"

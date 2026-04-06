@@ -1,0 +1,81 @@
+{
+  "_comment": "EXAMPLE ONLY -- This file is non-functional. It demonstrates the planned organization-level configuration structure. See org-policy-schema.json for the full schema definition.",
+  "version": "1.0.0",
+  "orgId": "example-org",
+  "basePolicies": {
+    "blockedCommands": ["rm -rf /", "DROP DATABASE", "FORMAT C:"],
+    "protectedPaths": [
+      ".env",
+      ".env.*",
+      "src/auth/",
+      "src/security/",
+      "infrastructure/",
+      "deploy/"
+    ],
+    "sensitiveOperations": [
+      {
+        "operation": "database-migration",
+        "riskLevel": "high",
+        "requiresApproval": true,
+        "description": "Schema changes that could affect production data"
+      },
+      {
+        "operation": "auth-config-change",
+        "riskLevel": "critical",
+        "requiresApproval": true,
+        "description": "Modifications to authentication or authorization logic"
+      },
+      {
+        "operation": "dependency-upgrade-major",
+        "riskLevel": "medium",
+        "requiresApproval": false,
+        "description": "Major version upgrades of dependencies"
+      }
+    ],
+    "commandPolicies": [
+      {
+        "command": "release",
+        "requiredApproval": true,
+        "allowedRoles": ["tech-lead", "senior-engineer"],
+        "maxFrequency": "2/day"
+      },
+      {
+        "command": "security-scan",
+        "requiredApproval": false,
+        "maxFrequency": "10/day"
+      }
+    ]
+  },
+  "teams": [
+    {
+      "teamId": "platform-team",
+      "teamName": "Platform Engineering",
+      "overrides": {
+        "protectedPaths": ["src/platform/core/", "src/shared/infrastructure/"],
+        "sensitiveOperations": [
+          {
+            "operation": "infrastructure-change",
+            "riskLevel": "high",
+            "requiresApproval": true,
+            "description": "Changes to shared infrastructure components"
+          }
+        ]
+      },
+      "projects": ["api-gateway", "service-mesh", "shared-libs"]
+    },
+    {
+      "teamId": "frontend-squad",
+      "teamName": "Frontend Squad",
+      "overrides": {
+        "protectedPaths": ["src/components/design-system/"]
+      },
+      "projects": ["web-app", "mobile-app", "admin-dashboard"]
+    }
+  ],
+  "mergeStrategy": {
+    "blockedCommands": "union",
+    "protectedPaths": "union",
+    "sensitiveOperations": "highest-risk-level",
+    "commandPolicies": "no-downgrade-approval"
+  }
+}
