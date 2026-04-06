@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BBG_GITIGNORE_ENTRIES,
   CLI_NAME,
   CLI_VERSION,
   DEFAULT_STACK,
@@ -45,5 +46,13 @@ describe("constants", () => {
   it("gitignore sentinels are defined", () => {
     expect(MANAGED_GITIGNORE_BLOCK_START).toContain(">>>");
     expect(MANAGED_GITIGNORE_BLOCK_END).toContain("<<<");
+  });
+
+  it("exports managed BBG gitignore entries", () => {
+    expect(BBG_GITIGNORE_ENTRIES).toEqual([
+      ".bbg/telemetry.db",
+      ".bbg/telemetry.db-wal",
+      ".bbg/telemetry.db-shm",
+    ]);
   });
 });

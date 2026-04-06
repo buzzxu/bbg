@@ -45,7 +45,7 @@ describe("governance cross-references", () => {
   const files = getGovernanceFiles();
 
   it("finds governance files to validate", () => {
-    expect(files.length).toBeGreaterThanOrEqual(150);
+    expect(files.length).toBeGreaterThanOrEqual(156);
   });
 
   it("all governance docs have a Related section", () => {
