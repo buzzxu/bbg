@@ -1,6 +1,10 @@
 import { join } from "node:path";
 import type { RepoEntry } from "../config/schema.js";
-import { MANAGED_GITIGNORE_BLOCK_START, MANAGED_GITIGNORE_BLOCK_END } from "../constants.js";
+import {
+  BBG_GITIGNORE_ENTRIES,
+  MANAGED_GITIGNORE_BLOCK_START,
+  MANAGED_GITIGNORE_BLOCK_END,
+} from "../constants.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 
 export function buildRepoIgnoreEntries(repos: RepoEntry[]): string[] {
@@ -35,6 +39,12 @@ export async function ensureRootGitignore(cwd: string, repos: RepoEntry[]): Prom
 
   while (lines.length > 0 && lines[lines.length - 1]?.trim() === "") {
     lines.pop();
+  }
+
+  for (const entry of BBG_GITIGNORE_ENTRIES) {
+    if (!lines.some((line) => line.trim() === entry)) {
+      lines.push(entry);
+    }
   }
 
   const managedEntries = buildRepoIgnoreEntries(repos);

@@ -38,11 +38,6 @@ export const ROOT_TEMPLATE_MANIFEST: ReadonlyArray<RenderTemplateTask> = [
     mode: "copy",
   },
   {
-    source: "generic/docs/security/backend-red-team-playbook.md",
-    destination: "docs/security/backend-red-team-playbook.md",
-    mode: "copy",
-  },
-  {
     source: "generic/docs/workflows/regression-checklist.md",
     destination: "docs/workflows/regression-checklist.md",
     mode: "copy",
@@ -65,11 +60,6 @@ export const ROOT_TEMPLATE_MANIFEST: ReadonlyArray<RenderTemplateTask> = [
   {
     source: "generic/docs/reports/cross-audit-report-TEMPLATE.md",
     destination: "docs/reports/cross-audit-report-TEMPLATE.md",
-    mode: "copy",
-  },
-  {
-    source: "generic/docs/reports/red-team-report-TEMPLATE.md",
-    destination: "docs/reports/red-team-report-TEMPLATE.md",
     mode: "copy",
   },
   {

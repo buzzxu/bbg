@@ -24,6 +24,12 @@ export interface PluginConfig {
   directories?: string[];
 }
 
+export interface OrganizationConfig {
+  orgId?: string;
+  teamId?: string;
+  policySource?: string;
+}
+
 export interface BbgConfig {
   version: string;
   projectName: string;
@@ -43,4 +49,5 @@ export interface BbgConfig {
   context: Record<string, unknown>;
   runtime?: RuntimeConfig;
   plugins?: PluginConfig;
+  organization?: OrganizationConfig;
 }

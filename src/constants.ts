@@ -23,3 +23,10 @@ export const DEFAULT_STACK: Readonly<StackInfo> = {
 
 export const MANAGED_GITIGNORE_BLOCK_START = "# >>> bbg managed repos >>>";
 export const MANAGED_GITIGNORE_BLOCK_END = "# <<< bbg managed repos <<<";
+
+/** Entries that bbg always adds to project .gitignore. */
+export const BBG_GITIGNORE_ENTRIES = [
+  ".bbg/telemetry.db",
+  ".bbg/telemetry.db-wal",
+  ".bbg/telemetry.db-shm",
+] as const;

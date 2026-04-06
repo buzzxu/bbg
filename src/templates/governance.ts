@@ -55,6 +55,7 @@ const CORE_SKILLS = [
   "writing-plans",
   "continuous-learning",
   "eval-harness",
+  "eval-regression",
   "strategic-compact",
   "api-design",
   "backend-patterns",
@@ -68,6 +69,12 @@ const CORE_SKILLS = [
   "harness-engineering",
   "autonomous-loops",
   "mcp-integration",
+  "telemetry-dashboard",
+  "deep-interview",
+  "policy-enforcement",
+  "context-loading",
+  "session-memory",
+  "workflow-orchestration",
 ];
 
 const OPERATIONS_SKILLS = [
@@ -140,6 +147,7 @@ const CORE_COMMANDS = [
   "verify",
   "sessions",
   "eval",
+  "eval-compare",
   "orchestrate",
   "loop-start",
   "loop-status",
@@ -148,6 +156,16 @@ const CORE_COMMANDS = [
   "model-route",
   "setup-pm",
   "sync",
+  "telemetry-report",
+  "interview",
+  "interview-resume",
+  "policy-check",
+  "policy-exception",
+  "context-refresh",
+  "context-budget",
+  "workflow-start",
+  "workflow-resume",
+  "workflow-status",
 ];
 
 const LANGUAGE_COMMANDS: Record<string, string[]> = {
@@ -168,11 +186,98 @@ const HOOK_FILES = [
   "scripts/post-edit-typecheck.js",
   "scripts/security-scan.js",
   "scripts/suggest-compact.js",
+  "scripts/telemetry-collector.js",
+];
+
+const BBG_SCRIPTS = [
+  "telemetry-init.sql",
+  "telemetry-report.sql",
+  "interview-schema.sql",
+  "eval-schema.sql",
+  "policy-schema.sql",
+  "build-repo-map.js",
+  "context-schema.sql",
+];
+
+const LANGUAGE_BBG_SCRIPTS: Record<string, string[]> = {
+  typescript: ["build-symbol-map-ts.js"],
+  java: ["build-symbol-map-java.py"],
+  go: ["build-symbol-map-go.sh"],
+  rust: ["build-symbol-map-rust.sh"],
+  python: ["build-symbol-map-python.py"],
+};
+
+const BBG_POLICY_FILES = {
+  handlebars: ["policy.json"],
+  generic: ["exceptions.json"],
+};
+
+const EVAL_FILES = [
+  "evals/golden-tasks/manifest.json",
+  "evals/golden-tasks/tasks/simple-bugfix.json",
+  "evals/golden-tasks/tasks/tdd-feature.json",
+  "evals/golden-tasks/tasks/security-review.json",
+  "evals/golden-tasks/tasks/refactor-extract.json",
 ];
 
 const CONTEXT_HBS_FILES = ["dev.md", "review.md", "research.md"];
 
 const MCP_CONFIG_FILES = ["mcp-servers.json", "README.md"];
+
+const WORKFLOW_FILES = {
+  scripts: ["workflow-schema.sql"],
+  schema: ["schema.json"],
+  presets: [
+    "tdd-feature.yaml",
+    "bugfix.yaml",
+    "security-audit.yaml",
+    "release-prep.yaml",
+    "full-feature.yaml",
+  ],
+};
+
+const BACKEND_WEB_FRAMEWORKS = new Set([
+  "django",
+  "fastapi",
+  "flask",
+  "spring",
+  "springboot",
+  "spring-boot",
+  "quarkus",
+  "micronaut",
+  "gin",
+  "echo",
+  "fiber",
+  "axum",
+  "actix-web",
+  "actix",
+  "rocket",
+  "ktor",
+]);
+
+const BACKEND_GOVERNANCE = {
+  skills: ["red-team-test"],
+  commands: ["red-team"],
+  scripts: ["red-team-schema.sql"],
+  docs: [
+    {
+      source: "generic/docs/security/backend-red-team-playbook.md",
+      destination: "docs/security/backend-red-team-playbook.md",
+    },
+    {
+      source: "generic/docs/reports/red-team-report-TEMPLATE.md",
+      destination: "docs/reports/red-team-report-TEMPLATE.md",
+    },
+  ],
+};
+
+const ORG_GOVERNANCE_FILES = [
+  ".bbg/org/README.md",
+  ".bbg/org/org-policy-schema.json",
+  ".bbg/org/org-report-schema.json",
+  ".bbg/org/org-config.example.json",
+  ".bbg/scripts/org-schema.sql",
+];
 
 /* ------------------------------------------------------------------ */
 /*  Helper: create copy task (all governance files are verbatim copy)  */
@@ -210,6 +315,19 @@ function detectLanguages(ctx: TemplateContext): string[] {
   }
 
   return langs;
+}
+
+function isBackendProject(ctx: TemplateContext): boolean {
+  if (ctx.hasJava || ctx.hasGo || ctx.hasRust) {
+    return true;
+  }
+
+  if (ctx.hasPython) {
+    const lowerFrameworks = ctx.frameworks.map((framework) => framework.toLowerCase());
+    return lowerFrameworks.some((framework) => BACKEND_WEB_FRAMEWORKS.has(framework));
+  }
+
+  return false;
 }
 
 /* ------------------------------------------------------------------ */
@@ -292,6 +410,63 @@ export function buildGovernanceManifest(
     tasks.push(copyTask(`mcp-configs/${mcpFile}`, `mcp-configs/${mcpFile}`));
   }
 
+  // --- Workflow Files ---
+  for (const script of WORKFLOW_FILES.scripts) {
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+  }
+  for (const schema of WORKFLOW_FILES.schema) {
+    tasks.push(copyTask(`generic/workflows/${schema}`, `workflows/${schema}`));
+  }
+  for (const preset of WORKFLOW_FILES.presets) {
+    tasks.push(copyTask(`generic/workflows/presets/${preset}`, `workflows/presets/${preset}`));
+  }
+
+  // --- Backend-only: Red Team Governance ---
+  if (isBackendProject(ctx)) {
+    for (const skill of BACKEND_GOVERNANCE.skills) {
+      tasks.push(copyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
+    }
+    for (const cmd of BACKEND_GOVERNANCE.commands) {
+      tasks.push(copyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
+    }
+    for (const script of BACKEND_GOVERNANCE.scripts) {
+      tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+    }
+    for (const doc of BACKEND_GOVERNANCE.docs) {
+      tasks.push(copyTask(doc.source, doc.destination));
+    }
+  }
+
+  // --- BBG Scripts ---
+  for (const script of BBG_SCRIPTS) {
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+  }
+
+  // --- BBG Scripts (language-specific) ---
+  for (const lang of langs) {
+    for (const script of LANGUAGE_BBG_SCRIPTS[lang] ?? []) {
+      tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+    }
+  }
+
+  // --- Policy Files ---
+  for (const policyFile of BBG_POLICY_FILES.handlebars) {
+    tasks.push(handlebarsTask(`handlebars/.bbg/policy/${policyFile}.hbs`, `.bbg/policy/${policyFile}`));
+  }
+  for (const policyFile of BBG_POLICY_FILES.generic) {
+    tasks.push(copyTask(`generic/.bbg/policy/${policyFile}`, `.bbg/policy/${policyFile}`));
+  }
+
+  // --- Eval Golden Tasks ---
+  for (const evalFile of EVAL_FILES) {
+    tasks.push(copyTask(evalFile, evalFile));
+  }
+
+  // --- Org Governance (reserved schemas) ---
+  for (const orgFile of ORG_GOVERNANCE_FILES) {
+    tasks.push(copyTask(`generic/${orgFile}`, orgFile));
+  }
+
   return mergePluginTemplates(tasks, plugins ?? []);
 }
 
@@ -310,6 +485,13 @@ export const GOVERNANCE_MANIFEST = {
   coreCommands: CORE_COMMANDS,
   languageCommands: LANGUAGE_COMMANDS,
   hookFiles: HOOK_FILES,
+  bbgScripts: BBG_SCRIPTS,
+  languageBbgScripts: LANGUAGE_BBG_SCRIPTS,
+  bbgPolicyFiles: BBG_POLICY_FILES,
+  evalFiles: EVAL_FILES,
   contextHbsFiles: CONTEXT_HBS_FILES,
   mcpConfigFiles: MCP_CONFIG_FILES,
+  workflowFiles: WORKFLOW_FILES,
+  backendGovernance: BACKEND_GOVERNANCE,
+  orgGovernanceFiles: ORG_GOVERNANCE_FILES,
 } as const;

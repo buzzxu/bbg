@@ -121,6 +121,23 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
     }
   }
 
+  for (const script of GOVERNANCE_MANIFEST.workflowFiles.scripts) {
+    allManifestPaths.add(`.bbg/scripts/${script}`);
+  }
+  for (const schema of GOVERNANCE_MANIFEST.workflowFiles.schema) {
+    allManifestPaths.add(`workflows/${schema}`);
+  }
+  for (const preset of GOVERNANCE_MANIFEST.workflowFiles.presets) {
+    allManifestPaths.add(`workflows/presets/${preset}`);
+  }
+
+  for (const skill of GOVERNANCE_MANIFEST.backendGovernance.skills) {
+    allManifestPaths.add(`skills/${skill}/SKILL.md`);
+  }
+  for (const cmd of GOVERNANCE_MANIFEST.backendGovernance.commands) {
+    allManifestPaths.add(`commands/${cmd}.md`);
+  }
+
   const diskFiles = await fg(
     ["agents/*.md", "skills/*/SKILL.md", "rules/**/*.md", "commands/*.md"],
     { cwd: root, onlyFiles: true },
