@@ -30,11 +30,19 @@ export interface OrganizationConfig {
   policySource?: string;
 }
 
+export interface HermesRuntimeConfig {
+  enabled?: boolean;
+  runsRoot?: string;
+  evaluationsRoot?: string;
+  candidatesRoot?: string;
+}
+
 export interface KnowledgeConfig {
   enabled?: boolean;
   databaseFile?: string;
   sourceRoot?: string;
   wikiRoot?: string;
+  hermes?: HermesRuntimeConfig;
 }
 
 export interface BbgConfig {

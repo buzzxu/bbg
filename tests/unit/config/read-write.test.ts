@@ -94,6 +94,25 @@ describe("config read-write", () => {
     expect(parseConfig(raw)).toEqual(sampleConfigWithKnowledge);
   });
 
+  it("round-trips config with Hermes knowledge settings", () => {
+    const configWithHermes: BbgConfig = {
+      ...sampleConfigWithKnowledge,
+      knowledge: {
+        ...sampleConfigWithKnowledge.knowledge,
+        hermes: {
+          enabled: true,
+          runsRoot: ".bbg/hermes/runs",
+          evaluationsRoot: ".bbg/hermes/evaluations",
+          candidatesRoot: ".bbg/hermes/candidates",
+        },
+      },
+    };
+
+    const raw = serializeConfig(configWithHermes);
+
+    expect(parseConfig(raw)).toEqual(configWithHermes);
+  });
+
   it("throws ConfigParseError for invalid JSON", () => {
     expect(() => parseConfig("not-json")).toThrow(ConfigParseError);
     expect(() => parseConfig("not-json")).not.toThrow(ConfigValidationError);
@@ -173,6 +192,23 @@ describe("config read-write", () => {
     expect(() => parseConfig(invalidAbsoluteDatabasePath)).toThrow(ConfigValidationError);
     expect(() => parseConfig(invalidSourceRoot)).toThrow(ConfigValidationError);
     expect(() => parseConfig(invalidWikiRoot)).toThrow(ConfigValidationError);
+  });
+
+  it("throws ConfigValidationError for Hermes paths outside allowed roots", () => {
+    const invalidShape = JSON.stringify({
+      ...sampleConfigWithKnowledge,
+      knowledge: {
+        ...sampleConfigWithKnowledge.knowledge,
+        hermes: {
+          enabled: true,
+          runsRoot: "../runs",
+          evaluationsRoot: "/tmp/evals",
+          candidatesRoot: ".bbg/hermes/candidates",
+        },
+      },
+    });
+
+    expect(() => parseConfig(invalidShape)).toThrow(ConfigValidationError);
   });
 
   it("throws ConfigValidationError for runtime paths outside .bbg", () => {

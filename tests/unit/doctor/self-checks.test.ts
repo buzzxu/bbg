@@ -1,9 +1,10 @@
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { writeTextFile } from "../../../src/utils/fs.js";
 import { runSelfChecks } from "../../../src/doctor/self-checks.js";
+import { GOVERNANCE_MANIFEST } from "../../../src/templates/governance.js";
 
 const tempDirs: string[] = [];
 
@@ -13,89 +14,62 @@ async function makeTempDir(): Promise<string> {
   return dir;
 }
 
+function markdownContent(path: string): string {
+  return `# ${path}\n\n## Related\n`;
+}
+
+function fileContent(path: string): string {
+  if (path.endsWith(".md")) return markdownContent(path);
+  if (path.endsWith(".json")) return "{}\n";
+  if (path.endsWith(".sql")) return "SELECT 1;\n";
+  if (path.endsWith(".js")) return "// generated for test\n";
+  return "\n";
+}
+
+function getCheck(result: Awaited<ReturnType<typeof runSelfChecks>>, id: string) {
+  const check = result.checks.find((entry) => entry.id === id);
+  expect(check).toBeDefined();
+  return check!;
+}
+
+async function writeManifestPaths(root: string, relativePaths: string[]): Promise<void> {
+  for (const relativePath of relativePaths) {
+    await writeTextFile(join(root, relativePath), fileContent(relativePath));
+  }
+}
+
 async function createMinimalGovernance(root: string): Promise<void> {
-  await writeTextFile(join(root, "agents", "planner.md"), "# Planner\n\n## Related\n");
-  await writeTextFile(join(root, "agents", "architect.md"), "# Architect\n\n## Related\n");
-  await writeTextFile(join(root, "skills", "tdd-workflow", "SKILL.md"), "# TDD\n\n## Related\n");
-  await writeTextFile(join(root, "skills", "wiki-ingestion", "SKILL.md"), "# Wiki Ingestion\n\n## Related\n");
-  await writeTextFile(join(root, "skills", "wiki-query", "SKILL.md"), "# Wiki Query\n\n## Related\n");
-  await writeTextFile(join(root, "skills", "wiki-lint", "SKILL.md"), "# Wiki Lint\n\n## Related\n");
-  await writeTextFile(join(root, "skills", "wiki-compilation", "SKILL.md"), "# Wiki Compilation\n\n## Related\n");
-  await writeTextFile(join(root, "skills", "wiki-maintenance", "SKILL.md"), "# Wiki Maintenance\n\n## Related\n");
-  await writeTextFile(join(root, "skills", "wiki-auditor", "SKILL.md"), "# Wiki Auditor\n\n## Related\n");
-  await writeTextFile(join(root, "skills", "wiki-provenance", "SKILL.md"), "# Wiki Provenance\n\n## Related\n");
-  await writeTextFile(join(root, "skills", "wiki-distillation", "SKILL.md"), "# Wiki Distillation\n\n## Related\n");
-  await writeTextFile(join(root, "rules", "common", "coding-style.md"), "# Coding Style\n\n## Related\n");
-  await writeTextFile(join(root, "rules", "common", "knowledge.md"), "# Knowledge Layer: Common\n\n## Related\n");
-  await writeTextFile(join(root, "commands", "plan.md"), "# Plan\n\n## Related\n");
-  await writeTextFile(join(root, "commands", "wiki-ingest.md"), "# /wiki-ingest\n\n## Related\n");
-  await writeTextFile(join(root, "commands", "wiki-query.md"), "# /wiki-query\n\n## Related\n");
-  await writeTextFile(join(root, "commands", "wiki-lint.md"), "# /wiki-lint\n\n## Related\n");
-  await writeTextFile(join(root, "commands", "wiki-compile.md"), "# /wiki-compile\n\n## Related\n");
-  await writeTextFile(join(root, "commands", "wiki-refresh.md"), "# /wiki-refresh\n\n## Related\n");
-  await writeTextFile(join(root, "commands", "wiki-audit.md"), "# /wiki-audit\n\n## Related\n");
-  await writeTextFile(join(root, "commands", "wiki-stale.md"), "# /wiki-stale\n\n## Related\n");
-  await writeTextFile(join(root, "commands", "wiki-promote.md"), "# /wiki-promote\n\n## Related\n");
-  await writeTextFile(join(root, "docs", "raw", "README.md"), "# Raw Sources\n");
-  await writeTextFile(join(root, "docs", "wiki", "index.md"), "# Wiki Index\n");
-  await writeTextFile(join(root, "docs", "wiki", "log.md"), "# Wiki Log\n");
-  await writeTextFile(join(root, "docs", "wiki", "concepts", "README.md"), "# Concepts\n");
-  await writeTextFile(join(root, "docs", "wiki", "decisions", "README.md"), "# Decisions\n");
-  await writeTextFile(join(root, "docs", "wiki", "reports", "README.md"), "# Reports\n");
-  await writeTextFile(join(root, "docs", "wiki", "processes", "README.md"), "# Processes\n");
-  await writeTextFile(join(root, "docs", "wiki", "reports", "regression-risk-summary.md"), "# Regression Risk Summary\n");
-  await writeTextFile(join(root, "docs", "wiki", "reports", "workflow-stability-summary.md"), "# Workflow Stability Summary\n");
-  await writeTextFile(join(root, "docs", "wiki", "reports", "red-team-findings-summary.md"), "# Red Team Findings Summary\n");
-  await writeTextFile(join(root, "docs", "wiki", "processes", "knowledge-compilation.md"), "# Knowledge Compilation\n");
-  await writeTextFile(join(root, "docs", "wiki", "processes", "knowledge-trust-model.md"), "# Knowledge Trust Model\n");
-  await writeTextFile(join(root, ".bbg", "knowledge", "README.md"), "# Knowledge Metadata\n");
-  await writeTextFile(
-    join(root, ".bbg", "scripts", "knowledge-schema.sql"),
-    "CREATE TABLE IF NOT EXISTS knowledge_sources (id INTEGER);\n",
-  );
-  await writeTextFile(join(root, ".bbg", "scripts", "knowledge-provenance.sql"), "-- stale pages\n");
-  await writeTextFile(
-    join(root, ".bbg", "scripts", "telemetry-init.sql"),
-    "CREATE TABLE IF NOT EXISTS telemetry_events (id INTEGER);\n",
-  );
-  await writeTextFile(
-    join(root, ".bbg", "scripts", "telemetry-report.sql"),
-    "SELECT 1;\n",
-  );
-  await writeTextFile(
-    join(root, ".bbg", "scripts", "eval-schema.sql"),
-    "CREATE TABLE IF NOT EXISTS eval_runs (id INTEGER);\n",
-  );
-  await writeTextFile(
-    join(root, ".bbg", "scripts", "interview-schema.sql"),
-    "CREATE TABLE IF NOT EXISTS interview_sessions (id INTEGER);\n",
-  );
-  await writeTextFile(
-    join(root, ".bbg", "scripts", "policy-schema.sql"),
-    "CREATE TABLE IF NOT EXISTS policy_decisions (id INTEGER);\n",
-  );
-  await writeTextFile(
-    join(root, ".bbg", "scripts", "context-schema.sql"),
-    "CREATE TABLE IF NOT EXISTS context_snapshots (id INTEGER);\n",
-  );
-  await writeTextFile(
-    join(root, ".bbg", "scripts", "workflow-schema.sql"),
-    "CREATE TABLE IF NOT EXISTS workflow_instances (id INTEGER);\n",
-  );
-  await writeTextFile(
-    join(root, ".bbg", "scripts", "org-schema.sql"),
-    "CREATE TABLE IF NOT EXISTS org_policy_syncs (id INTEGER);\n",
-  );
-  await writeTextFile(join(root, "hooks", "hooks.json"), "{}");
-  await writeTextFile(join(root, "hooks", "README.md"), "# Hooks\n");
-  await writeTextFile(join(root, "hooks", "scripts", "session-start.js"), "// hook\n");
-  await writeTextFile(join(root, "mcp-configs", "mcp-servers.json"), "{}");
-  await writeTextFile(join(root, "mcp-configs", "README.md"), "# MCP\n");
+  const requiredPaths = [
+    ...GOVERNANCE_MANIFEST.coreAgents.map((agent) => `agents/${agent}.md`),
+    ...[...GOVERNANCE_MANIFEST.coreSkills, ...GOVERNANCE_MANIFEST.operationsSkills].map(
+      (skill) => `skills/${skill}/SKILL.md`,
+    ),
+    ...GOVERNANCE_MANIFEST.commonRules.map((rule) => `rules/common/${rule}.md`),
+    ...GOVERNANCE_MANIFEST.coreCommands.map((command) => `commands/${command}.md`),
+    ...GOVERNANCE_MANIFEST.wikiDocFiles,
+    ...GOVERNANCE_MANIFEST.wikiCompiledDocFiles,
+    ...GOVERNANCE_MANIFEST.wikiTrustDocFiles,
+    ...GOVERNANCE_MANIFEST.hermesDocFiles,
+    ...GOVERNANCE_MANIFEST.knowledgeFiles,
+    ...GOVERNANCE_MANIFEST.wikiSkills.map((skill) => `skills/${skill}/SKILL.md`),
+    ...GOVERNANCE_MANIFEST.wikiCompilationSkills.map((skill) => `skills/${skill}/SKILL.md`),
+    ...GOVERNANCE_MANIFEST.wikiTrustSkills.map((skill) => `skills/${skill}/SKILL.md`),
+    ...GOVERNANCE_MANIFEST.hermesSkills.map((skill) => `skills/${skill}/SKILL.md`),
+    ...GOVERNANCE_MANIFEST.wikiCommands.map((command) => `commands/${command}.md`),
+    ...GOVERNANCE_MANIFEST.wikiCompilationCommands.map((command) => `commands/${command}.md`),
+    ...GOVERNANCE_MANIFEST.wikiTrustCommands.map((command) => `commands/${command}.md`),
+    ...GOVERNANCE_MANIFEST.hermesCommands.map((command) => `commands/${command}.md`),
+    ...GOVERNANCE_MANIFEST.knowledgeScripts.map((script) => `.bbg/scripts/${script}`),
+    ...GOVERNANCE_MANIFEST.knowledgeProvenanceScripts.map((script) => `.bbg/scripts/${script}`),
+    ...GOVERNANCE_MANIFEST.hermesScripts.map((script) => `.bbg/scripts/${script}`),
+    ...GOVERNANCE_MANIFEST.hookFiles.map((hook) => `hooks/${hook}`),
+  ];
+
+  await writeManifestPaths(root, requiredPaths);
 }
 
 describe("doctor/self-checks", () => {
   afterEach(async () => {
-    const { rm } = await import("node:fs/promises");
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
@@ -110,16 +84,14 @@ describe("doctor/self-checks", () => {
     expect(agentCheck!.message).toContain("missing");
   });
 
-  it("passes when all expected agent files exist", async () => {
+  it("passes when all expected governance files exist in the minimal fixture", async () => {
     const root = await makeTempDir();
     await createMinimalGovernance(root);
 
-    const { GOVERNANCE_MANIFEST } = await import("../../../src/templates/governance.js");
-    for (const agent of GOVERNANCE_MANIFEST.coreAgents) {
-      await writeTextFile(join(root, "agents", `${agent}.md`), `# ${agent}\n`);
-    }
-
     const result = await runSelfChecks(root);
+    const failingErrorChecks = result.checks.filter((c) => c.severity === "error" && !c.passed);
+    expect(result.ok).toBe(true);
+    expect(failingErrorChecks).toEqual([]);
     const agentCheck = result.checks.find((c) => c.id === "self-agents-exist");
     const wikiCheck = result.checks.find((c) => c.id === "self-wiki-docs-exist");
     const wikiSkillsCheck = result.checks.find((c) => c.id === "self-wiki-skills-exist");
@@ -129,6 +101,10 @@ describe("doctor/self-checks", () => {
     const wikiCompiledDocsCheck = result.checks.find((c) => c.id === "self-wiki-compiled-docs-exist");
     const knowledgeFilesCheck = result.checks.find((c) => c.id === "self-knowledge-files-exist");
     const knowledgeScriptsCheck = result.checks.find((c) => c.id === "self-knowledge-scripts-exist");
+    const hermesSkillsCheck = result.checks.find((c) => c.id === "self-hermes-skills-exist");
+    const hermesCommandsCheck = result.checks.find((c) => c.id === "self-hermes-commands-exist");
+    const hermesDocsCheck = result.checks.find((c) => c.id === "self-hermes-docs-exist");
+    const hermesScriptsCheck = result.checks.find((c) => c.id === "self-hermes-scripts-exist");
     expect(agentCheck).toBeDefined();
     expect(agentCheck!.passed).toBe(true);
     expect(wikiCheck).toBeDefined();
@@ -147,6 +123,86 @@ describe("doctor/self-checks", () => {
     expect(knowledgeFilesCheck!.passed).toBe(true);
     expect(knowledgeScriptsCheck).toBeDefined();
     expect(knowledgeScriptsCheck!.passed).toBe(true);
+    expect(hermesSkillsCheck).toBeDefined();
+    expect(hermesSkillsCheck!.passed).toBe(true);
+    expect(hermesCommandsCheck).toBeDefined();
+    expect(hermesCommandsCheck!.passed).toBe(true);
+    expect(hermesDocsCheck).toBeDefined();
+    expect(hermesDocsCheck!.passed).toBe(true);
+    expect(hermesScriptsCheck).toBeDefined();
+    expect(hermesScriptsCheck!.passed).toBe(true);
+  });
+
+  it("fails overall self-checks when Hermes assets are missing from an empty repo", async () => {
+    const root = await makeTempDir();
+
+    const result = await runSelfChecks(root);
+
+    expect(result.ok).toBe(false);
+    expect(result.checks.find((c) => c.id === "self-hermes-skills-exist")?.passed).toBe(false);
+    expect(result.checks.find((c) => c.id === "self-hermes-commands-exist")?.passed).toBe(false);
+    expect(result.checks.find((c) => c.id === "self-hermes-docs-exist")?.passed).toBe(false);
+    expect(result.checks.find((c) => c.id === "self-hermes-scripts-exist")?.passed).toBe(false);
+  });
+
+  it("fails the Hermes skill check for a missing Hermes skill path", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "skills/hermes-runtime/SKILL.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-skills-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes command check for a missing Hermes command path", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "commands/hermes-log.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-commands-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes doc check for a missing Hermes doc path", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "docs/wiki/processes/hermes-runtime.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-docs-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes script check for a missing Hermes script path", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = ".bbg/scripts/hermes-schema.sql";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-scripts-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
   });
 
   it("detects missing skill files", async () => {

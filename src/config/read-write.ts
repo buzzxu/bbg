@@ -128,13 +128,17 @@ function isRuntimeContextSetting(value: unknown): value is NonNullable<BbgConfig
   );
 }
 
-function isRuntimeCommandConfigEntry(value: unknown): value is NonNullable<NonNullable<BbgConfig["runtime"]>["commands"]>["build"] {
+function isRuntimeCommandConfigEntry(
+  value: unknown,
+): value is NonNullable<NonNullable<BbgConfig["runtime"]>["commands"]>["build"] {
   if (!isRecord(value) || !isString(value.command)) {
     return false;
   }
 
-  return (value.args === undefined || (Array.isArray(value.args) && value.args.every(isString)))
-    && (value.cwd === undefined || (isString(value.cwd) && isValidRuntimeCommandCwd(value.cwd)));
+  return (
+    (value.args === undefined || (Array.isArray(value.args) && value.args.every(isString))) &&
+    (value.cwd === undefined || (isString(value.cwd) && isValidRuntimeCommandCwd(value.cwd)))
+  );
 }
 
 function isRuntimeCommandsSetting(value: unknown): value is NonNullable<BbgConfig["runtime"]>["commands"] {
@@ -142,7 +146,9 @@ function isRuntimeCommandsSetting(value: unknown): value is NonNullable<BbgConfi
     return false;
   }
 
-  return [value.build, value.typecheck, value.tests, value.lint].every((entry) => entry === undefined || isRuntimeCommandConfigEntry(entry));
+  return [value.build, value.typecheck, value.tests, value.lint].every(
+    (entry) => entry === undefined || isRuntimeCommandConfigEntry(entry),
+  );
 }
 
 function isRuntimeConfig(value: unknown): value is NonNullable<BbgConfig["runtime"]> {
@@ -159,6 +165,21 @@ function isRuntimeConfig(value: unknown): value is NonNullable<BbgConfig["runtim
   );
 }
 
+function isHermesRuntimeConfig(value: unknown): value is NonNullable<NonNullable<BbgConfig["knowledge"]>["hermes"]> {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    (value.enabled === undefined || typeof value.enabled === "boolean") &&
+    (value.runsRoot === undefined || (isString(value.runsRoot) && isValidWorkspaceRelativePath(value.runsRoot))) &&
+    (value.evaluationsRoot === undefined ||
+      (isString(value.evaluationsRoot) && isValidWorkspaceRelativePath(value.evaluationsRoot))) &&
+    (value.candidatesRoot === undefined ||
+      (isString(value.candidatesRoot) && isValidWorkspaceRelativePath(value.candidatesRoot)))
+  );
+}
+
 function isKnowledgeConfig(value: unknown): value is NonNullable<BbgConfig["knowledge"]> {
   if (!isRecord(value)) {
     return false;
@@ -166,12 +187,12 @@ function isKnowledgeConfig(value: unknown): value is NonNullable<BbgConfig["know
 
   return (
     (value.enabled === undefined || typeof value.enabled === "boolean") &&
-    (value.databaseFile === undefined
-      || (isString(value.databaseFile) && isValidRuntimeRelativePath(value.databaseFile))) &&
-    (value.sourceRoot === undefined
-      || (isString(value.sourceRoot) && isValidWorkspaceRelativePath(value.sourceRoot))) &&
-    (value.wikiRoot === undefined
-      || (isString(value.wikiRoot) && isValidWorkspaceRelativePath(value.wikiRoot)))
+    (value.databaseFile === undefined ||
+      (isString(value.databaseFile) && isValidRuntimeRelativePath(value.databaseFile))) &&
+    (value.sourceRoot === undefined ||
+      (isString(value.sourceRoot) && isValidWorkspaceRelativePath(value.sourceRoot))) &&
+    (value.wikiRoot === undefined || (isString(value.wikiRoot) && isValidWorkspaceRelativePath(value.wikiRoot))) &&
+    (value.hermes === undefined || isHermesRuntimeConfig(value.hermes))
   );
 }
 
@@ -198,10 +219,10 @@ function isBbgConfig(value: unknown): value is BbgConfig {
     isRiskThreshold(value.governance.riskThresholds.medium) &&
     isRiskThreshold(value.governance.riskThresholds.low) &&
     typeof value.governance.enableRedTeam === "boolean" &&
-      typeof value.governance.enableCrossAudit === "boolean" &&
-      isRecord(value.context) &&
-      (typeof value.runtime === "undefined" || isRuntimeConfig(value.runtime)) &&
-      (typeof value.knowledge === "undefined" || isKnowledgeConfig(value.knowledge))
+    typeof value.governance.enableCrossAudit === "boolean" &&
+    isRecord(value.context) &&
+    (typeof value.runtime === "undefined" || isRuntimeConfig(value.runtime)) &&
+    (typeof value.knowledge === "undefined" || isKnowledgeConfig(value.knowledge))
   );
 }
 

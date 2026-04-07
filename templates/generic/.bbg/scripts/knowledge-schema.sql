@@ -108,3 +108,7 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_lint_findings_type ON knowledge_lint_fi
 CREATE INDEX IF NOT EXISTS idx_knowledge_contradictions_status ON knowledge_contradictions(resolution_status);
 CREATE INDEX IF NOT EXISTS idx_knowledge_page_summaries_level ON knowledge_page_summaries(summary_level);
 CREATE INDEX IF NOT EXISTS idx_knowledge_candidate_updates_status ON knowledge_candidate_updates(status);
+
+-- Hermes runtime, evaluation, and candidate records live in `hermes-schema.sql`.
+-- Keep that schema separate from canonical knowledge and trust metadata so
+-- operational learning records can evolve without overloading wiki/trust tables.

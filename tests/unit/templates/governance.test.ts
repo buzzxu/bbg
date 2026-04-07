@@ -64,9 +64,9 @@ describe("buildGovernanceManifest", () => {
     expect(agentTasks.map((t) => t.destination)).toContain("agents/planner.md");
     expect(agentTasks.map((t) => t.destination)).toContain("agents/devops-reviewer.md");
 
-    // Core + operations + wiki skills + wiki compilation skills + wiki trust skills: 28 + 18 + 3 + 2 + 3 = 54
+    // Core + operations + wiki skills + wiki compilation skills + wiki trust skills + Hermes skills: 28 + 18 + 3 + 2 + 3 + 2 = 56
     const skillTasks = tasks.filter((t) => t.destination.startsWith("skills/"));
-    expect(skillTasks).toHaveLength(54);
+    expect(skillTasks).toHaveLength(56);
     expect(skillTasks.map((t) => t.destination)).toContain("skills/coding-standards/SKILL.md");
     expect(skillTasks.map((t) => t.destination)).toContain("skills/agent-orchestration/SKILL.md");
     expect(skillTasks.map((t) => t.destination)).toContain("skills/telemetry-dashboard/SKILL.md");
@@ -89,9 +89,9 @@ describe("buildGovernanceManifest", () => {
     expect(ruleTasks.map((t) => t.destination)).toContain("rules/common/agents.md");
     expect(ruleTasks.map((t) => t.destination)).toContain("rules/common/knowledge.md");
 
-    // Core + wiki commands + wiki compilation commands + wiki trust commands: 35 + 3 + 2 + 3 = 43
+    // Core + wiki commands + wiki compilation commands + wiki trust commands + Hermes commands: 35 + 3 + 2 + 3 + 2 = 45
     const commandTasks = tasks.filter((t) => t.destination.startsWith("commands/"));
-    expect(commandTasks).toHaveLength(43);
+    expect(commandTasks).toHaveLength(45);
     expect(commandTasks.map((t) => t.destination)).toContain("commands/plan.md");
     expect(commandTasks.map((t) => t.destination)).toContain("commands/sync.md");
     expect(commandTasks.map((t) => t.destination)).toContain("commands/telemetry-report.md");
@@ -152,9 +152,9 @@ describe("buildGovernanceManifest", () => {
     expect(evalTasks.map((t) => t.destination)).toContain("evals/golden-tasks/tasks/security-review.json");
     expect(evalTasks.map((t) => t.destination)).toContain("evals/golden-tasks/tasks/refactor-extract.json");
 
-    // .bbg scripts: telemetry + eval + org + interview + policy + context + workflow + knowledge + provenance
+    // .bbg scripts: telemetry + eval + org + interview + policy + context + workflow + knowledge + provenance + Hermes
     const bbgScriptTasks = tasks.filter((t) => t.destination.startsWith(".bbg/scripts/"));
-    expect(bbgScriptTasks).toHaveLength(11);
+    expect(bbgScriptTasks).toHaveLength(12);
     expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/telemetry-init.sql");
     expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/telemetry-report.sql");
     expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/eval-schema.sql");
@@ -192,7 +192,7 @@ describe("buildGovernanceManifest", () => {
     const wikiDocTasks = tasks.filter(
       (t) => t.destination.startsWith("docs/wiki/") || t.destination === "docs/raw/README.md",
     );
-    expect(wikiDocTasks).toHaveLength(11);
+    expect(wikiDocTasks).toHaveLength(12);
     expect(destinations).toContain("docs/raw/README.md");
     expect(destinations).toContain("docs/wiki/index.md");
     expect(destinations).toContain("docs/wiki/log.md");
@@ -208,6 +208,12 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain(".bbg/knowledge/README.md");
     expect(destinations).toContain(".bbg/scripts/knowledge-schema.sql");
     expect(destinations).toContain(".bbg/scripts/knowledge-provenance.sql");
+    expect(destinations).toContain("commands/hermes-log.md");
+    expect(destinations).toContain("commands/hermes-candidates.md");
+    expect(destinations).toContain("skills/hermes-runtime/SKILL.md");
+    expect(destinations).toContain("skills/hermes-evaluation/SKILL.md");
+    expect(destinations).toContain("docs/wiki/processes/hermes-runtime.md");
+    expect(destinations).toContain(".bbg/scripts/hermes-schema.sql");
 
     const knowledgeTasks = tasks.filter(
       (t) => t.destination === ".bbg/knowledge/README.md" || t.destination === ".bbg/scripts/knowledge-schema.sql",
@@ -216,13 +222,23 @@ describe("buildGovernanceManifest", () => {
 
     expect(destinations).not.toContain("docs/wiki/reports/red-team-findings-summary.md");
 
-    // Total: 173
-    expect(tasks).toHaveLength(173);
+    // Total: 179
+    expect(tasks).toHaveLength(179);
   });
 
   it("includes typescript-specific governance files when typescript repo present", () => {
     const config = createMinimalConfig({
-      repos: [makeRepo({ stack: { language: "typescript", framework: "react", buildTool: "vite", testFramework: "vitest", packageManager: "npm" } })],
+      repos: [
+        makeRepo({
+          stack: {
+            language: "typescript",
+            framework: "react",
+            buildTool: "vite",
+            testFramework: "vitest",
+            packageManager: "npm",
+          },
+        }),
+      ],
     });
     const ctx = buildTemplateContext(config);
     const tasks = buildGovernanceManifest(ctx);
@@ -259,8 +275,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/wiki/processes/knowledge-trust-model.md");
     expect(destinations).toContain(".bbg/scripts/knowledge-provenance.sql");
 
-    // Total: 188
-    expect(tasks).toHaveLength(188);
+    // Total: 194
+    expect(tasks).toHaveLength(194);
   });
 
   it("includes files for multiple languages (python + typescript)", () => {
@@ -269,14 +285,26 @@ describe("buildGovernanceManifest", () => {
         makeRepo({
           name: "web",
           type: "frontend-web",
-          stack: { language: "typescript", framework: "react", buildTool: "vite", testFramework: "vitest", packageManager: "npm" },
+          stack: {
+            language: "typescript",
+            framework: "react",
+            buildTool: "vite",
+            testFramework: "vitest",
+            packageManager: "npm",
+          },
         }),
         makeRepo({
           name: "api",
           gitUrl: "https://github.com/test/api.git",
           type: "backend",
           description: "api server",
-          stack: { language: "python", framework: "fastapi", buildTool: "pip", testFramework: "pytest", packageManager: "pip" },
+          stack: {
+            language: "python",
+            framework: "fastapi",
+            buildTool: "pip",
+            testFramework: "pytest",
+            packageManager: "pip",
+          },
         }),
       ],
     });
@@ -322,8 +350,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
     expect(destinations).toContain("docs/wiki/reports/red-team-findings-summary.md");
 
-    // Total: 208
-    expect(tasks).toHaveLength(208);
+    // Total: 214
+    expect(tasks).toHaveLength(214);
   });
 
   it("includes red team governance files for backend Java project", () => {
@@ -355,8 +383,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
     expect(destinations).toContain("docs/wiki/reports/red-team-findings-summary.md");
 
-    // Total: core(173) + java(14) + backend(6) = 193
-    expect(tasks).toHaveLength(193);
+    // Total: core(179) + java(14) + backend(6) = 199
+    expect(tasks).toHaveLength(199);
   });
 
   it("excludes red team governance files for frontend-only project", () => {

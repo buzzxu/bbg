@@ -35,3 +35,24 @@ safer for the team.
 Teams should not hand-edit `.bbg/knowledge.db` directly. Update raw sources and wiki
 pages through the documented workflows instead, then let BBG-managed processes rebuild
 or refresh the metadata layer when those workflows are available.
+
+## Hermes Runtime Responsibilities
+
+Hermes runtime metadata complements the canonical knowledge database by recording:
+
+- execution runs
+- run artifacts
+- structured evaluations
+- candidate objects
+- candidate evidence links
+
+These records are the raw learning substrate for later distillation and promotion
+workflows. They do not replace trusted wiki pages or promotion decisions.
+
+By default, Hermes tables can live in the same `.bbg/knowledge.db`, initialized from
+the companion `.bbg/scripts/hermes-schema.sql` file alongside the canonical knowledge
+schema.
+
+Existing projects must apply `.bbg/scripts/hermes-schema.sql` to the current
+database (or rebuild from the latest schema set) before using Hermes-backed
+workflows.

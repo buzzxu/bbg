@@ -228,13 +228,7 @@ const MCP_CONFIG_FILES = ["mcp-servers.json", "README.md"];
 const WORKFLOW_FILES = {
   scripts: ["workflow-schema.sql"],
   schema: ["schema.json"],
-  presets: [
-    "tdd-feature.yaml",
-    "bugfix.yaml",
-    "security-audit.yaml",
-    "release-prep.yaml",
-    "full-feature.yaml",
-  ],
+  presets: ["tdd-feature.yaml", "bugfix.yaml", "security-audit.yaml", "release-prep.yaml", "full-feature.yaml"],
 };
 
 const BACKEND_WEB_FRAMEWORKS = new Set([
@@ -296,7 +290,11 @@ const WIKI_COMPILATION_COMMANDS = ["wiki-compile", "wiki-refresh"];
 
 const WIKI_TRUST_SKILLS = ["wiki-auditor", "wiki-provenance", "wiki-distillation"];
 
+const HERMES_SKILLS = ["hermes-runtime", "hermes-evaluation"];
+
 const WIKI_TRUST_COMMANDS = ["wiki-audit", "wiki-stale", "wiki-promote"];
+
+const HERMES_COMMANDS = ["hermes-log", "hermes-candidates"];
 
 const WIKI_DOC_FILES = [
   "docs/raw/README.md",
@@ -315,6 +313,10 @@ const WIKI_COMPILED_DOC_FILES = [
 ];
 
 const WIKI_TRUST_DOC_FILES = ["docs/wiki/processes/knowledge-trust-model.md"];
+
+const HERMES_DOC_FILES = ["docs/wiki/processes/hermes-runtime.md"];
+
+const HERMES_SCRIPTS = ["hermes-schema.sql"];
 
 const BACKEND_WIKI_COMPILED_DOC_FILES = ["docs/wiki/reports/red-team-findings-summary.md"];
 
@@ -384,10 +386,7 @@ function isBackendProject(ctx: TemplateContext): boolean {
  * language-specific agents / skills / rules / commands are only included when
  * that language is detected in the project.
  */
-export function buildGovernanceManifest(
-  ctx: TemplateContext,
-  plugins?: LoadedPlugin[],
-): RenderTemplateTask[] {
+export function buildGovernanceManifest(ctx: TemplateContext, plugins?: LoadedPlugin[]): RenderTemplateTask[] {
   const tasks: RenderTemplateTask[] = [];
   const langs = detectLanguages(ctx);
 
@@ -402,7 +401,14 @@ export function buildGovernanceManifest(
   }
 
   // --- Skills ---
-  for (const skill of [...CORE_SKILLS, ...OPERATIONS_SKILLS, ...WIKI_SKILLS, ...WIKI_COMPILATION_SKILLS, ...WIKI_TRUST_SKILLS]) {
+  for (const skill of [
+    ...CORE_SKILLS,
+    ...OPERATIONS_SKILLS,
+    ...WIKI_SKILLS,
+    ...WIKI_COMPILATION_SKILLS,
+    ...WIKI_TRUST_SKILLS,
+    ...HERMES_SKILLS,
+  ]) {
     tasks.push(copyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
   }
   for (const lang of langs) {
@@ -423,7 +429,13 @@ export function buildGovernanceManifest(
   }
 
   // --- Commands ---
-  for (const cmd of [...CORE_COMMANDS, ...WIKI_COMMANDS, ...WIKI_COMPILATION_COMMANDS, ...WIKI_TRUST_COMMANDS]) {
+  for (const cmd of [
+    ...CORE_COMMANDS,
+    ...WIKI_COMMANDS,
+    ...WIKI_COMPILATION_COMMANDS,
+    ...WIKI_TRUST_COMMANDS,
+    ...HERMES_COMMANDS,
+  ]) {
     tasks.push(copyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
   }
   for (const lang of langs) {
@@ -439,9 +451,7 @@ export function buildGovernanceManifest(
 
   // --- Contexts (Handlebars-rendered) ---
   for (const ctxFile of CONTEXT_HBS_FILES) {
-    tasks.push(
-      handlebarsTask(`handlebars/contexts/${ctxFile}.hbs`, `contexts/${ctxFile}`),
-    );
+    tasks.push(handlebarsTask(`handlebars/contexts/${ctxFile}.hbs`, `contexts/${ctxFile}`));
   }
 
   // --- MCP Configs ---
@@ -521,6 +531,9 @@ export function buildGovernanceManifest(
   for (const script of KNOWLEDGE_PROVENANCE_SCRIPTS) {
     tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
   }
+  for (const script of HERMES_SCRIPTS) {
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+  }
 
   // --- Wiki Scaffold Docs ---
   for (const wikiFile of WIKI_DOC_FILES) {
@@ -534,6 +547,9 @@ export function buildGovernanceManifest(
 
   // --- Wiki Trust Docs ---
   for (const wikiFile of WIKI_TRUST_DOC_FILES) {
+    tasks.push(copyTask(`generic/${wikiFile}`, wikiFile));
+  }
+  for (const wikiFile of HERMES_DOC_FILES) {
     tasks.push(copyTask(`generic/${wikiFile}`, wikiFile));
   }
 
@@ -570,11 +586,15 @@ export const GOVERNANCE_MANIFEST = {
   wikiSkills: WIKI_SKILLS,
   wikiCompilationSkills: WIKI_COMPILATION_SKILLS,
   wikiTrustSkills: WIKI_TRUST_SKILLS,
+  hermesSkills: HERMES_SKILLS,
   wikiCommands: WIKI_COMMANDS,
   wikiCompilationCommands: WIKI_COMPILATION_COMMANDS,
   wikiTrustCommands: WIKI_TRUST_COMMANDS,
+  hermesCommands: HERMES_COMMANDS,
   wikiDocFiles: WIKI_DOC_FILES,
   wikiCompiledDocFiles: WIKI_COMPILED_DOC_FILES,
   wikiTrustDocFiles: WIKI_TRUST_DOC_FILES,
+  hermesDocFiles: HERMES_DOC_FILES,
+  hermesScripts: HERMES_SCRIPTS,
   backendWikiCompiledDocFiles: BACKEND_WIKI_COMPILED_DOC_FILES,
 } as const;

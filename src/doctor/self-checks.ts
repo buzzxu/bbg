@@ -9,12 +9,7 @@ export interface SelfCheckResult {
   checks: DoctorCheckResult[];
 }
 
-function buildCheck(
-  id: string,
-  severity: DoctorSeverity,
-  passed: boolean,
-  message: string,
-): DoctorCheckResult {
+function buildCheck(id: string, severity: DoctorSeverity, passed: boolean, message: string): DoctorCheckResult {
   return { id, checkId: id, severity, passed, message };
 }
 
@@ -108,6 +103,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const skill of GOVERNANCE_MANIFEST.wikiTrustSkills) {
     allManifestPaths.add(`skills/${skill}/SKILL.md`);
   }
+  for (const skill of GOVERNANCE_MANIFEST.hermesSkills) {
+    allManifestPaths.add(`skills/${skill}/SKILL.md`);
+  }
   for (const skills of Object.values(GOVERNANCE_MANIFEST.languageSkills)) {
     for (const skill of skills) {
       allManifestPaths.add(`skills/${skill}/SKILL.md`);
@@ -133,6 +131,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const cmd of GOVERNANCE_MANIFEST.wikiTrustCommands) {
     allManifestPaths.add(`commands/${cmd}.md`);
   }
+  for (const cmd of GOVERNANCE_MANIFEST.hermesCommands) {
+    allManifestPaths.add(`commands/${cmd}.md`);
+  }
   for (const cmds of Object.values(GOVERNANCE_MANIFEST.languageCommands)) {
     for (const cmd of cmds) {
       allManifestPaths.add(`commands/${cmd}.md`);
@@ -145,6 +146,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
     allManifestPaths.add(wikiDoc);
   }
   for (const file of GOVERNANCE_MANIFEST.wikiTrustDocFiles) {
+    allManifestPaths.add(file);
+  }
+  for (const file of GOVERNANCE_MANIFEST.hermesDocFiles) {
     allManifestPaths.add(file);
   }
   for (const wikiDoc of GOVERNANCE_MANIFEST.backendWikiCompiledDocFiles) {
@@ -160,6 +164,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
     allManifestPaths.add(`.bbg/scripts/${script}`);
   }
   for (const script of GOVERNANCE_MANIFEST.knowledgeProvenanceScripts) {
+    allManifestPaths.add(`.bbg/scripts/${script}`);
+  }
+  for (const script of GOVERNANCE_MANIFEST.hermesScripts) {
     allManifestPaths.add(`.bbg/scripts/${script}`);
   }
   for (const script of GOVERNANCE_MANIFEST.backendGovernance.scripts) {
@@ -222,10 +229,7 @@ export async function runSelfChecks(packageRoot: string): Promise<SelfCheckResul
   checks.push(await checkFilesExist(packageRoot, "self-agents-exist", "agent", coreAgentPaths));
 
   // Check core + operations skill files
-  const allCoreSkills = [
-    ...GOVERNANCE_MANIFEST.coreSkills,
-    ...GOVERNANCE_MANIFEST.operationsSkills,
-  ];
+  const allCoreSkills = [...GOVERNANCE_MANIFEST.coreSkills, ...GOVERNANCE_MANIFEST.operationsSkills];
   const skillPaths = allCoreSkills.map((s) => `skills/${s}/SKILL.md`);
   checks.push(await checkFilesExist(packageRoot, "self-skills-exist", "skill", skillPaths));
 
@@ -238,12 +242,7 @@ export async function runSelfChecks(packageRoot: string): Promise<SelfCheckResul
   checks.push(await checkFilesExist(packageRoot, "self-commands-exist", "command", cmdPaths));
 
   checks.push(
-    await checkFilesExist(
-      packageRoot,
-      "self-wiki-docs-exist",
-      "wiki scaffold",
-      GOVERNANCE_MANIFEST.wikiDocFiles,
-    ),
+    await checkFilesExist(packageRoot, "self-wiki-docs-exist", "wiki scaffold", GOVERNANCE_MANIFEST.wikiDocFiles),
   );
   checks.push(
     await checkFilesExist(
@@ -291,6 +290,33 @@ export async function runSelfChecks(packageRoot: string): Promise<SelfCheckResul
       "self-wiki-trust-commands-exist",
       "wiki trust command",
       GOVERNANCE_MANIFEST.wikiTrustCommands.map((cmd) => `commands/${cmd}.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-hermes-skills-exist",
+      "Hermes skill",
+      GOVERNANCE_MANIFEST.hermesSkills.map((skill) => `skills/${skill}/SKILL.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-hermes-commands-exist",
+      "Hermes command",
+      GOVERNANCE_MANIFEST.hermesCommands.map((cmd) => `commands/${cmd}.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(packageRoot, "self-hermes-docs-exist", "Hermes doc", GOVERNANCE_MANIFEST.hermesDocFiles),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-hermes-scripts-exist",
+      "Hermes script",
+      GOVERNANCE_MANIFEST.hermesScripts.map((script) => `.bbg/scripts/${script}`),
     ),
   );
   checks.push(
