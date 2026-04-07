@@ -77,11 +77,12 @@ describe("buildGovernanceManifest", () => {
     expect(skillTasks.map((t) => t.destination)).toContain("skills/session-memory/SKILL.md");
     expect(skillTasks.map((t) => t.destination)).toContain("skills/workflow-orchestration/SKILL.md");
 
-    // Common rules: 8
+    // Common rules: 9
     const ruleTasks = tasks.filter((t) => t.destination.startsWith("rules/"));
-    expect(ruleTasks).toHaveLength(8);
+    expect(ruleTasks).toHaveLength(9);
     expect(ruleTasks.map((t) => t.destination)).toContain("rules/common/coding-style.md");
     expect(ruleTasks.map((t) => t.destination)).toContain("rules/common/agents.md");
+    expect(ruleTasks.map((t) => t.destination)).toContain("rules/common/knowledge.md");
 
     // Core + wiki commands: 35 + 3 = 38
     const commandTasks = tasks.filter((t) => t.destination.startsWith("commands/"));
@@ -188,8 +189,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/wiki/reports/README.md");
     expect(destinations).toContain("docs/wiki/processes/README.md");
 
-    // Total: 155
-    expect(tasks).toHaveLength(155);
+    // Total: 156
+    expect(tasks).toHaveLength(156);
   });
 
   it("includes typescript-specific governance files when typescript repo present", () => {
@@ -227,8 +228,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain(".bbg/scripts/build-symbol-map-ts.js");
     expect(destinations).not.toContain(".bbg/scripts/build-symbol-map-python.py");
 
-    // Total: 170
-    expect(tasks).toHaveLength(170);
+    // Total: 171
+    expect(tasks).toHaveLength(171);
   });
 
   it("includes files for multiple languages (python + typescript)", () => {
@@ -289,8 +290,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/security/backend-red-team-playbook.md");
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
 
-    // Total: 189
-    expect(tasks).toHaveLength(189);
+    // Total: 190
+    expect(tasks).toHaveLength(190);
   });
 
   it("includes red team governance files for backend Java project", () => {
@@ -321,8 +322,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/security/backend-red-team-playbook.md");
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
 
-    // Total: core(155) + java(14) + backend(5) = 174
-    expect(tasks).toHaveLength(174);
+    // Total: core(156) + java(14) + backend(5) = 175
+    expect(tasks).toHaveLength(175);
   });
 
   it("excludes red team governance files for frontend-only project", () => {

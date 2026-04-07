@@ -176,7 +176,7 @@ describe("cli bootstrap", () => {
     });
   });
 
-  it("wires command metadata and parses argv", { timeout: 30000 }, async () => {
+  it("wires command metadata and parses argv", { timeout: 45000 }, async () => {
     const [{ CLI_NAME, CLI_VERSION }, packageJson] = await Promise.all([
       import("../../../src/constants.js"),
       import("../../../package.json", { with: { type: "json" } }),

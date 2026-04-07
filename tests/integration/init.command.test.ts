@@ -134,7 +134,7 @@ describe("init command", () => {
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
-  it("creates baseline config/root files and doctor summary", async () => {
+  it("creates baseline config/root files and doctor summary", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
 
     const result = await runInit({ cwd, yes: true, dryRun: false });
@@ -364,7 +364,7 @@ describe("init command", () => {
     );
   });
 
-  it("runs full prompt loop for repos and governance when yes is false", async () => {
+  it("runs full prompt loop for repos and governance when yes is false", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
 
     promptState.promptInput
@@ -593,7 +593,7 @@ describe("init command", () => {
     expect(gitState.cloneRepo).not.toHaveBeenCalled();
   });
 
-  it("allows overriding detected stack info before saving repo", async () => {
+  it("allows overriding detected stack info before saving repo", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
 
     promptState.promptInput

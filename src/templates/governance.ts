@@ -118,6 +118,7 @@ const COMMON_RULES = [
   "patterns",
   "hooks",
   "agents",
+  "knowledge",
 ];
 
 const LANGUAGE_RULES: Record<string, string[]> = {

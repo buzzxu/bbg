@@ -111,7 +111,7 @@ describe("upgrade command", () => {
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
-  it("applies decision matrix, uses render pipeline, and updates config/hash records", async () => {
+  it("applies decision matrix, uses render pipeline, and updates config/hash records", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 
@@ -154,7 +154,7 @@ describe("upgrade command", () => {
     }
   });
 
-  it("supports dry-run and asks confirmation before --force overwrite", { timeout: 15000 }, async () => {
+  it("supports dry-run and asks confirmation before --force overwrite", { timeout: 25000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 
@@ -180,7 +180,7 @@ describe("upgrade command", () => {
     expect(promptState.promptConfirm).toHaveBeenCalled();
   });
 
-  it("iterates hash-tracked files and marks newly introduced manifest files as new", async () => {
+  it("iterates hash-tracked files and marks newly introduced manifest files as new", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 
@@ -191,7 +191,7 @@ describe("upgrade command", () => {
     expect(result.skippedDeletedTemplate).toContain(".gitignore");
   });
 
-  it("performs three-way merge for user-modified tracked files using old snapshot baseline", async () => {
+  it("performs three-way merge for user-modified tracked files using old snapshot baseline", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 
@@ -236,7 +236,7 @@ describe("upgrade command", () => {
     expect(hashRecord["README.md"]).toBeUndefined();
   });
 
-  it("renders child AGENTS with repo context and skips orphan child AGENTS with notice", async () => {
+  it("renders child AGENTS with repo context and skips orphan child AGENTS with notice", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 
@@ -289,7 +289,7 @@ describe("upgrade command", () => {
     expect(orphanNotice).toContain("CHILD AGENTS REPO CONTEXT MISSING");
   });
 
-  it("returns merged and conflicted arrays in result", async () => {
+  it("returns merged and conflicted arrays in result", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 

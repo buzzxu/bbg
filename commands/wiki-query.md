@@ -10,26 +10,45 @@ Answer questions using the wiki as the primary knowledge source, falling back to
 /wiki-query "What changed after the last incident review?"
 ```
 
+## Query Order
+1. Read `docs/wiki/index.md`
+2. Read the minimum relevant wiki pages
+3. Answer from wiki evidence first
+4. Read raw sources only when the wiki is missing or ambiguous
+5. Suggest promotion only if the answer adds durable project knowledge
+
 ## Process
 1. **Start at the index** — Read `docs/wiki/index.md` first to locate the relevant wiki pages
 2. **Read minimal wiki evidence** — Read only the wiki pages needed to answer the question accurately
 3. **Answer wiki-first** — Form the response from wiki content before consulting raw sources
-4. **Escalate only if needed** — Read raw sources only when the wiki is missing evidence, incomplete, or conflicting
+4. **Escalate only if needed** — Read raw sources only when the wiki is missing evidence, incomplete, or ambiguous
 5. **Cite wiki pages** — Name the wiki pages used so the answer is traceable
-6. **Suggest promotion** — If the answer has lasting value that is not yet captured well in the wiki, recommend promoting that knowledge into the wiki
+6. **Classify the answer** — Decide whether the result is ephemeral troubleshooting context or durable project knowledge
+7. **Suggest promotion only for durable knowledge** — Recommend promotion when the answer is likely to be asked again, explains a decision/process/recurring pattern, or synthesizes multiple sources into a stable conclusion
 
 ## Output
 - Direct answer to the question
 - Wiki pages consulted
 - Any raw sources consulted, if needed
-- Recommendation for wiki promotion when the answer should become durable documentation
+- Answer classification: ephemeral or durable
+- Recommendation for wiki promotion only when the answer should become durable documentation
 
 ## Rules
 - Always consult `docs/wiki/index.md` before anything else
 - Prefer wiki evidence over raw-source re-interpretation
 - Cite the wiki pages used in the answer
-- Use raw sources only to fill gaps or resolve uncertainty
-- Suggest wiki promotion when the answer reveals durable knowledge that should persist
+- Use raw sources only to fill gaps or resolve ambiguity
+- Separate answering the question from deciding whether to promote the result
+- Suggest wiki promotion only when the answer reveals durable knowledge that should persist
+
+## Promotion Heuristics
+Promote the answer into the wiki when it:
+
+- is likely to be asked again
+- explains a decision, process, or recurring pattern
+- synthesizes multiple sources into a stable conclusion
+
+Do not treat every useful answer as a promotion candidate. Ephemeral one-off troubleshooting notes should go to `docs/wiki/log.md`, not necessarily a formal wiki page.
 
 ## Examples
 ```

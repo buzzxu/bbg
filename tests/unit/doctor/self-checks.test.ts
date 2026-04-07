@@ -21,6 +21,7 @@ async function createMinimalGovernance(root: string): Promise<void> {
   await writeTextFile(join(root, "skills", "wiki-query", "SKILL.md"), "# Wiki Query\n\n## Related\n");
   await writeTextFile(join(root, "skills", "wiki-lint", "SKILL.md"), "# Wiki Lint\n\n## Related\n");
   await writeTextFile(join(root, "rules", "common", "coding-style.md"), "# Coding Style\n\n## Related\n");
+  await writeTextFile(join(root, "rules", "common", "knowledge.md"), "# Knowledge Layer: Common\n\n## Related\n");
   await writeTextFile(join(root, "commands", "plan.md"), "# Plan\n\n## Related\n");
   await writeTextFile(join(root, "commands", "wiki-ingest.md"), "# /wiki-ingest\n\n## Related\n");
   await writeTextFile(join(root, "commands", "wiki-query.md"), "# /wiki-query\n\n## Related\n");

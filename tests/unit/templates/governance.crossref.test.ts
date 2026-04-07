@@ -5,6 +5,13 @@ import { join, resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../../..");
 
+type GovernanceDoc = {
+  path: string;
+  relativePath: string;
+  content: string;
+  relatedSection: string;
+};
+
 function getGovernanceFiles(): string[] {
   const files: string[] = [];
 
@@ -41,19 +48,30 @@ function getGovernanceFiles(): string[] {
   return files;
 }
 
+function loadGovernanceDocs(): GovernanceDoc[] {
+  return getGovernanceFiles().map((file) => {
+    const content = readFileSync(file, "utf8");
+    return {
+      path: file,
+      relativePath: file.replace(ROOT + "/", ""),
+      content,
+      relatedSection: content.split("## Related")[1] ?? "",
+    };
+  });
+}
+
 describe("governance cross-references", () => {
-  const files = getGovernanceFiles();
+  const docs = loadGovernanceDocs();
 
   it("finds governance files to validate", () => {
-    expect(files.length).toBeGreaterThanOrEqual(156);
+    expect(docs.length).toBeGreaterThanOrEqual(156);
   });
 
   it("all governance docs have a Related section", () => {
     const missing: string[] = [];
-    for (const file of files) {
-      const content = readFileSync(file, "utf8");
-      if (!content.includes("## Related")) {
-        missing.push(file.replace(ROOT + "/", ""));
+    for (const doc of docs) {
+      if (!doc.content.includes("## Related")) {
+        missing.push(doc.relativePath);
       }
     }
     expect(missing).toEqual([]);
@@ -61,9 +79,8 @@ describe("governance cross-references", () => {
 
   it("all relative links in Related sections point to existing files", () => {
     const brokenLinks: string[] = [];
-    for (const file of files) {
-      const content = readFileSync(file, "utf8");
-      const relatedSection = content.split("## Related")[1];
+    for (const doc of docs) {
+      const relatedSection = doc.relatedSection;
       if (!relatedSection) continue;
 
       const linkPattern = /\]\(([^)]+)\)/g;
@@ -71,9 +88,9 @@ describe("governance cross-references", () => {
       while ((match = linkPattern.exec(relatedSection)) !== null) {
         const linkPath = match[1];
         if (linkPath.startsWith("http")) continue;
-        const resolvedPath = resolve(join(file, ".."), linkPath);
+        const resolvedPath = resolve(join(doc.path, ".."), linkPath);
         if (!existsSync(resolvedPath)) {
-          brokenLinks.push(`${file.replace(ROOT + "/", "")}: ${linkPath}`);
+          brokenLinks.push(`${doc.relativePath}: ${linkPath}`);
         }
       }
     }
