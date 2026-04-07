@@ -1,5 +1,17 @@
 -- hermes-schema.sql -- Local Hermes runtime / evaluation / candidate schema
 
+-- Existing Hermes databases need a one-time migration before the K7A distillation
+-- fields are available on hermes_candidates. Apply the following statements after
+-- backing up the database:
+--
+-- ALTER TABLE hermes_candidates ADD COLUMN draft_kind TEXT;
+-- ALTER TABLE hermes_candidates ADD COLUMN draft_path TEXT;
+-- ALTER TABLE hermes_candidates ADD COLUMN distilled_at TEXT;
+--
+-- Existing SQLite tables will keep their previous status CHECK constraint. If you
+-- need `distilled` enforced at the database level for upgraded installs, rebuild
+-- `hermes_candidates` from the latest schema after exporting data.
+
 CREATE TABLE IF NOT EXISTS hermes_runs (
   run_id            TEXT PRIMARY KEY,
   task_type         TEXT NOT NULL,
@@ -43,11 +55,14 @@ CREATE TABLE IF NOT EXISTS hermes_candidates (
   candidate_id      TEXT PRIMARY KEY,
   source_run_id     TEXT NOT NULL,
   candidate_type    TEXT NOT NULL CHECK (candidate_type IN ('wiki', 'skill', 'rule', 'workflow', 'eval', 'memory')),
+  draft_kind       TEXT CHECK (draft_kind IN ('wiki', 'process')),
+  draft_path       TEXT,
   proposed_target   TEXT,
   rationale         TEXT,
   confidence        TEXT NOT NULL CHECK (confidence IN ('low', 'medium', 'high')),
-  status            TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'local_only', 'rejected', 'superseded')),
+  status            TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'distilled', 'local_only', 'rejected', 'superseded')),
   created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  distilled_at     TEXT,
   reviewed_at       TEXT,
   FOREIGN KEY (source_run_id) REFERENCES hermes_runs(run_id) ON DELETE CASCADE
 );
