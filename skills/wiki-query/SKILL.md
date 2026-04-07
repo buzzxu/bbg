@@ -16,6 +16,7 @@ Use this skill to answer questions from the wiki before falling back to raw sour
 - Use it to locate the smallest relevant set of wiki pages
 
 ### Step 2: Read the minimum relevant wiki pages
+- Prefer an existing compiled report or process page when it already covers the question and is not marked `stale` or `superseded`
 - Read only the pages needed to answer accurately
 - Prefer direct evidence over broad exploratory reading
 
@@ -26,6 +27,7 @@ Use this skill to answer questions from the wiki before falling back to raw sour
 ### Step 4: Read raw sources only if needed
 - Escalate to `docs/raw/` only when the wiki is missing evidence, incomplete, or ambiguous
 - Keep any raw-source use narrow and specific to the gap
+- Do not reopen lower-level telemetry, eval, workflow, or red-team artifacts when a maintained compiled page already answers the question unless that page is `stale` or `superseded`
 
 ### Step 5: Distinguish answering from promotion
 - Finish the answer before deciding whether any wiki update is needed
@@ -60,7 +62,7 @@ Use this skill to answer questions from the wiki before falling back to raw sour
 
 ## Query Order
 1. Read `docs/wiki/index.md`
-2. Read the minimum relevant wiki pages
+2. Prefer compiled report or process pages when present and not marked `stale` or `superseded`
 3. Answer from wiki evidence first
 4. Read raw sources only when the wiki is missing or ambiguous
 5. Suggest promotion only if the answer adds durable project knowledge

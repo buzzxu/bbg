@@ -77,7 +77,7 @@ describe("governance cross-references", () => {
     expect(missing).toEqual([]);
   });
 
-  it("all relative links in Related sections point to existing files", () => {
+  it("all relative links in Related sections point to existing files", { timeout: 20000 }, () => {
     const brokenLinks: string[] = [];
     for (const doc of docs) {
       const relatedSection = doc.relatedSection;

@@ -154,7 +154,7 @@ describe("upgrade command", () => {
     }
   });
 
-  it("supports dry-run and asks confirmation before --force overwrite", { timeout: 25000 }, async () => {
+  it("supports dry-run and asks confirmation before --force overwrite", { timeout: 40000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 

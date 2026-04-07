@@ -20,12 +20,16 @@ async function createMinimalGovernance(root: string): Promise<void> {
   await writeTextFile(join(root, "skills", "wiki-ingestion", "SKILL.md"), "# Wiki Ingestion\n\n## Related\n");
   await writeTextFile(join(root, "skills", "wiki-query", "SKILL.md"), "# Wiki Query\n\n## Related\n");
   await writeTextFile(join(root, "skills", "wiki-lint", "SKILL.md"), "# Wiki Lint\n\n## Related\n");
+  await writeTextFile(join(root, "skills", "wiki-compilation", "SKILL.md"), "# Wiki Compilation\n\n## Related\n");
+  await writeTextFile(join(root, "skills", "wiki-maintenance", "SKILL.md"), "# Wiki Maintenance\n\n## Related\n");
   await writeTextFile(join(root, "rules", "common", "coding-style.md"), "# Coding Style\n\n## Related\n");
   await writeTextFile(join(root, "rules", "common", "knowledge.md"), "# Knowledge Layer: Common\n\n## Related\n");
   await writeTextFile(join(root, "commands", "plan.md"), "# Plan\n\n## Related\n");
   await writeTextFile(join(root, "commands", "wiki-ingest.md"), "# /wiki-ingest\n\n## Related\n");
   await writeTextFile(join(root, "commands", "wiki-query.md"), "# /wiki-query\n\n## Related\n");
   await writeTextFile(join(root, "commands", "wiki-lint.md"), "# /wiki-lint\n\n## Related\n");
+  await writeTextFile(join(root, "commands", "wiki-compile.md"), "# /wiki-compile\n\n## Related\n");
+  await writeTextFile(join(root, "commands", "wiki-refresh.md"), "# /wiki-refresh\n\n## Related\n");
   await writeTextFile(join(root, "docs", "raw", "README.md"), "# Raw Sources\n");
   await writeTextFile(join(root, "docs", "wiki", "index.md"), "# Wiki Index\n");
   await writeTextFile(join(root, "docs", "wiki", "log.md"), "# Wiki Log\n");
@@ -33,6 +37,10 @@ async function createMinimalGovernance(root: string): Promise<void> {
   await writeTextFile(join(root, "docs", "wiki", "decisions", "README.md"), "# Decisions\n");
   await writeTextFile(join(root, "docs", "wiki", "reports", "README.md"), "# Reports\n");
   await writeTextFile(join(root, "docs", "wiki", "processes", "README.md"), "# Processes\n");
+  await writeTextFile(join(root, "docs", "wiki", "reports", "regression-risk-summary.md"), "# Regression Risk Summary\n");
+  await writeTextFile(join(root, "docs", "wiki", "reports", "workflow-stability-summary.md"), "# Workflow Stability Summary\n");
+  await writeTextFile(join(root, "docs", "wiki", "reports", "red-team-findings-summary.md"), "# Red Team Findings Summary\n");
+  await writeTextFile(join(root, "docs", "wiki", "processes", "knowledge-compilation.md"), "# Knowledge Compilation\n");
   await writeTextFile(join(root, ".bbg", "knowledge", "README.md"), "# Knowledge Metadata\n");
   await writeTextFile(
     join(root, ".bbg", "scripts", "knowledge-schema.sql"),
@@ -108,6 +116,9 @@ describe("doctor/self-checks", () => {
     const wikiCheck = result.checks.find((c) => c.id === "self-wiki-docs-exist");
     const wikiSkillsCheck = result.checks.find((c) => c.id === "self-wiki-skills-exist");
     const wikiCommandsCheck = result.checks.find((c) => c.id === "self-wiki-commands-exist");
+    const wikiCompilationSkillsCheck = result.checks.find((c) => c.id === "self-wiki-compilation-skills-exist");
+    const wikiCompilationCommandsCheck = result.checks.find((c) => c.id === "self-wiki-compilation-commands-exist");
+    const wikiCompiledDocsCheck = result.checks.find((c) => c.id === "self-wiki-compiled-docs-exist");
     const knowledgeFilesCheck = result.checks.find((c) => c.id === "self-knowledge-files-exist");
     const knowledgeScriptsCheck = result.checks.find((c) => c.id === "self-knowledge-scripts-exist");
     expect(agentCheck).toBeDefined();
@@ -118,6 +129,12 @@ describe("doctor/self-checks", () => {
     expect(wikiSkillsCheck!.passed).toBe(true);
     expect(wikiCommandsCheck).toBeDefined();
     expect(wikiCommandsCheck!.passed).toBe(true);
+    expect(wikiCompilationSkillsCheck).toBeDefined();
+    expect(wikiCompilationSkillsCheck!.passed).toBe(true);
+    expect(wikiCompilationCommandsCheck).toBeDefined();
+    expect(wikiCompilationCommandsCheck!.passed).toBe(true);
+    expect(wikiCompiledDocsCheck).toBeDefined();
+    expect(wikiCompiledDocsCheck!.passed).toBe(true);
     expect(knowledgeFilesCheck).toBeDefined();
     expect(knowledgeFilesCheck!.passed).toBe(true);
     expect(knowledgeScriptsCheck).toBeDefined();
@@ -161,6 +178,22 @@ describe("doctor/self-checks", () => {
     expect(filesCheck!.passed).toBe(false);
     expect(scriptsCheck).toBeDefined();
     expect(scriptsCheck!.passed).toBe(false);
+  });
+
+  it("detects missing wiki compilation assets", async () => {
+    const root = await makeTempDir();
+
+    const result = await runSelfChecks(root);
+
+    const skillsCheck = result.checks.find((c) => c.id === "self-wiki-compilation-skills-exist");
+    const commandsCheck = result.checks.find((c) => c.id === "self-wiki-compilation-commands-exist");
+    const docsCheck = result.checks.find((c) => c.id === "self-wiki-compiled-docs-exist");
+    expect(skillsCheck).toBeDefined();
+    expect(skillsCheck!.passed).toBe(false);
+    expect(commandsCheck).toBeDefined();
+    expect(commandsCheck!.passed).toBe(false);
+    expect(docsCheck).toBeDefined();
+    expect(docsCheck!.passed).toBe(false);
   });
 
   it("detects broken cross-reference links", async () => {

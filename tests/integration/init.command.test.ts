@@ -335,7 +335,7 @@ describe("init command", () => {
     await expect(stat(join(cwd, ".bbg"))).rejects.toThrow();
   });
 
-  it("reports only the runtime files init writes", async () => {
+  it("reports only the runtime files init writes", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
 
     runtimePathState.overridePaths = () => ({

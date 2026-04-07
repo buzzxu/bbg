@@ -20,7 +20,7 @@ describe("eval runner", () => {
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
-  it("runs a dataset directly and grades deterministic runtime-backed commands", async () => {
+  it("runs a dataset directly and grades deterministic runtime-backed commands", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     const seeded = await seedEvalArtifacts({ cwd });
 

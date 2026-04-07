@@ -102,6 +102,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const skill of GOVERNANCE_MANIFEST.wikiSkills) {
     allManifestPaths.add(`skills/${skill}/SKILL.md`);
   }
+  for (const skill of GOVERNANCE_MANIFEST.wikiCompilationSkills) {
+    allManifestPaths.add(`skills/${skill}/SKILL.md`);
+  }
   for (const skills of Object.values(GOVERNANCE_MANIFEST.languageSkills)) {
     for (const skill of skills) {
       allManifestPaths.add(`skills/${skill}/SKILL.md`);
@@ -121,12 +124,21 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const cmd of GOVERNANCE_MANIFEST.wikiCommands) {
     allManifestPaths.add(`commands/${cmd}.md`);
   }
+  for (const cmd of GOVERNANCE_MANIFEST.wikiCompilationCommands) {
+    allManifestPaths.add(`commands/${cmd}.md`);
+  }
   for (const cmds of Object.values(GOVERNANCE_MANIFEST.languageCommands)) {
     for (const cmd of cmds) {
       allManifestPaths.add(`commands/${cmd}.md`);
     }
   }
   for (const wikiDoc of GOVERNANCE_MANIFEST.wikiDocFiles) {
+    allManifestPaths.add(wikiDoc);
+  }
+  for (const wikiDoc of GOVERNANCE_MANIFEST.wikiCompiledDocFiles) {
+    allManifestPaths.add(wikiDoc);
+  }
+  for (const wikiDoc of GOVERNANCE_MANIFEST.backendWikiCompiledDocFiles) {
     allManifestPaths.add(wikiDoc);
   }
   for (const file of GOVERNANCE_MANIFEST.knowledgeFiles) {
@@ -232,9 +244,33 @@ export async function runSelfChecks(packageRoot: string): Promise<SelfCheckResul
   checks.push(
     await checkFilesExist(
       packageRoot,
+      "self-wiki-compilation-skills-exist",
+      "wiki compilation skill",
+      GOVERNANCE_MANIFEST.wikiCompilationSkills.map((skill) => `skills/${skill}/SKILL.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
       "self-wiki-commands-exist",
       "wiki command",
       GOVERNANCE_MANIFEST.wikiCommands.map((cmd) => `commands/${cmd}.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-wiki-compilation-commands-exist",
+      "wiki compilation command",
+      GOVERNANCE_MANIFEST.wikiCompilationCommands.map((cmd) => `commands/${cmd}.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-wiki-compiled-docs-exist",
+      "compiled wiki doc",
+      GOVERNANCE_MANIFEST.wikiCompiledDocFiles,
     ),
   );
   checks.push(

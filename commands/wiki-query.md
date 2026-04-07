@@ -12,19 +12,20 @@ Answer questions using the wiki as the primary knowledge source, falling back to
 
 ## Query Order
 1. Read `docs/wiki/index.md`
-2. Read the minimum relevant wiki pages
+2. Prefer compiled report or process pages created by `/wiki-compile` or `/wiki-refresh` when they exist and are not marked `stale` or `superseded`
 3. Answer from wiki evidence first
 4. Read raw sources only when the wiki is missing or ambiguous
 5. Suggest promotion only if the answer adds durable project knowledge
 
 ## Process
 1. **Start at the index** — Read `docs/wiki/index.md` first to locate the relevant wiki pages
-2. **Read minimal wiki evidence** — Read only the wiki pages needed to answer the question accurately
-3. **Answer wiki-first** — Form the response from wiki content before consulting raw sources
-4. **Escalate only if needed** — Read raw sources only when the wiki is missing evidence, incomplete, or ambiguous
-5. **Cite wiki pages** — Name the wiki pages used so the answer is traceable
-6. **Classify the answer** — Decide whether the result is ephemeral troubleshooting context or durable project knowledge
-7. **Suggest promotion only for durable knowledge** — Recommend promotion when the answer is likely to be asked again, explains a decision/process/recurring pattern, or synthesizes multiple sources into a stable conclusion
+2. **Prefer maintained compiled pages** — Use compiled report or process pages first when they already answer the question and are not marked `stale` or `superseded`
+3. **Read minimal wiki evidence** — Read only the wiki pages needed to answer the question accurately
+4. **Answer wiki-first** — Form the response from wiki content before consulting raw sources
+5. **Escalate only if needed** — Read raw sources only when the wiki is missing evidence, incomplete, or ambiguous
+6. **Cite wiki pages** — Name the wiki pages used so the answer is traceable
+7. **Classify the answer** — Decide whether the result is ephemeral troubleshooting context or durable project knowledge
+8. **Suggest promotion only for durable knowledge** — Recommend promotion when the answer is likely to be asked again, explains a decision/process/recurring pattern, or synthesizes multiple sources into a stable conclusion
 
 ## Output
 - Direct answer to the question

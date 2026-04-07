@@ -286,7 +286,11 @@ const KNOWLEDGE_SCRIPTS = ["knowledge-schema.sql"];
 
 const WIKI_SKILLS = ["wiki-ingestion", "wiki-query", "wiki-lint"];
 
+const WIKI_COMPILATION_SKILLS = ["wiki-compilation", "wiki-maintenance"];
+
 const WIKI_COMMANDS = ["wiki-ingest", "wiki-query", "wiki-lint"];
+
+const WIKI_COMPILATION_COMMANDS = ["wiki-compile", "wiki-refresh"];
 
 const WIKI_DOC_FILES = [
   "docs/raw/README.md",
@@ -297,6 +301,14 @@ const WIKI_DOC_FILES = [
   "docs/wiki/reports/README.md",
   "docs/wiki/processes/README.md",
 ];
+
+const WIKI_COMPILED_DOC_FILES = [
+  "docs/wiki/reports/regression-risk-summary.md",
+  "docs/wiki/reports/workflow-stability-summary.md",
+  "docs/wiki/processes/knowledge-compilation.md",
+];
+
+const BACKEND_WIKI_COMPILED_DOC_FILES = ["docs/wiki/reports/red-team-findings-summary.md"];
 
 /* ------------------------------------------------------------------ */
 /*  Helper: create copy task (all governance files are verbatim copy)  */
@@ -382,7 +394,7 @@ export function buildGovernanceManifest(
   }
 
   // --- Skills ---
-  for (const skill of [...CORE_SKILLS, ...OPERATIONS_SKILLS, ...WIKI_SKILLS]) {
+  for (const skill of [...CORE_SKILLS, ...OPERATIONS_SKILLS, ...WIKI_SKILLS, ...WIKI_COMPILATION_SKILLS]) {
     tasks.push(copyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
   }
   for (const lang of langs) {
@@ -403,7 +415,7 @@ export function buildGovernanceManifest(
   }
 
   // --- Commands ---
-  for (const cmd of [...CORE_COMMANDS, ...WIKI_COMMANDS]) {
+  for (const cmd of [...CORE_COMMANDS, ...WIKI_COMMANDS, ...WIKI_COMPILATION_COMMANDS]) {
     tasks.push(copyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
   }
   for (const lang of langs) {
@@ -454,6 +466,9 @@ export function buildGovernanceManifest(
     for (const doc of BACKEND_GOVERNANCE.docs) {
       tasks.push(copyTask(doc.source, doc.destination));
     }
+    for (const wikiFile of BACKEND_WIKI_COMPILED_DOC_FILES) {
+      tasks.push(copyTask(`generic/${wikiFile}`, wikiFile));
+    }
   }
 
   // --- BBG Scripts ---
@@ -501,6 +516,11 @@ export function buildGovernanceManifest(
     tasks.push(copyTask(`generic/${wikiFile}`, wikiFile));
   }
 
+  // --- Wiki Compiled Docs ---
+  for (const wikiFile of WIKI_COMPILED_DOC_FILES) {
+    tasks.push(copyTask(`generic/${wikiFile}`, wikiFile));
+  }
+
   return mergePluginTemplates(tasks, plugins ?? []);
 }
 
@@ -531,6 +551,10 @@ export const GOVERNANCE_MANIFEST = {
   knowledgeFiles: KNOWLEDGE_FILES,
   knowledgeScripts: KNOWLEDGE_SCRIPTS,
   wikiSkills: WIKI_SKILLS,
+  wikiCompilationSkills: WIKI_COMPILATION_SKILLS,
   wikiCommands: WIKI_COMMANDS,
+  wikiCompilationCommands: WIKI_COMPILATION_COMMANDS,
   wikiDocFiles: WIKI_DOC_FILES,
+  wikiCompiledDocFiles: WIKI_COMPILED_DOC_FILES,
+  backendWikiCompiledDocFiles: BACKEND_WIKI_COMPILED_DOC_FILES,
 } as const;
