@@ -125,10 +125,13 @@ describe("doctor/self-checks", () => {
     expect(knowledgeScriptsCheck!.passed).toBe(true);
     expect(hermesSkillsCheck).toBeDefined();
     expect(hermesSkillsCheck!.passed).toBe(true);
+    expect(getCheck(result, "self-hermes-skills-exist").message).not.toContain("missing");
     expect(hermesCommandsCheck).toBeDefined();
     expect(hermesCommandsCheck!.passed).toBe(true);
+    expect(getCheck(result, "self-hermes-commands-exist").message).not.toContain("missing");
     expect(hermesDocsCheck).toBeDefined();
     expect(hermesDocsCheck!.passed).toBe(true);
+    expect(getCheck(result, "self-hermes-docs-exist").message).not.toContain("missing");
     expect(hermesScriptsCheck).toBeDefined();
     expect(hermesScriptsCheck!.passed).toBe(true);
   });
@@ -154,6 +157,51 @@ describe("doctor/self-checks", () => {
 
     const result = await runSelfChecks(root);
     const check = getCheck(result, "self-hermes-skills-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes command check for a missing K7A distillation command", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "commands/hermes-distill.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-commands-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes skill check for a missing K7A distillation skill", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "skills/hermes-distillation/SKILL.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-skills-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes doc check for a missing K7A distillation process doc", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "docs/wiki/processes/hermes-distillation.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-docs-exist");
 
     expect(result.ok).toBe(false);
     expect(check.passed).toBe(false);
