@@ -33,6 +33,43 @@ async function createMinimalGovernance(root: string): Promise<void> {
   await writeTextFile(join(root, "docs", "wiki", "decisions", "README.md"), "# Decisions\n");
   await writeTextFile(join(root, "docs", "wiki", "reports", "README.md"), "# Reports\n");
   await writeTextFile(join(root, "docs", "wiki", "processes", "README.md"), "# Processes\n");
+  await writeTextFile(join(root, ".bbg", "knowledge", "README.md"), "# Knowledge Metadata\n");
+  await writeTextFile(
+    join(root, ".bbg", "scripts", "knowledge-schema.sql"),
+    "CREATE TABLE IF NOT EXISTS knowledge_sources (id INTEGER);\n",
+  );
+  await writeTextFile(
+    join(root, ".bbg", "scripts", "telemetry-init.sql"),
+    "CREATE TABLE IF NOT EXISTS telemetry_events (id INTEGER);\n",
+  );
+  await writeTextFile(
+    join(root, ".bbg", "scripts", "telemetry-report.sql"),
+    "SELECT 1;\n",
+  );
+  await writeTextFile(
+    join(root, ".bbg", "scripts", "eval-schema.sql"),
+    "CREATE TABLE IF NOT EXISTS eval_runs (id INTEGER);\n",
+  );
+  await writeTextFile(
+    join(root, ".bbg", "scripts", "interview-schema.sql"),
+    "CREATE TABLE IF NOT EXISTS interview_sessions (id INTEGER);\n",
+  );
+  await writeTextFile(
+    join(root, ".bbg", "scripts", "policy-schema.sql"),
+    "CREATE TABLE IF NOT EXISTS policy_decisions (id INTEGER);\n",
+  );
+  await writeTextFile(
+    join(root, ".bbg", "scripts", "context-schema.sql"),
+    "CREATE TABLE IF NOT EXISTS context_snapshots (id INTEGER);\n",
+  );
+  await writeTextFile(
+    join(root, ".bbg", "scripts", "workflow-schema.sql"),
+    "CREATE TABLE IF NOT EXISTS workflow_instances (id INTEGER);\n",
+  );
+  await writeTextFile(
+    join(root, ".bbg", "scripts", "org-schema.sql"),
+    "CREATE TABLE IF NOT EXISTS org_policy_syncs (id INTEGER);\n",
+  );
   await writeTextFile(join(root, "hooks", "hooks.json"), "{}");
   await writeTextFile(join(root, "hooks", "README.md"), "# Hooks\n");
   await writeTextFile(join(root, "hooks", "scripts", "session-start.js"), "// hook\n");
@@ -71,6 +108,8 @@ describe("doctor/self-checks", () => {
     const wikiCheck = result.checks.find((c) => c.id === "self-wiki-docs-exist");
     const wikiSkillsCheck = result.checks.find((c) => c.id === "self-wiki-skills-exist");
     const wikiCommandsCheck = result.checks.find((c) => c.id === "self-wiki-commands-exist");
+    const knowledgeFilesCheck = result.checks.find((c) => c.id === "self-knowledge-files-exist");
+    const knowledgeScriptsCheck = result.checks.find((c) => c.id === "self-knowledge-scripts-exist");
     expect(agentCheck).toBeDefined();
     expect(agentCheck!.passed).toBe(true);
     expect(wikiCheck).toBeDefined();
@@ -79,6 +118,10 @@ describe("doctor/self-checks", () => {
     expect(wikiSkillsCheck!.passed).toBe(true);
     expect(wikiCommandsCheck).toBeDefined();
     expect(wikiCommandsCheck!.passed).toBe(true);
+    expect(knowledgeFilesCheck).toBeDefined();
+    expect(knowledgeFilesCheck!.passed).toBe(true);
+    expect(knowledgeScriptsCheck).toBeDefined();
+    expect(knowledgeScriptsCheck!.passed).toBe(true);
   });
 
   it("detects missing skill files", async () => {
@@ -107,6 +150,19 @@ describe("doctor/self-checks", () => {
     expect(wikiCommandsCheck!.passed).toBe(false);
   });
 
+  it("detects missing knowledge metadata files", async () => {
+    const root = await makeTempDir();
+
+    const result = await runSelfChecks(root);
+
+    const filesCheck = result.checks.find((c) => c.id === "self-knowledge-files-exist");
+    const scriptsCheck = result.checks.find((c) => c.id === "self-knowledge-scripts-exist");
+    expect(filesCheck).toBeDefined();
+    expect(filesCheck!.passed).toBe(false);
+    expect(scriptsCheck).toBeDefined();
+    expect(scriptsCheck!.passed).toBe(false);
+  });
+
   it("detects broken cross-reference links", async () => {
     const root = await makeTempDir();
     await writeTextFile(
@@ -120,6 +176,16 @@ describe("doctor/self-checks", () => {
     expect(crossrefCheck).toBeDefined();
     expect(crossrefCheck!.passed).toBe(false);
     expect(crossrefCheck!.message).toContain("broken");
+  });
+
+  it("does not mark known knowledge and script assets as orphaned", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const orphanCheck = (await runSelfChecks(root)).checks.find((c) => c.id === "self-no-orphans");
+
+    expect(orphanCheck).toBeDefined();
+    expect(orphanCheck!.passed).toBe(true);
   });
 
   it("returns structured result with ok flag", async () => {

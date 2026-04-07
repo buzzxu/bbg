@@ -142,9 +142,9 @@ describe("buildGovernanceManifest", () => {
     expect(evalTasks.map((t) => t.destination)).toContain("evals/golden-tasks/tasks/security-review.json");
     expect(evalTasks.map((t) => t.destination)).toContain("evals/golden-tasks/tasks/refactor-extract.json");
 
-    // .bbg scripts: telemetry + eval + org + interview + policy + context + workflow
+    // .bbg scripts: telemetry + eval + org + interview + policy + context + workflow + knowledge
     const bbgScriptTasks = tasks.filter((t) => t.destination.startsWith(".bbg/scripts/"));
-    expect(bbgScriptTasks).toHaveLength(9);
+    expect(bbgScriptTasks).toHaveLength(10);
     expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/telemetry-init.sql");
     expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/telemetry-report.sql");
     expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/eval-schema.sql");
@@ -154,6 +154,7 @@ describe("buildGovernanceManifest", () => {
     expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/build-repo-map.js");
     expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/context-schema.sql");
     expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/workflow-schema.sql");
+    expect(bbgScriptTasks.map((t) => t.destination)).toContain(".bbg/scripts/knowledge-schema.sql");
 
     // Policy files: 2 (.bbg/policy/policy.json handlebars, .bbg/policy/exceptions.json copy)
     const policyTasks = tasks.filter((t) => t.destination.startsWith(".bbg/policy/"));
@@ -189,8 +190,16 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/wiki/reports/README.md");
     expect(destinations).toContain("docs/wiki/processes/README.md");
 
-    // Total: 156
-    expect(tasks).toHaveLength(156);
+    expect(destinations).toContain(".bbg/knowledge/README.md");
+    expect(destinations).toContain(".bbg/scripts/knowledge-schema.sql");
+
+    const knowledgeTasks = tasks.filter(
+      (t) => t.destination === ".bbg/knowledge/README.md" || t.destination === ".bbg/scripts/knowledge-schema.sql",
+    );
+    expect(knowledgeTasks).toHaveLength(2);
+
+    // Total: 158
+    expect(tasks).toHaveLength(158);
   });
 
   it("includes typescript-specific governance files when typescript repo present", () => {
@@ -228,8 +237,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain(".bbg/scripts/build-symbol-map-ts.js");
     expect(destinations).not.toContain(".bbg/scripts/build-symbol-map-python.py");
 
-    // Total: 171
-    expect(tasks).toHaveLength(171);
+    // Total: 173
+    expect(tasks).toHaveLength(173);
   });
 
   it("includes files for multiple languages (python + typescript)", () => {
@@ -290,8 +299,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/security/backend-red-team-playbook.md");
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
 
-    // Total: 190
-    expect(tasks).toHaveLength(190);
+    // Total: 192
+    expect(tasks).toHaveLength(192);
   });
 
   it("includes red team governance files for backend Java project", () => {
@@ -322,8 +331,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/security/backend-red-team-playbook.md");
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
 
-    // Total: core(156) + java(14) + backend(5) = 175
-    expect(tasks).toHaveLength(175);
+    // Total: core(158) + java(14) + backend(5) = 177
+    expect(tasks).toHaveLength(177);
   });
 
   it("excludes red team governance files for frontend-only project", () => {

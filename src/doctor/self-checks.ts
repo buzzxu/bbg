@@ -129,6 +129,23 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const wikiDoc of GOVERNANCE_MANIFEST.wikiDocFiles) {
     allManifestPaths.add(wikiDoc);
   }
+  for (const file of GOVERNANCE_MANIFEST.knowledgeFiles) {
+    allManifestPaths.add(file);
+  }
+  for (const script of GOVERNANCE_MANIFEST.bbgScripts) {
+    allManifestPaths.add(`.bbg/scripts/${script}`);
+  }
+  for (const script of GOVERNANCE_MANIFEST.knowledgeScripts) {
+    allManifestPaths.add(`.bbg/scripts/${script}`);
+  }
+  for (const script of GOVERNANCE_MANIFEST.backendGovernance.scripts) {
+    allManifestPaths.add(`.bbg/scripts/${script}`);
+  }
+  for (const orgFile of GOVERNANCE_MANIFEST.orgGovernanceFiles) {
+    if (orgFile.startsWith(".bbg/scripts/")) {
+      allManifestPaths.add(orgFile);
+    }
+  }
 
   for (const script of GOVERNANCE_MANIFEST.workflowFiles.scripts) {
     allManifestPaths.add(`.bbg/scripts/${script}`);
@@ -148,7 +165,16 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   }
 
   const diskFiles = await fg(
-    ["agents/*.md", "skills/*/SKILL.md", "rules/**/*.md", "commands/*.md", "docs/raw/*.md", "docs/wiki/**/*.md"],
+    [
+      "agents/*.md",
+      "skills/*/SKILL.md",
+      "rules/**/*.md",
+      "commands/*.md",
+      "docs/raw/*.md",
+      "docs/wiki/**/*.md",
+      ".bbg/knowledge/*.md",
+      ".bbg/scripts/*.sql",
+    ],
     { cwd: root, onlyFiles: true },
   );
 
@@ -209,6 +235,22 @@ export async function runSelfChecks(packageRoot: string): Promise<SelfCheckResul
       "self-wiki-commands-exist",
       "wiki command",
       GOVERNANCE_MANIFEST.wikiCommands.map((cmd) => `commands/${cmd}.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-knowledge-files-exist",
+      "knowledge metadata",
+      GOVERNANCE_MANIFEST.knowledgeFiles,
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-knowledge-scripts-exist",
+      "knowledge script",
+      GOVERNANCE_MANIFEST.knowledgeScripts.map((s) => `.bbg/scripts/${s}`),
     ),
   );
 

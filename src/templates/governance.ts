@@ -280,6 +280,10 @@ const ORG_GOVERNANCE_FILES = [
   ".bbg/scripts/org-schema.sql",
 ];
 
+const KNOWLEDGE_FILES = [".bbg/knowledge/README.md"];
+
+const KNOWLEDGE_SCRIPTS = ["knowledge-schema.sql"];
+
 const WIKI_SKILLS = ["wiki-ingestion", "wiki-query", "wiki-lint"];
 
 const WIKI_COMMANDS = ["wiki-ingest", "wiki-query", "wiki-lint"];
@@ -482,6 +486,16 @@ export function buildGovernanceManifest(
     tasks.push(copyTask(`generic/${orgFile}`, orgFile));
   }
 
+  // --- Knowledge Metadata Files ---
+  for (const file of KNOWLEDGE_FILES) {
+    tasks.push(copyTask(`generic/${file}`, file));
+  }
+
+  // --- Knowledge Scripts ---
+  for (const script of KNOWLEDGE_SCRIPTS) {
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+  }
+
   // --- Wiki Scaffold Docs ---
   for (const wikiFile of WIKI_DOC_FILES) {
     tasks.push(copyTask(`generic/${wikiFile}`, wikiFile));
@@ -514,6 +528,8 @@ export const GOVERNANCE_MANIFEST = {
   workflowFiles: WORKFLOW_FILES,
   backendGovernance: BACKEND_GOVERNANCE,
   orgGovernanceFiles: ORG_GOVERNANCE_FILES,
+  knowledgeFiles: KNOWLEDGE_FILES,
+  knowledgeScripts: KNOWLEDGE_SCRIPTS,
   wikiSkills: WIKI_SKILLS,
   wikiCommands: WIKI_COMMANDS,
   wikiDocFiles: WIKI_DOC_FILES,

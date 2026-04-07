@@ -89,6 +89,15 @@ function isValidRuntimeCommandCwd(value: string): boolean {
   return segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
 }
 
+function isValidWorkspaceRelativePath(value: string): boolean {
+  if (value.trim().length === 0 || posix.isAbsolute(value) || win32.isAbsolute(value)) {
+    return false;
+  }
+
+  const segments = value.replaceAll("\\", "/").split("/");
+  return segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+}
+
 function isRiskThreshold(value: unknown): value is { grade: string; minScore: number } {
   if (!isRecord(value)) {
     return false;
@@ -150,6 +159,22 @@ function isRuntimeConfig(value: unknown): value is NonNullable<BbgConfig["runtim
   );
 }
 
+function isKnowledgeConfig(value: unknown): value is NonNullable<BbgConfig["knowledge"]> {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    (value.enabled === undefined || typeof value.enabled === "boolean") &&
+    (value.databaseFile === undefined
+      || (isString(value.databaseFile) && isValidRuntimeRelativePath(value.databaseFile))) &&
+    (value.sourceRoot === undefined
+      || (isString(value.sourceRoot) && isValidWorkspaceRelativePath(value.sourceRoot))) &&
+    (value.wikiRoot === undefined
+      || (isString(value.wikiRoot) && isValidWorkspaceRelativePath(value.wikiRoot)))
+  );
+}
+
 function isBbgConfig(value: unknown): value is BbgConfig {
   if (!isRecord(value)) {
     return false;
@@ -173,9 +198,10 @@ function isBbgConfig(value: unknown): value is BbgConfig {
     isRiskThreshold(value.governance.riskThresholds.medium) &&
     isRiskThreshold(value.governance.riskThresholds.low) &&
     typeof value.governance.enableRedTeam === "boolean" &&
-    typeof value.governance.enableCrossAudit === "boolean" &&
-    isRecord(value.context) &&
-    (typeof value.runtime === "undefined" || isRuntimeConfig(value.runtime))
+      typeof value.governance.enableCrossAudit === "boolean" &&
+      isRecord(value.context) &&
+      (typeof value.runtime === "undefined" || isRuntimeConfig(value.runtime)) &&
+      (typeof value.knowledge === "undefined" || isKnowledgeConfig(value.knowledge))
   );
 }
 

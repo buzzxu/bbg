@@ -30,6 +30,13 @@ export interface OrganizationConfig {
   policySource?: string;
 }
 
+export interface KnowledgeConfig {
+  enabled?: boolean;
+  databaseFile?: string;
+  sourceRoot?: string;
+  wikiRoot?: string;
+}
+
 export interface BbgConfig {
   version: string;
   projectName: string;
@@ -50,4 +57,5 @@ export interface BbgConfig {
   runtime?: RuntimeConfig;
   plugins?: PluginConfig;
   organization?: OrganizationConfig;
+  knowledge?: KnowledgeConfig;
 }

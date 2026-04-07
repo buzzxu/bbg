@@ -65,6 +65,16 @@ const sampleConfig: BbgConfig = {
   },
 };
 
+const sampleConfigWithKnowledge: BbgConfig = {
+  ...sampleConfig,
+  knowledge: {
+    enabled: true,
+    databaseFile: ".bbg/knowledge.db",
+    sourceRoot: "docs/raw",
+    wikiRoot: "docs/wiki",
+  },
+};
+
 describe("config read-write", () => {
   it("round-trips config with deep equality", () => {
     const raw = serializeConfig(sampleConfig);
@@ -76,6 +86,12 @@ describe("config read-write", () => {
     const raw = serializeConfig(sampleConfig);
 
     expect(raw.endsWith("\n")).toBe(true);
+  });
+
+  it("round-trips config with optional knowledge settings", () => {
+    const raw = serializeConfig(sampleConfigWithKnowledge);
+
+    expect(parseConfig(raw)).toEqual(sampleConfigWithKnowledge);
   });
 
   it("throws ConfigParseError for invalid JSON", () => {
@@ -106,6 +122,57 @@ describe("config read-write", () => {
     });
 
     expect(() => parseConfig(invalidShape)).toThrow(ConfigValidationError);
+  });
+
+  it("throws ConfigValidationError for invalid knowledge structure", () => {
+    const invalidShape = JSON.stringify({
+      ...sampleConfig,
+      knowledge: {
+        enabled: true,
+        databaseFile: 123,
+      },
+    });
+
+    expect(() => parseConfig(invalidShape)).toThrow(ConfigValidationError);
+  });
+
+  it("throws ConfigValidationError for knowledge paths outside allowed roots", () => {
+    const invalidDatabasePath = JSON.stringify({
+      ...sampleConfig,
+      knowledge: {
+        enabled: true,
+        databaseFile: "../knowledge.db",
+      },
+    });
+
+    const invalidAbsoluteDatabasePath = JSON.stringify({
+      ...sampleConfig,
+      knowledge: {
+        enabled: true,
+        databaseFile: "/tmp/knowledge.db",
+      },
+    });
+
+    const invalidSourceRoot = JSON.stringify({
+      ...sampleConfig,
+      knowledge: {
+        enabled: true,
+        sourceRoot: "../docs/raw",
+      },
+    });
+
+    const invalidWikiRoot = JSON.stringify({
+      ...sampleConfig,
+      knowledge: {
+        enabled: true,
+        wikiRoot: "/tmp/wiki",
+      },
+    });
+
+    expect(() => parseConfig(invalidDatabasePath)).toThrow(ConfigValidationError);
+    expect(() => parseConfig(invalidAbsoluteDatabasePath)).toThrow(ConfigValidationError);
+    expect(() => parseConfig(invalidSourceRoot)).toThrow(ConfigValidationError);
+    expect(() => parseConfig(invalidWikiRoot)).toThrow(ConfigValidationError);
   });
 
   it("throws ConfigValidationError for runtime paths outside .bbg", () => {
