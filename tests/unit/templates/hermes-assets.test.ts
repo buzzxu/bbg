@@ -70,4 +70,13 @@ describe("Hermes governance assets", () => {
     expect(distillationProcess).toContain("Canonical wiki promotion remains a separate review step");
     expect(normalizedCandidatesCommand).toContain("distill strong local candidates into draft wiki/process outputs");
   });
+
+  it("documents K7A as local draft distillation before canonical wiki promotion", async () => {
+    const knowledgeReadme = await readFile(join(packageRoot, "templates/generic/.bbg/knowledge/README.md"), "utf8");
+    const normalized = knowledgeReadme.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("local wiki or process drafts");
+    expect(normalized).toContain("canonical wiki promotion remains a separate review step");
+    expect(normalized).not.toContain("automatic global promotion");
+  });
 });

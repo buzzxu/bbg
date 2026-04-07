@@ -56,3 +56,5 @@ schema.
 Existing projects must apply `.bbg/scripts/hermes-schema.sql` to the current
 database (or rebuild from the latest schema set) before using Hermes-backed
 workflows.
+
+In K7A, Hermes candidates may be distilled into local wiki or process drafts that remain reviewable project-local artifacts. Canonical wiki promotion remains a separate review step, so draft distillation should not bypass trust and maintenance workflows.
