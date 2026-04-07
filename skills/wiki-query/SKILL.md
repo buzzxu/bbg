@@ -45,6 +45,10 @@ Use this skill to answer questions from the wiki before falling back to raw sour
 - Suggest `report` for synthesized findings or investigations
 - Suggest `process` for repeatable operational steps
 
+### Step 8: Create candidate updates when a durable answer still needs review
+- Log a candidate update instead of forcing an immediate canonical edit when evidence is promising but confidence is incomplete
+- Capture enough rationale so later promotion work can review the durable answer cleanly
+
 ## Output
 - Direct answer to the question
 - Wiki pages used as evidence
@@ -58,6 +62,7 @@ Use this skill to answer questions from the wiki before falling back to raw sour
 - Cite wiki pages used in the answer
 - Read raw sources only to close evidence gaps or resolve ambiguity
 - Separate answering the question from deciding whether to promote the result
+- Log durable-answer candidates for later promotion when immediate canonical edits would be premature
 - Suggest promotion only when useful knowledge is not yet durable in the wiki
 
 ## Query Order

@@ -284,6 +284,8 @@ const KNOWLEDGE_FILES = [".bbg/knowledge/README.md"];
 
 const KNOWLEDGE_SCRIPTS = ["knowledge-schema.sql"];
 
+const KNOWLEDGE_PROVENANCE_SCRIPTS = ["knowledge-provenance.sql"];
+
 const WIKI_SKILLS = ["wiki-ingestion", "wiki-query", "wiki-lint"];
 
 const WIKI_COMPILATION_SKILLS = ["wiki-compilation", "wiki-maintenance"];
@@ -291,6 +293,10 @@ const WIKI_COMPILATION_SKILLS = ["wiki-compilation", "wiki-maintenance"];
 const WIKI_COMMANDS = ["wiki-ingest", "wiki-query", "wiki-lint"];
 
 const WIKI_COMPILATION_COMMANDS = ["wiki-compile", "wiki-refresh"];
+
+const WIKI_TRUST_SKILLS = ["wiki-auditor", "wiki-provenance", "wiki-distillation"];
+
+const WIKI_TRUST_COMMANDS = ["wiki-audit", "wiki-stale", "wiki-promote"];
 
 const WIKI_DOC_FILES = [
   "docs/raw/README.md",
@@ -307,6 +313,8 @@ const WIKI_COMPILED_DOC_FILES = [
   "docs/wiki/reports/workflow-stability-summary.md",
   "docs/wiki/processes/knowledge-compilation.md",
 ];
+
+const WIKI_TRUST_DOC_FILES = ["docs/wiki/processes/knowledge-trust-model.md"];
 
 const BACKEND_WIKI_COMPILED_DOC_FILES = ["docs/wiki/reports/red-team-findings-summary.md"];
 
@@ -394,7 +402,7 @@ export function buildGovernanceManifest(
   }
 
   // --- Skills ---
-  for (const skill of [...CORE_SKILLS, ...OPERATIONS_SKILLS, ...WIKI_SKILLS, ...WIKI_COMPILATION_SKILLS]) {
+  for (const skill of [...CORE_SKILLS, ...OPERATIONS_SKILLS, ...WIKI_SKILLS, ...WIKI_COMPILATION_SKILLS, ...WIKI_TRUST_SKILLS]) {
     tasks.push(copyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
   }
   for (const lang of langs) {
@@ -415,7 +423,7 @@ export function buildGovernanceManifest(
   }
 
   // --- Commands ---
-  for (const cmd of [...CORE_COMMANDS, ...WIKI_COMMANDS, ...WIKI_COMPILATION_COMMANDS]) {
+  for (const cmd of [...CORE_COMMANDS, ...WIKI_COMMANDS, ...WIKI_COMPILATION_COMMANDS, ...WIKI_TRUST_COMMANDS]) {
     tasks.push(copyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
   }
   for (const lang of langs) {
@@ -510,6 +518,9 @@ export function buildGovernanceManifest(
   for (const script of KNOWLEDGE_SCRIPTS) {
     tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
   }
+  for (const script of KNOWLEDGE_PROVENANCE_SCRIPTS) {
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+  }
 
   // --- Wiki Scaffold Docs ---
   for (const wikiFile of WIKI_DOC_FILES) {
@@ -518,6 +529,11 @@ export function buildGovernanceManifest(
 
   // --- Wiki Compiled Docs ---
   for (const wikiFile of WIKI_COMPILED_DOC_FILES) {
+    tasks.push(copyTask(`generic/${wikiFile}`, wikiFile));
+  }
+
+  // --- Wiki Trust Docs ---
+  for (const wikiFile of WIKI_TRUST_DOC_FILES) {
     tasks.push(copyTask(`generic/${wikiFile}`, wikiFile));
   }
 
@@ -550,11 +566,15 @@ export const GOVERNANCE_MANIFEST = {
   orgGovernanceFiles: ORG_GOVERNANCE_FILES,
   knowledgeFiles: KNOWLEDGE_FILES,
   knowledgeScripts: KNOWLEDGE_SCRIPTS,
+  knowledgeProvenanceScripts: KNOWLEDGE_PROVENANCE_SCRIPTS,
   wikiSkills: WIKI_SKILLS,
   wikiCompilationSkills: WIKI_COMPILATION_SKILLS,
+  wikiTrustSkills: WIKI_TRUST_SKILLS,
   wikiCommands: WIKI_COMMANDS,
   wikiCompilationCommands: WIKI_COMPILATION_COMMANDS,
+  wikiTrustCommands: WIKI_TRUST_COMMANDS,
   wikiDocFiles: WIKI_DOC_FILES,
   wikiCompiledDocFiles: WIKI_COMPILED_DOC_FILES,
+  wikiTrustDocFiles: WIKI_TRUST_DOC_FILES,
   backendWikiCompiledDocFiles: BACKEND_WIKI_COMPILED_DOC_FILES,
 } as const;

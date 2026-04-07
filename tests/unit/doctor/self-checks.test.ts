@@ -22,6 +22,9 @@ async function createMinimalGovernance(root: string): Promise<void> {
   await writeTextFile(join(root, "skills", "wiki-lint", "SKILL.md"), "# Wiki Lint\n\n## Related\n");
   await writeTextFile(join(root, "skills", "wiki-compilation", "SKILL.md"), "# Wiki Compilation\n\n## Related\n");
   await writeTextFile(join(root, "skills", "wiki-maintenance", "SKILL.md"), "# Wiki Maintenance\n\n## Related\n");
+  await writeTextFile(join(root, "skills", "wiki-auditor", "SKILL.md"), "# Wiki Auditor\n\n## Related\n");
+  await writeTextFile(join(root, "skills", "wiki-provenance", "SKILL.md"), "# Wiki Provenance\n\n## Related\n");
+  await writeTextFile(join(root, "skills", "wiki-distillation", "SKILL.md"), "# Wiki Distillation\n\n## Related\n");
   await writeTextFile(join(root, "rules", "common", "coding-style.md"), "# Coding Style\n\n## Related\n");
   await writeTextFile(join(root, "rules", "common", "knowledge.md"), "# Knowledge Layer: Common\n\n## Related\n");
   await writeTextFile(join(root, "commands", "plan.md"), "# Plan\n\n## Related\n");
@@ -30,6 +33,9 @@ async function createMinimalGovernance(root: string): Promise<void> {
   await writeTextFile(join(root, "commands", "wiki-lint.md"), "# /wiki-lint\n\n## Related\n");
   await writeTextFile(join(root, "commands", "wiki-compile.md"), "# /wiki-compile\n\n## Related\n");
   await writeTextFile(join(root, "commands", "wiki-refresh.md"), "# /wiki-refresh\n\n## Related\n");
+  await writeTextFile(join(root, "commands", "wiki-audit.md"), "# /wiki-audit\n\n## Related\n");
+  await writeTextFile(join(root, "commands", "wiki-stale.md"), "# /wiki-stale\n\n## Related\n");
+  await writeTextFile(join(root, "commands", "wiki-promote.md"), "# /wiki-promote\n\n## Related\n");
   await writeTextFile(join(root, "docs", "raw", "README.md"), "# Raw Sources\n");
   await writeTextFile(join(root, "docs", "wiki", "index.md"), "# Wiki Index\n");
   await writeTextFile(join(root, "docs", "wiki", "log.md"), "# Wiki Log\n");
@@ -41,11 +47,13 @@ async function createMinimalGovernance(root: string): Promise<void> {
   await writeTextFile(join(root, "docs", "wiki", "reports", "workflow-stability-summary.md"), "# Workflow Stability Summary\n");
   await writeTextFile(join(root, "docs", "wiki", "reports", "red-team-findings-summary.md"), "# Red Team Findings Summary\n");
   await writeTextFile(join(root, "docs", "wiki", "processes", "knowledge-compilation.md"), "# Knowledge Compilation\n");
+  await writeTextFile(join(root, "docs", "wiki", "processes", "knowledge-trust-model.md"), "# Knowledge Trust Model\n");
   await writeTextFile(join(root, ".bbg", "knowledge", "README.md"), "# Knowledge Metadata\n");
   await writeTextFile(
     join(root, ".bbg", "scripts", "knowledge-schema.sql"),
     "CREATE TABLE IF NOT EXISTS knowledge_sources (id INTEGER);\n",
   );
+  await writeTextFile(join(root, ".bbg", "scripts", "knowledge-provenance.sql"), "-- stale pages\n");
   await writeTextFile(
     join(root, ".bbg", "scripts", "telemetry-init.sql"),
     "CREATE TABLE IF NOT EXISTS telemetry_events (id INTEGER);\n",
@@ -194,6 +202,25 @@ describe("doctor/self-checks", () => {
     expect(commandsCheck!.passed).toBe(false);
     expect(docsCheck).toBeDefined();
     expect(docsCheck!.passed).toBe(false);
+  });
+
+  it("detects missing wiki trust assets", async () => {
+    const root = await makeTempDir();
+
+    const result = await runSelfChecks(root);
+
+    const skillsCheck = result.checks.find((c) => c.id === "self-wiki-trust-skills-exist");
+    const commandsCheck = result.checks.find((c) => c.id === "self-wiki-trust-commands-exist");
+    const docsCheck = result.checks.find((c) => c.id === "self-wiki-trust-docs-exist");
+    const scriptsCheck = result.checks.find((c) => c.id === "self-knowledge-provenance-scripts-exist");
+    expect(skillsCheck).toBeDefined();
+    expect(skillsCheck!.passed).toBe(false);
+    expect(commandsCheck).toBeDefined();
+    expect(commandsCheck!.passed).toBe(false);
+    expect(docsCheck).toBeDefined();
+    expect(docsCheck!.passed).toBe(false);
+    expect(scriptsCheck).toBeDefined();
+    expect(scriptsCheck!.passed).toBe(false);
   });
 
   it("detects broken cross-reference links", async () => {

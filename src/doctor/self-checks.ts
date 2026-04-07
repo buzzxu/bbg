@@ -105,6 +105,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const skill of GOVERNANCE_MANIFEST.wikiCompilationSkills) {
     allManifestPaths.add(`skills/${skill}/SKILL.md`);
   }
+  for (const skill of GOVERNANCE_MANIFEST.wikiTrustSkills) {
+    allManifestPaths.add(`skills/${skill}/SKILL.md`);
+  }
   for (const skills of Object.values(GOVERNANCE_MANIFEST.languageSkills)) {
     for (const skill of skills) {
       allManifestPaths.add(`skills/${skill}/SKILL.md`);
@@ -127,6 +130,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const cmd of GOVERNANCE_MANIFEST.wikiCompilationCommands) {
     allManifestPaths.add(`commands/${cmd}.md`);
   }
+  for (const cmd of GOVERNANCE_MANIFEST.wikiTrustCommands) {
+    allManifestPaths.add(`commands/${cmd}.md`);
+  }
   for (const cmds of Object.values(GOVERNANCE_MANIFEST.languageCommands)) {
     for (const cmd of cmds) {
       allManifestPaths.add(`commands/${cmd}.md`);
@@ -138,6 +144,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const wikiDoc of GOVERNANCE_MANIFEST.wikiCompiledDocFiles) {
     allManifestPaths.add(wikiDoc);
   }
+  for (const file of GOVERNANCE_MANIFEST.wikiTrustDocFiles) {
+    allManifestPaths.add(file);
+  }
   for (const wikiDoc of GOVERNANCE_MANIFEST.backendWikiCompiledDocFiles) {
     allManifestPaths.add(wikiDoc);
   }
@@ -148,6 +157,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
     allManifestPaths.add(`.bbg/scripts/${script}`);
   }
   for (const script of GOVERNANCE_MANIFEST.knowledgeScripts) {
+    allManifestPaths.add(`.bbg/scripts/${script}`);
+  }
+  for (const script of GOVERNANCE_MANIFEST.knowledgeProvenanceScripts) {
     allManifestPaths.add(`.bbg/scripts/${script}`);
   }
   for (const script of GOVERNANCE_MANIFEST.backendGovernance.scripts) {
@@ -252,6 +264,14 @@ export async function runSelfChecks(packageRoot: string): Promise<SelfCheckResul
   checks.push(
     await checkFilesExist(
       packageRoot,
+      "self-wiki-trust-skills-exist",
+      "wiki trust skill",
+      GOVERNANCE_MANIFEST.wikiTrustSkills.map((skill) => `skills/${skill}/SKILL.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
       "self-wiki-commands-exist",
       "wiki command",
       GOVERNANCE_MANIFEST.wikiCommands.map((cmd) => `commands/${cmd}.md`),
@@ -268,9 +288,25 @@ export async function runSelfChecks(packageRoot: string): Promise<SelfCheckResul
   checks.push(
     await checkFilesExist(
       packageRoot,
+      "self-wiki-trust-commands-exist",
+      "wiki trust command",
+      GOVERNANCE_MANIFEST.wikiTrustCommands.map((cmd) => `commands/${cmd}.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
       "self-wiki-compiled-docs-exist",
       "compiled wiki doc",
       GOVERNANCE_MANIFEST.wikiCompiledDocFiles,
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-wiki-trust-docs-exist",
+      "wiki trust doc",
+      GOVERNANCE_MANIFEST.wikiTrustDocFiles,
     ),
   );
   checks.push(
@@ -287,6 +323,14 @@ export async function runSelfChecks(packageRoot: string): Promise<SelfCheckResul
       "self-knowledge-scripts-exist",
       "knowledge script",
       GOVERNANCE_MANIFEST.knowledgeScripts.map((s) => `.bbg/scripts/${s}`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-knowledge-provenance-scripts-exist",
+      "knowledge provenance script",
+      GOVERNANCE_MANIFEST.knowledgeProvenanceScripts.map((s) => `.bbg/scripts/${s}`),
     ),
   );
 

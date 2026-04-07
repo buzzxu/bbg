@@ -12,14 +12,16 @@ Use this skill when existing compiled report or process pages need to be refresh
 ## Workflow
 1. Identify candidate wiki pages for refresh
 2. Compare current page scope against newer runtime artifacts
-3. Update in place if the page remains canonical
-4. Mark `stale` or `superseded` when the page no longer reflects current evidence
-5. Record updates in `log.md`
+3. Review freshness and contradiction state
+4. Update in place if the page remains canonical
+5. Mark `stale` or `superseded` when the page no longer reflects current evidence
+6. Record updates in `log.md`
 
 ## Rules
 - Start from the current canonical wiki page before re-reading lower-level runtime evidence
 - Prefer in-place refresh when the page remains the right durable destination
 - Mark pages `stale` or `superseded` instead of silently leaving outdated conclusions active
+- Record stale reasons and contradiction review actions explicitly
 - Keep page frontmatter `sources` aligned with the runtime artifacts used during refresh
 - Append `docs/wiki/log.md` whenever refresh work changes maintained wiki content
 

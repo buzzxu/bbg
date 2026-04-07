@@ -25,7 +25,8 @@ Answer questions using the wiki as the primary knowledge source, falling back to
 5. **Escalate only if needed** — Read raw sources only when the wiki is missing evidence, incomplete, or ambiguous
 6. **Cite wiki pages** — Name the wiki pages used so the answer is traceable
 7. **Classify the answer** — Decide whether the result is ephemeral troubleshooting context or durable project knowledge
-8. **Suggest promotion only for durable knowledge** — Recommend promotion when the answer is likely to be asked again, explains a decision/process/recurring pattern, or synthesizes multiple sources into a stable conclusion
+8. **Create candidate updates when confidence is limited** — Record a candidate update instead of forcing an immediate canonical edit when the answer looks durable but still needs review
+9. **Suggest promotion only for durable knowledge** — Recommend promotion when the answer is likely to be asked again, explains a decision/process/recurring pattern, or synthesizes multiple sources into a stable conclusion
 
 ## Output
 - Direct answer to the question
@@ -40,6 +41,7 @@ Answer questions using the wiki as the primary knowledge source, falling back to
 - Cite the wiki pages used in the answer
 - Use raw sources only to fill gaps or resolve ambiguity
 - Separate answering the question from deciding whether to promote the result
+- Prefer creating a candidate update when a durable answer needs review before canonical promotion
 - Suggest wiki promotion only when the answer reveals durable knowledge that should persist
 
 ## Promotion Heuristics
@@ -63,3 +65,4 @@ Do not treat every useful answer as a promotion candidate. Ephemeral one-off tro
 - [Wiki Query Skill](../skills/wiki-query/SKILL.md)
 - [Wiki Ingest Command](./wiki-ingest.md)
 - [Wiki Lint Command](./wiki-lint.md)
+- [Wiki Promote Command](./wiki-promote.md)

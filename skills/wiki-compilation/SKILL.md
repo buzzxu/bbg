@@ -14,13 +14,15 @@ Use this skill when telemetry, eval, workflow, or red-team outputs should be com
 2. Read the current wiki index and any relevant report or process pages
 3. Synthesize a stable summary from runtime outputs
 4. Update or create the target wiki report or process page
-5. Update `index.md` and append `log.md`
+5. Update summary layers as needed
+6. Update `index.md` and append `log.md`
 
 ## Rules
 - Treat compile inputs as derivative runtime artifacts rather than raw-source inputs
 - Still list derivative artifacts in page frontmatter `sources`
 - Prefer updating existing canonical report or process pages before creating adjacent duplicates
 - Keep compiled pages readable and stable rather than copying transient command output verbatim
+- Update L0, L1, or L2 summary layers when significant pages change
 - Update `docs/wiki/index.md` and append `docs/wiki/log.md` whenever compilation changes wiki content
 
 ## Related

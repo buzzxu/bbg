@@ -27,10 +27,13 @@ related:
 2. Read the current wiki index and any candidate canonical pages
 3. Synthesize a stable summary into a report or process page
 4. Update frontmatter `sources`, `status`, and `last_updated`
-5. Update the wiki index and append the wiki log
+5. Update summary layers when the canonical page changed materially
+6. Update the wiki index and append the wiki log
 
 ## Refresh Rules
 
 - Refresh pages in place when they remain canonical
+- Review `freshness_status` and contradiction records during refresh
 - Mark pages `stale` when newer evidence exists but the page still needs review
 - Mark pages `superseded` when a new page replaces the current destination
+- Create a candidate update instead of forcing an immediate canonical edit when confidence is low
