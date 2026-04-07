@@ -18,6 +18,7 @@ description: Use when inspecting or reasoning about local Hermes execution recor
 - Treat Hermes runtime records as operational memory, not canonical knowledge
 - Prefer linking artifacts and run records over copying raw command output into wiki pages
 - Escalate to evaluation before proposing candidate promotion
+- Route evaluated, evidence-backed candidates toward local distillation rather than direct promotion
 
 ## Related
 

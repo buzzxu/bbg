@@ -18,6 +18,7 @@ description: Use when scoring Hermes runs for correctness, quality, reproducibil
 - Do not create a candidate from a run that lacks enough evidence to evaluate
 - Distinguish local usefulness from higher-scope reusability
 - Prefer explicit rationale over implicit scoring assumptions
+- Successful local candidates should feed draft distillation before canonical promotion review
 
 ## Related
 
