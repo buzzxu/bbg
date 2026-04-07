@@ -57,4 +57,13 @@ Existing projects must apply `.bbg/scripts/hermes-schema.sql` to the current
 database (or rebuild from the latest schema set) before using Hermes-backed
 workflows.
 
+For upgraded installs, ALTER TABLE alone is insufficient for K7A local
+distillation workflows because the old hermes_candidates status CHECK still
+blocks distilled. Upgraded installs must rebuild or export-import
+hermes_candidates from the latest schema before using K7A local distillation
+workflows.
+
 In K7A, Hermes candidates may be distilled into local wiki or process drafts that remain reviewable project-local artifacts. Canonical wiki promotion remains a separate review step, so draft distillation should not bypass trust and maintenance workflows.
+
+K7A only distills wiki/process drafts. Other candidate types remain reserved for
+later phases.

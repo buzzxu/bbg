@@ -8,9 +8,8 @@
 -- ALTER TABLE hermes_candidates ADD COLUMN draft_path TEXT;
 -- ALTER TABLE hermes_candidates ADD COLUMN distilled_at TEXT;
 --
--- Existing SQLite tables will keep their previous status CHECK constraint. If you
--- need `distilled` enforced at the database level for upgraded installs, rebuild
--- `hermes_candidates` from the latest schema after exporting data.
+-- ALTER TABLE alone is insufficient for upgraded installs because the old status CHECK still blocks distilled.
+-- Upgraded installs must rebuild or export-import hermes_candidates from the latest schema before using K7A local distillation workflows.
 
 CREATE TABLE IF NOT EXISTS hermes_runs (
   run_id            TEXT PRIMARY KEY,
@@ -54,6 +53,7 @@ CREATE TABLE IF NOT EXISTS hermes_evaluations (
 CREATE TABLE IF NOT EXISTS hermes_candidates (
   candidate_id      TEXT PRIMARY KEY,
   source_run_id     TEXT NOT NULL,
+  -- K7A only distills wiki/process drafts. Other candidate types remain reserved for later phases, even though the broader taxonomy stays available here.
   candidate_type    TEXT NOT NULL CHECK (candidate_type IN ('wiki', 'skill', 'rule', 'workflow', 'eval', 'memory')),
   draft_kind       TEXT CHECK (draft_kind IN ('wiki', 'process')),
   draft_path       TEXT,

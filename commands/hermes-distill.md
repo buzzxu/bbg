@@ -20,12 +20,20 @@ Select evaluated Hermes candidates that are ready to be distilled into local wik
 3. Prepare the local draft path and rationale before changing any canonical page.
 4. Mark the candidate as distilled only after the draft output is linked.
 
+For upgraded installs, ALTER TABLE alone is insufficient because the old
+hermes_candidates status CHECK still blocks distilled. Upgraded installs must
+rebuild or export-import hermes_candidates from the latest schema before using
+K7A local distillation workflows.
+
 ## Focus
 
 - evaluated local candidates
 - wiki draft targets
 - process draft targets
 - evidence-backed local distillation
+
+Only wiki/process draft targets are distillable in K7A. Other candidate types
+remain reserved for later phases.
 
 ## Related
 

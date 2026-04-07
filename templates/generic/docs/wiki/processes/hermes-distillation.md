@@ -22,6 +22,11 @@ related:
 - linked run artifacts and candidate evidence
 - proposed local wiki or process targets
 
+ALTER TABLE alone is insufficient for upgraded installs because the old status
+CHECK still blocks distilled. Upgraded installs must rebuild or export-import
+hermes_candidates from the latest schema before using K7A local distillation
+workflows.
+
 ## Distillation Steps
 
 1. Select an evaluated local candidate with enough evidence to refine.
@@ -34,5 +39,6 @@ related:
 
 - Distillation creates local drafts, not final canonical pages.
 - Canonical wiki promotion remains a separate review step.
-- K7A covers wiki/process drafts only.
+- Only wiki/process draft targets are distillable in K7A.
+- Other candidate types remain reserved for later phases.
 - Cross-project promotion is out of scope.

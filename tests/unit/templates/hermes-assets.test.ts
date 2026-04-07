@@ -34,12 +34,26 @@ describe("Hermes governance assets", () => {
   });
 
   it("documents Hermes schema migration steps for existing K7A databases", async () => {
-    const schema = await readFile(join(packageRoot, "templates/generic/.bbg/scripts/hermes-schema.sql"), "utf8");
+    const [schema, knowledgeReadme, distillCommand, distillationProcess] = await Promise.all([
+      readFile(join(packageRoot, "templates/generic/.bbg/scripts/hermes-schema.sql"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/.bbg/knowledge/README.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-distill.md"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/docs/wiki/processes/hermes-distillation.md"), "utf8"),
+    ]);
+    const normalizedSchema = schema.replace(/\s+/g, " ").toLowerCase();
+    const normalizedKnowledgeReadme = knowledgeReadme.replace(/\s+/g, " ").toLowerCase();
+    const normalizedDistillCommand = distillCommand.replace(/\s+/g, " ").toLowerCase();
+    const normalizedDistillationProcess = distillationProcess.replace(/\s+/g, " ").toLowerCase();
 
     expect(schema).toContain("ALTER TABLE hermes_candidates ADD COLUMN draft_kind TEXT;");
     expect(schema).toContain("ALTER TABLE hermes_candidates ADD COLUMN draft_path TEXT;");
     expect(schema).toContain("ALTER TABLE hermes_candidates ADD COLUMN distilled_at TEXT;");
-    expect(schema).toContain("need `distilled` enforced at the database level for upgraded installs, rebuild");
+    expect(normalizedSchema).toContain("alter table alone is insufficient for upgraded installs");
+    expect(normalizedSchema).toContain("rebuild or export-import hermes_candidates from the latest schema");
+    expect(normalizedSchema).toContain("old status check still blocks distilled");
+    expect(normalizedKnowledgeReadme).toContain("upgraded installs must rebuild or export-import hermes_candidates from the latest schema before using k7a local distillation workflows");
+    expect(normalizedDistillCommand).toContain("upgraded installs must rebuild or export-import hermes_candidates from the latest schema before using k7a local distillation workflows");
+    expect(normalizedDistillationProcess).toContain("alter table alone is insufficient for upgraded installs because the old status check still blocks distilled");
   });
 
   it("documents Hermes schema application for existing knowledge databases", async () => {
@@ -69,6 +83,29 @@ describe("Hermes governance assets", () => {
     expect(distillationSkill).toContain("Create local draft outputs, not canonical edits");
     expect(distillationProcess).toContain("Canonical wiki promotion remains a separate review step");
     expect(normalizedCandidatesCommand).toContain("distill strong local candidates into draft wiki/process outputs");
+  });
+
+  it("documents K7A candidate boundaries without narrowing the stored taxonomy", async () => {
+    const [schema, knowledgeReadme, distillCommand, distillationProcess] = await Promise.all([
+      readFile(join(packageRoot, "templates/generic/.bbg/scripts/hermes-schema.sql"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/.bbg/knowledge/README.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-distill.md"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/docs/wiki/processes/hermes-distillation.md"), "utf8"),
+    ]);
+    const normalizedSchema = schema.replace(/\s+/g, " ").toLowerCase();
+    const normalizedKnowledgeReadme = knowledgeReadme.replace(/\s+/g, " ").toLowerCase();
+    const normalizedDistillCommand = distillCommand.replace(/\s+/g, " ").toLowerCase();
+    const normalizedDistillationProcess = distillationProcess.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalizedSchema).toContain("candidate_type in ('wiki', 'skill', 'rule', 'workflow', 'eval', 'memory')");
+    expect(normalizedSchema).toContain("k7a only distills wiki/process drafts");
+    expect(normalizedSchema).toContain("other candidate types remain reserved for later phases");
+    expect(normalizedKnowledgeReadme).toContain("k7a only distills wiki/process drafts");
+    expect(normalizedKnowledgeReadme).toContain("other candidate types remain reserved for later phases");
+    expect(normalizedDistillCommand).toContain("only wiki/process draft targets are distillable in k7a");
+    expect(normalizedDistillCommand).toContain("other candidate types remain reserved for later phases");
+    expect(normalizedDistillationProcess).toContain("only wiki/process draft targets are distillable in k7a");
+    expect(normalizedDistillationProcess).toContain("other candidate types remain reserved for later phases");
   });
 
   it("documents K7A as local draft distillation before canonical wiki promotion", async () => {
