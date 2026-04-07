@@ -279,6 +279,20 @@ const ORG_GOVERNANCE_FILES = [
   ".bbg/scripts/org-schema.sql",
 ];
 
+const WIKI_SKILLS = ["wiki-ingestion", "wiki-query", "wiki-lint"];
+
+const WIKI_COMMANDS = ["wiki-ingest", "wiki-query", "wiki-lint"];
+
+const WIKI_DOC_FILES = [
+  "docs/raw/README.md",
+  "docs/wiki/index.md",
+  "docs/wiki/log.md",
+  "docs/wiki/concepts/README.md",
+  "docs/wiki/decisions/README.md",
+  "docs/wiki/reports/README.md",
+  "docs/wiki/processes/README.md",
+];
+
 /* ------------------------------------------------------------------ */
 /*  Helper: create copy task (all governance files are verbatim copy)  */
 /* ------------------------------------------------------------------ */
@@ -363,7 +377,7 @@ export function buildGovernanceManifest(
   }
 
   // --- Skills ---
-  for (const skill of [...CORE_SKILLS, ...OPERATIONS_SKILLS]) {
+  for (const skill of [...CORE_SKILLS, ...OPERATIONS_SKILLS, ...WIKI_SKILLS]) {
     tasks.push(copyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
   }
   for (const lang of langs) {
@@ -384,7 +398,7 @@ export function buildGovernanceManifest(
   }
 
   // --- Commands ---
-  for (const cmd of CORE_COMMANDS) {
+  for (const cmd of [...CORE_COMMANDS, ...WIKI_COMMANDS]) {
     tasks.push(copyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
   }
   for (const lang of langs) {
@@ -467,6 +481,11 @@ export function buildGovernanceManifest(
     tasks.push(copyTask(`generic/${orgFile}`, orgFile));
   }
 
+  // --- Wiki Scaffold Docs ---
+  for (const wikiFile of WIKI_DOC_FILES) {
+    tasks.push(copyTask(`generic/${wikiFile}`, wikiFile));
+  }
+
   return mergePluginTemplates(tasks, plugins ?? []);
 }
 
@@ -494,4 +513,7 @@ export const GOVERNANCE_MANIFEST = {
   workflowFiles: WORKFLOW_FILES,
   backendGovernance: BACKEND_GOVERNANCE,
   orgGovernanceFiles: ORG_GOVERNANCE_FILES,
+  wikiSkills: WIKI_SKILLS,
+  wikiCommands: WIKI_COMMANDS,
+  wikiDocFiles: WIKI_DOC_FILES,
 } as const;

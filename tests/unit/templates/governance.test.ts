@@ -48,6 +48,7 @@ describe("buildGovernanceManifest", () => {
     const config = createMinimalConfig();
     const ctx = buildTemplateContext(config);
     const tasks = buildGovernanceManifest(ctx);
+    const destinations = tasks.map((t) => t.destination);
 
     // All non-context/policy.json tasks should be copy mode
     const nonContextTasks = tasks.filter(
@@ -63,9 +64,9 @@ describe("buildGovernanceManifest", () => {
     expect(agentTasks.map((t) => t.destination)).toContain("agents/planner.md");
     expect(agentTasks.map((t) => t.destination)).toContain("agents/devops-reviewer.md");
 
-    // Core + operations skills: 28 + 18 = 46
+    // Core + operations + wiki skills: 28 + 18 + 3 = 49
     const skillTasks = tasks.filter((t) => t.destination.startsWith("skills/"));
-    expect(skillTasks).toHaveLength(46);
+    expect(skillTasks).toHaveLength(49);
     expect(skillTasks.map((t) => t.destination)).toContain("skills/coding-standards/SKILL.md");
     expect(skillTasks.map((t) => t.destination)).toContain("skills/agent-orchestration/SKILL.md");
     expect(skillTasks.map((t) => t.destination)).toContain("skills/telemetry-dashboard/SKILL.md");
@@ -82,9 +83,9 @@ describe("buildGovernanceManifest", () => {
     expect(ruleTasks.map((t) => t.destination)).toContain("rules/common/coding-style.md");
     expect(ruleTasks.map((t) => t.destination)).toContain("rules/common/agents.md");
 
-    // Core commands: 35
+    // Core + wiki commands: 35 + 3 = 38
     const commandTasks = tasks.filter((t) => t.destination.startsWith("commands/"));
-    expect(commandTasks).toHaveLength(35);
+    expect(commandTasks).toHaveLength(38);
     expect(commandTasks.map((t) => t.destination)).toContain("commands/plan.md");
     expect(commandTasks.map((t) => t.destination)).toContain("commands/sync.md");
     expect(commandTasks.map((t) => t.destination)).toContain("commands/telemetry-report.md");
@@ -175,8 +176,20 @@ describe("buildGovernanceManifest", () => {
     expect(orgTasks).toHaveLength(expectedOrgDestinations.length);
     expect(orgTasks.map((t) => t.destination)).toEqual(expect.arrayContaining(expectedOrgDestinations));
 
-    // Total: 142
-    expect(tasks).toHaveLength(142);
+    const wikiDocTasks = tasks.filter(
+      (t) => t.destination.startsWith("docs/wiki/") || t.destination === "docs/raw/README.md",
+    );
+    expect(wikiDocTasks).toHaveLength(7);
+    expect(destinations).toContain("docs/raw/README.md");
+    expect(destinations).toContain("docs/wiki/index.md");
+    expect(destinations).toContain("docs/wiki/log.md");
+    expect(destinations).toContain("docs/wiki/concepts/README.md");
+    expect(destinations).toContain("docs/wiki/decisions/README.md");
+    expect(destinations).toContain("docs/wiki/reports/README.md");
+    expect(destinations).toContain("docs/wiki/processes/README.md");
+
+    // Total: 155
+    expect(tasks).toHaveLength(155);
   });
 
   it("includes typescript-specific governance files when typescript repo present", () => {
@@ -214,8 +227,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain(".bbg/scripts/build-symbol-map-ts.js");
     expect(destinations).not.toContain(".bbg/scripts/build-symbol-map-python.py");
 
-    // Total: 157
-    expect(tasks).toHaveLength(157);
+    // Total: 170
+    expect(tasks).toHaveLength(170);
   });
 
   it("includes files for multiple languages (python + typescript)", () => {
@@ -276,8 +289,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/security/backend-red-team-playbook.md");
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
 
-    // Total: 176
-    expect(tasks).toHaveLength(176);
+    // Total: 189
+    expect(tasks).toHaveLength(189);
   });
 
   it("includes red team governance files for backend Java project", () => {
@@ -308,8 +321,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/security/backend-red-team-playbook.md");
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
 
-    // Total: core(142) + java(14) + backend(5) = 161
-    expect(tasks).toHaveLength(161);
+    // Total: core(155) + java(14) + backend(5) = 174
+    expect(tasks).toHaveLength(174);
   });
 
   it("excludes red team governance files for frontend-only project", () => {

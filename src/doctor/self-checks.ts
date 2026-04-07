@@ -99,6 +99,9 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const skill of [...GOVERNANCE_MANIFEST.coreSkills, ...GOVERNANCE_MANIFEST.operationsSkills]) {
     allManifestPaths.add(`skills/${skill}/SKILL.md`);
   }
+  for (const skill of GOVERNANCE_MANIFEST.wikiSkills) {
+    allManifestPaths.add(`skills/${skill}/SKILL.md`);
+  }
   for (const skills of Object.values(GOVERNANCE_MANIFEST.languageSkills)) {
     for (const skill of skills) {
       allManifestPaths.add(`skills/${skill}/SKILL.md`);
@@ -115,10 +118,16 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   for (const cmd of GOVERNANCE_MANIFEST.coreCommands) {
     allManifestPaths.add(`commands/${cmd}.md`);
   }
+  for (const cmd of GOVERNANCE_MANIFEST.wikiCommands) {
+    allManifestPaths.add(`commands/${cmd}.md`);
+  }
   for (const cmds of Object.values(GOVERNANCE_MANIFEST.languageCommands)) {
     for (const cmd of cmds) {
       allManifestPaths.add(`commands/${cmd}.md`);
     }
+  }
+  for (const wikiDoc of GOVERNANCE_MANIFEST.wikiDocFiles) {
+    allManifestPaths.add(wikiDoc);
   }
 
   for (const script of GOVERNANCE_MANIFEST.workflowFiles.scripts) {
@@ -139,7 +148,7 @@ async function checkNoOrphanFiles(root: string): Promise<DoctorCheckResult> {
   }
 
   const diskFiles = await fg(
-    ["agents/*.md", "skills/*/SKILL.md", "rules/**/*.md", "commands/*.md"],
+    ["agents/*.md", "skills/*/SKILL.md", "rules/**/*.md", "commands/*.md", "docs/raw/*.md", "docs/wiki/**/*.md"],
     { cwd: root, onlyFiles: true },
   );
 
@@ -177,6 +186,31 @@ export async function runSelfChecks(packageRoot: string): Promise<SelfCheckResul
   // Check core command files
   const cmdPaths = GOVERNANCE_MANIFEST.coreCommands.map((c) => `commands/${c}.md`);
   checks.push(await checkFilesExist(packageRoot, "self-commands-exist", "command", cmdPaths));
+
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-wiki-docs-exist",
+      "wiki scaffold",
+      GOVERNANCE_MANIFEST.wikiDocFiles,
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-wiki-skills-exist",
+      "wiki skill",
+      GOVERNANCE_MANIFEST.wikiSkills.map((skill) => `skills/${skill}/SKILL.md`),
+    ),
+  );
+  checks.push(
+    await checkFilesExist(
+      packageRoot,
+      "self-wiki-commands-exist",
+      "wiki command",
+      GOVERNANCE_MANIFEST.wikiCommands.map((cmd) => `commands/${cmd}.md`),
+    ),
+  );
 
   // Check hook files
   const hookPaths = GOVERNANCE_MANIFEST.hookFiles.map((h) => `hooks/${h}`);
