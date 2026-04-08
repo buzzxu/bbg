@@ -20,6 +20,7 @@ description: Use when selecting between local canonical wiki memory, local candi
 - Candidate memory is reviewable draft memory, not trusted canonical memory
 - Intake records are non-canonical review memory until K10 verification
 - K10 verification/promotion records are not canonical routing layers by default
+- K11 recommendations are advisory inputs and only apply when explicitly approved
 - Querying a candidate does not promote it
 - Keep routing separate from distillation and promotion workflows
 

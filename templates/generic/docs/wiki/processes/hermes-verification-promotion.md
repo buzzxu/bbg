@@ -25,3 +25,4 @@ K10 verifies candidates before promotion decisions.
 - Verification is evidence-gated and auditable.
 - Promotion decisions are recorded, not auto-applied.
 - K11 meta-learning remains out of scope.
+- K11 can consume promotion evidence but cannot auto-promote or auto-edit assets.

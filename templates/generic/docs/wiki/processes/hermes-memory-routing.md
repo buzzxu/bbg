@@ -39,3 +39,4 @@ related:
 - K8 remains local-only and does not add org/global routing.
 - K9 intake stays collect-and-normalize; verification/promotion is deferred.
 - Verification/promotion records do not override canonical-first local routing.
+- K11 recommendations are advisory and require explicit approval before policy changes.

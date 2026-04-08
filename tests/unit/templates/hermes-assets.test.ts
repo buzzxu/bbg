@@ -326,4 +326,27 @@ describe("Hermes governance assets", () => {
     expect(normalized).not.toContain("auto_apply_strategy");
     expect(normalized).not.toContain("self_edit_patch");
   });
+
+  it("documents K11 meta-learning as advisory and human-reviewed", async () => {
+    const [learnCmd, strategyCmd, learningSkill, strategySkill, processDoc, queryCmd, promoteCmd] = await Promise.all([
+      readFile(join(packageRoot, "commands/hermes-learn.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-strategy.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-meta-learning/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-strategy-selection/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/docs/wiki/processes/hermes-meta-learning.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-query.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-promote.md"), "utf8"),
+    ]);
+    const normalizedProcess = processDoc.replace(/\s+/g, " ").toLowerCase();
+    const normalizedPromote = promoteCmd.toLowerCase();
+
+    expect(learnCmd).toContain("derive advisory recommendations from Hermes evidence history");
+    expect(strategyCmd).toContain("review and decide Hermes strategy recommendations with human approval");
+    expect(learningSkill).toContain("meta-learning outputs are advisory, not auto-applied");
+    expect(strategySkill).toContain("strategy changes require explicit human approval");
+    expect(normalizedProcess).toContain("k11 computes advisory strategy recommendations from prior evidence");
+    expect(normalizedProcess).toContain("k11 does not auto-edit workflows, skills, or rules");
+    expect(queryCmd).toContain("k11 recommendations are advisory and do not bypass canonical routing order");
+    expect(normalizedPromote).toContain("k11 may consume promotion evidence but does not auto-promote assets");
+  });
 });

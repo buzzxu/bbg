@@ -19,6 +19,7 @@ description: Use when recording promotion decisions for verified intake candidat
 - promotion decisions must reference verification results
 - Approved/rejected/deferred outcomes must include rationale
 - K10 promotion records do not include K11 meta-learning
+- K11 consumes promotion evidence; it does not auto-execute promotion outcomes
 
 ## Related
 

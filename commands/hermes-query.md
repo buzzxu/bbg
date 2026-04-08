@@ -34,6 +34,7 @@ Answer questions using the K8 local Hermes memory router: local canonical wiki m
 - Candidate memory can inform answers but does not become canonical by being queried
 - intake records are not a canonical memory layer
 - Verification/promotion records do not bypass canonical local routing layers
+- k11 recommendations are advisory and do not bypass canonical routing order
 - Keep promotion and routing separate
 
 ## Related

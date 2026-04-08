@@ -16,6 +16,7 @@ record promotion decisions for verified candidates into BBG-global target scopes
 - Promotion decisions must reference verification results
 - K10 records promotion decisions; it does not auto-edit global assets
 - Deferred decisions remain reviewable for later passes
+- K11 may consume promotion evidence but does not auto-promote assets
 
 ## Related
 
