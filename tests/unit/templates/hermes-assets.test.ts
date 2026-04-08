@@ -349,4 +349,13 @@ describe("Hermes governance assets", () => {
     expect(queryCmd).toContain("k11 recommendations are advisory and do not bypass canonical routing order");
     expect(normalizedPromote).toContain("k11 may consume promotion evidence but does not auto-promote assets");
   });
+
+  it("documents K11 advisory boundaries in knowledge README", async () => {
+    const readme = await readFile(join(packageRoot, "templates/generic/.bbg/knowledge/README.md"), "utf8");
+    const normalized = readme.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("k11 derives advisory strategy recommendations from historical evidence");
+    expect(normalized).toContain("strategy changes require explicit human approval");
+    expect(normalized).toContain("k11 does not auto-edit workflows, skills, rules, or routing policy");
+  });
 });

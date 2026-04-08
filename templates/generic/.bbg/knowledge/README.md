@@ -73,5 +73,7 @@ In K9, Hermes collects and normalizes cross-project candidates into intake recor
 
 K10 verifies candidates before promotion decisions. Promotion decisions remain evidence-gated and auditable, and K11 meta-learning remains out of scope in K10.
 
+K11 derives advisory strategy recommendations from historical evidence. Strategy changes require explicit human approval, and K11 does not auto-edit workflows, skills, rules, or routing policy.
+
 K7A only distills wiki/process drafts. Other candidate types remain reserved for
 later phases.
