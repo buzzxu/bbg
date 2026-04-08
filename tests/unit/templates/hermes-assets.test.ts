@@ -25,12 +25,22 @@ describe("Hermes governance assets", () => {
     const schema = await readFile(join(packageRoot, "templates/generic/.bbg/scripts/hermes-schema.sql"), "utf8");
     const normalizedSchema = schema.replace(/\s+/g, " ");
 
-    expect(normalizedSchema).toContain("draft_kind TEXT CHECK (draft_kind IN ('wiki', 'process'))");
+    expect(normalizedSchema).toContain("draft_kind TEXT CHECK (draft_kind IN ('wiki', 'process', 'skill', 'rule'))");
     expect(normalizedSchema).toContain("draft_path TEXT");
     expect(normalizedSchema).toContain("distilled_at TEXT");
     expect(normalizedSchema).toContain("CHECK (status IN ('pending', 'distilled', 'local_only', 'rejected', 'superseded'))");
     expect(schema).not.toContain("org_level");
     expect(schema).not.toContain("global_bbg");
+  });
+
+  it("extends K7 draft kinds to include local skill/rule drafts without changing local-only status", async () => {
+    const schema = await readFile(join(packageRoot, "templates/generic/.bbg/scripts/hermes-schema.sql"), "utf8");
+    const normalized = schema.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("draft_kind text check (draft_kind in ('wiki', 'process', 'skill', 'rule'))");
+    expect(normalized).toContain("status in ('pending', 'distilled', 'local_only', 'rejected', 'superseded')");
+    expect(normalized).not.toContain("org_level");
+    expect(normalized).not.toContain("global_bbg");
   });
 
   it("documents Hermes schema migration steps for existing K7A databases", async () => {
@@ -98,7 +108,7 @@ describe("Hermes governance assets", () => {
     const normalizedDistillationProcess = distillationProcess.replace(/\s+/g, " ").toLowerCase();
 
     expect(normalizedSchema).toContain("candidate_type in ('wiki', 'skill', 'rule', 'workflow', 'eval', 'memory')");
-    expect(normalizedSchema).toContain("k7a only distills wiki/process drafts");
+    expect(normalizedSchema).toContain("k7a distills wiki/process drafts, and k7b adds local skill/rule drafts");
     expect(normalizedSchema).toContain("other candidate types remain reserved for later phases");
     expect(normalizedKnowledgeReadme).toContain("k7a only distills wiki/process drafts");
     expect(normalizedKnowledgeReadme).toContain("other candidate types remain reserved for later phases");

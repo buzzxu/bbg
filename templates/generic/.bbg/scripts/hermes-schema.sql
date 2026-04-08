@@ -53,9 +53,9 @@ CREATE TABLE IF NOT EXISTS hermes_evaluations (
 CREATE TABLE IF NOT EXISTS hermes_candidates (
   candidate_id      TEXT PRIMARY KEY,
   source_run_id     TEXT NOT NULL,
-  -- K7A only distills wiki/process drafts. Other candidate types remain reserved for later phases, even though the broader taxonomy stays available here.
+  -- K7A distills wiki/process drafts, and K7B adds local skill/rule drafts. Other candidate types remain reserved for later phases, even though the broader taxonomy stays available here.
   candidate_type    TEXT NOT NULL CHECK (candidate_type IN ('wiki', 'skill', 'rule', 'workflow', 'eval', 'memory')),
-  draft_kind       TEXT CHECK (draft_kind IN ('wiki', 'process')),
+  draft_kind       TEXT CHECK (draft_kind IN ('wiki', 'process', 'skill', 'rule')),
   draft_path       TEXT,
   proposed_target   TEXT,
   rationale         TEXT,
