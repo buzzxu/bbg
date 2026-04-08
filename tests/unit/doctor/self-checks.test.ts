@@ -238,6 +238,81 @@ describe("doctor/self-checks", () => {
     expect(check.message).toContain(missingPath);
   });
 
+  it("fails the Hermes command check for a missing K7B skill drafting command", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "commands/hermes-draft-skill.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-commands-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes command check for a missing K7B rule drafting command", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "commands/hermes-draft-rule.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-commands-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes skill check for a missing K7B skill drafting skill", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "skills/hermes-skill-drafting/SKILL.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-skills-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes skill check for a missing K7B rule drafting skill", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "skills/hermes-rule-drafting/SKILL.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-skills-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes doc check for a missing K7B skill and rule drafting process doc", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "docs/wiki/processes/hermes-skill-rule-drafting.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-docs-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
   it("fails the Hermes doc check for a missing Hermes doc path", async () => {
     const root = await makeTempDir();
     await createMinimalGovernance(root);
