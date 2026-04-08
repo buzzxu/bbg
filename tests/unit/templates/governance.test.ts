@@ -64,9 +64,9 @@ describe("buildGovernanceManifest", () => {
     expect(agentTasks.map((t) => t.destination)).toContain("agents/planner.md");
     expect(agentTasks.map((t) => t.destination)).toContain("agents/devops-reviewer.md");
 
-    // Core + operations + wiki skills + wiki compilation skills + wiki trust skills + Hermes skills: 28 + 18 + 3 + 2 + 3 + 7 = 61
+    // Core + operations + wiki skills + wiki compilation skills + wiki trust skills + Hermes skills: 28 + 18 + 3 + 2 + 3 + 9 = 63
     const skillTasks = tasks.filter((t) => t.destination.startsWith("skills/"));
-    expect(skillTasks).toHaveLength(61);
+    expect(skillTasks).toHaveLength(63);
     expect(skillTasks.map((t) => t.destination)).toContain("skills/coding-standards/SKILL.md");
     expect(skillTasks.map((t) => t.destination)).toContain("skills/agent-orchestration/SKILL.md");
     expect(skillTasks.map((t) => t.destination)).toContain("skills/telemetry-dashboard/SKILL.md");
@@ -89,9 +89,9 @@ describe("buildGovernanceManifest", () => {
     expect(ruleTasks.map((t) => t.destination)).toContain("rules/common/agents.md");
     expect(ruleTasks.map((t) => t.destination)).toContain("rules/common/knowledge.md");
 
-    // Core + wiki commands + wiki compilation commands + wiki trust commands + Hermes commands: 35 + 3 + 2 + 3 + 9 = 52
+    // Core + wiki commands + wiki compilation commands + wiki trust commands + Hermes commands: 35 + 3 + 2 + 3 + 11 = 54
     const commandTasks = tasks.filter((t) => t.destination.startsWith("commands/"));
-    expect(commandTasks).toHaveLength(52);
+    expect(commandTasks).toHaveLength(54);
     expect(commandTasks.map((t) => t.destination)).toContain("commands/plan.md");
     expect(commandTasks.map((t) => t.destination)).toContain("commands/sync.md");
     expect(commandTasks.map((t) => t.destination)).toContain("commands/telemetry-report.md");
@@ -192,7 +192,7 @@ describe("buildGovernanceManifest", () => {
     const wikiDocTasks = tasks.filter(
       (t) => t.destination.startsWith("docs/wiki/") || t.destination === "docs/raw/README.md",
     );
-    expect(wikiDocTasks).toHaveLength(16);
+    expect(wikiDocTasks).toHaveLength(17);
     expect(destinations).toContain("docs/raw/README.md");
     expect(destinations).toContain("docs/wiki/index.md");
     expect(destinations).toContain("docs/wiki/log.md");
@@ -217,6 +217,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("commands/hermes-draft-rule.md");
     expect(destinations).toContain("commands/hermes-intake.md");
     expect(destinations).toContain("commands/hermes-intake-review.md");
+    expect(destinations).toContain("commands/hermes-verify.md");
+    expect(destinations).toContain("commands/hermes-promote.md");
     expect(destinations).toContain("skills/hermes-runtime/SKILL.md");
     expect(destinations).toContain("skills/hermes-evaluation/SKILL.md");
     expect(destinations).toContain("skills/hermes-distillation/SKILL.md");
@@ -224,11 +226,14 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("skills/hermes-skill-drafting/SKILL.md");
     expect(destinations).toContain("skills/hermes-rule-drafting/SKILL.md");
     expect(destinations).toContain("skills/hermes-intake/SKILL.md");
+    expect(destinations).toContain("skills/hermes-verification/SKILL.md");
+    expect(destinations).toContain("skills/hermes-promotion/SKILL.md");
     expect(destinations).toContain("docs/wiki/processes/hermes-runtime.md");
     expect(destinations).toContain("docs/wiki/processes/hermes-distillation.md");
     expect(destinations).toContain("docs/wiki/processes/hermes-memory-routing.md");
     expect(destinations).toContain("docs/wiki/processes/hermes-skill-rule-drafting.md");
     expect(destinations).toContain("docs/wiki/processes/hermes-intake.md");
+    expect(destinations).toContain("docs/wiki/processes/hermes-verification-promotion.md");
     expect(destinations).toContain(".bbg/scripts/hermes-schema.sql");
 
     const knowledgeTasks = tasks.filter(
@@ -238,8 +243,8 @@ describe("buildGovernanceManifest", () => {
 
     expect(destinations).not.toContain("docs/wiki/reports/red-team-findings-summary.md");
 
-    // Total: 195
-    expect(tasks).toHaveLength(195);
+    // Total: 200
+    expect(tasks).toHaveLength(200);
   });
 
   it("includes typescript-specific governance files when typescript repo present", () => {
@@ -291,8 +296,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/wiki/processes/knowledge-trust-model.md");
     expect(destinations).toContain(".bbg/scripts/knowledge-provenance.sql");
 
-    // Total: 210
-    expect(tasks).toHaveLength(210);
+    // Total: 215
+    expect(tasks).toHaveLength(215);
   });
 
   it("includes files for multiple languages (python + typescript)", () => {
@@ -366,8 +371,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
     expect(destinations).toContain("docs/wiki/reports/red-team-findings-summary.md");
 
-    // Total: 230
-    expect(tasks).toHaveLength(230);
+    // Total: 235
+    expect(tasks).toHaveLength(235);
   });
 
   it("includes red team governance files for backend Java project", () => {
@@ -399,8 +404,8 @@ describe("buildGovernanceManifest", () => {
     expect(destinations).toContain("docs/reports/red-team-report-TEMPLATE.md");
     expect(destinations).toContain("docs/wiki/reports/red-team-findings-summary.md");
 
-    // Total: core(195) + java(14) + backend(6) = 215
-    expect(tasks).toHaveLength(215);
+    // Total: core(200) + java(14) + backend(6) = 220
+    expect(tasks).toHaveLength(220);
   });
 
   it("excludes red team governance files for frontend-only project", () => {
