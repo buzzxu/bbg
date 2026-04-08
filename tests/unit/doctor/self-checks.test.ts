@@ -298,6 +298,36 @@ describe("doctor/self-checks", () => {
     expect(check.message).toContain(missingPath);
   });
 
+  it("fails the Hermes command check for a missing K11 learn command", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "commands/hermes-learn.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-commands-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes command check for a missing K11 strategy command", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "commands/hermes-strategy.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-commands-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
   it("fails the Hermes skill check for a missing K9 intake skill", async () => {
     const root = await makeTempDir();
     await createMinimalGovernance(root);
@@ -343,6 +373,36 @@ describe("doctor/self-checks", () => {
     expect(check.message).toContain(missingPath);
   });
 
+  it("fails the Hermes skill check for a missing K11 meta-learning skill", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "skills/hermes-meta-learning/SKILL.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-skills-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes skill check for a missing K11 strategy selection skill", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "skills/hermes-strategy-selection/SKILL.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-skills-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
   it("fails the Hermes doc check for a missing K9 intake process doc", async () => {
     const root = await makeTempDir();
     await createMinimalGovernance(root);
@@ -363,6 +423,21 @@ describe("doctor/self-checks", () => {
     await createMinimalGovernance(root);
 
     const missingPath = "docs/wiki/processes/hermes-verification-promotion.md";
+    await rm(join(root, missingPath));
+
+    const result = await runSelfChecks(root);
+    const check = getCheck(result, "self-hermes-docs-exist");
+
+    expect(result.ok).toBe(false);
+    expect(check.passed).toBe(false);
+    expect(check.message).toContain(missingPath);
+  });
+
+  it("fails the Hermes doc check for a missing K11 meta-learning process doc", async () => {
+    const root = await makeTempDir();
+    await createMinimalGovernance(root);
+
+    const missingPath = "docs/wiki/processes/hermes-meta-learning.md";
     await rm(join(root, missingPath));
 
     const result = await runSelfChecks(root);
