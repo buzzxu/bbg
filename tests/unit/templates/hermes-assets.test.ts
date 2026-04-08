@@ -303,4 +303,13 @@ describe("Hermes governance assets", () => {
     expect(normalizedProcess).toContain("k11 meta-learning remains out of scope");
     expect(intakeReviewCmd).toContain("handoff verified candidates to /hermes-verify");
   });
+
+  it("documents K10 verification/promotion boundaries in knowledge README", async () => {
+    const readme = await readFile(join(packageRoot, "templates/generic/.bbg/knowledge/README.md"), "utf8");
+    const normalized = readme.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("k10 verifies candidates before promotion decisions");
+    expect(normalized).toContain("promotion decisions remain evidence-gated and auditable");
+    expect(normalized).toContain("k11 meta-learning remains out of scope in k10");
+  });
 });

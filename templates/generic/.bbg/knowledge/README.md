@@ -71,5 +71,7 @@ In K8, local canonical wiki memory is consulted before local candidate draft mem
 
 In K9, Hermes collects and normalizes cross-project candidates into intake records. Intake records remain non-canonical until K10 verification, and global promotion remains out of scope in K9.
 
+K10 verifies candidates before promotion decisions. Promotion decisions remain evidence-gated and auditable, and K11 meta-learning remains out of scope in K10.
+
 K7A only distills wiki/process drafts. Other candidate types remain reserved for
 later phases.
