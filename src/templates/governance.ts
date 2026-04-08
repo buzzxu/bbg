@@ -297,6 +297,7 @@ const HERMES_SKILLS = [
   "hermes-memory-router",
   "hermes-skill-drafting",
   "hermes-rule-drafting",
+  "hermes-intake",
 ];
 
 const WIKI_TRUST_COMMANDS = ["wiki-audit", "wiki-stale", "wiki-promote"];
@@ -309,6 +310,8 @@ const HERMES_COMMANDS = [
   "hermes-query",
   "hermes-draft-skill",
   "hermes-draft-rule",
+  "hermes-intake",
+  "hermes-intake-review",
 ];
 
 const WIKI_DOC_FILES = [
@@ -334,6 +337,7 @@ const HERMES_DOC_FILES = [
   "docs/wiki/processes/hermes-distillation.md",
   "docs/wiki/processes/hermes-memory-routing.md",
   "docs/wiki/processes/hermes-skill-rule-drafting.md",
+  "docs/wiki/processes/hermes-intake.md",
 ];
 
 const HERMES_SCRIPTS = ["hermes-schema.sql"];
