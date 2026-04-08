@@ -185,6 +185,15 @@ describe("Hermes governance assets", () => {
     expect(distillCommand).toContain("skill/rule draft targets");
   });
 
+  it("documents K7B skill/rule draft boundaries in the knowledge README", async () => {
+    const knowledgeReadme = await readFile(join(packageRoot, "templates/generic/.bbg/knowledge/README.md"), "utf8");
+    const normalized = knowledgeReadme.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("in k7b, local skill/rule draft generation is added alongside wiki/process drafts");
+    expect(normalized).toContain("draft skill/rule outputs remain non-canonical until separately promoted");
+    expect(normalized).toContain("global promotion remains out of scope in k7b");
+  });
+
   it("keeps K8 query workflows canonical-first and candidate-aware without auto-promotion", async () => {
     const [wikiQueryCommand, wikiQuerySkill, hermesCandidatesCommand, hermesDistillationSkill] = await Promise.all([
       readFile(join(packageRoot, "commands/wiki-query.md"), "utf8"),
