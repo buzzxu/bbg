@@ -116,4 +116,26 @@ describe("Hermes governance assets", () => {
     expect(normalized).toContain("canonical wiki promotion remains a separate review step");
     expect(normalized).not.toContain("automatic global promotion");
   });
+
+  it("documents K8 local memory routing order and canonical-over-candidate priority", async () => {
+    const [queryCommand, routerSkill, routingProcess, wikiIndex] = await Promise.all([
+      readFile(join(packageRoot, "commands/hermes-query.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-memory-router/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/docs/wiki/processes/hermes-memory-routing.md"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/docs/wiki/index.md"), "utf8"),
+    ]);
+    const normalizedCommand = queryCommand.replace(/\s+/g, " ").toLowerCase();
+    const normalizedSkill = routerSkill.replace(/\s+/g, " ").toLowerCase();
+    const normalizedProcess = routingProcess.replace(/\s+/g, " ").toLowerCase();
+    const normalizedIndex = wikiIndex.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalizedCommand).toContain("local canonical wiki memory before local candidate memory");
+    expect(normalizedCommand).toContain("state whether raw/runtime evidence resolved the answer when fallback reaches that layer");
+    expect(normalizedSkill).toContain("canonical over candidate");
+    expect(normalizedSkill).toContain("local over raw/runtime evidence");
+    expect(normalizedProcess).toContain("1. local canonical wiki memory");
+    expect(normalizedProcess).toContain("2. local candidate draft memory");
+    expect(normalizedProcess).toContain("3. raw/runtime artifacts only when needed");
+    expect(normalizedIndex).toContain("[hermes memory routing](./processes/hermes-memory-routing.md)");
+  });
 });

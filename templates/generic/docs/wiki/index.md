@@ -23,3 +23,4 @@ Each entry should include a relative link, a one-line summary, and placement und
 
 - [Wiki Ingestion](./processes/wiki-ingestion.md) - Documents how raw inputs become maintained wiki pages.
 - [Knowledge Compilation](./processes/knowledge-compilation.md) - Documents how runtime artifacts become maintained wiki knowledge.
+- [Hermes Memory Routing](./processes/hermes-memory-routing.md) - Defines canonical-first local memory routing and candidate fallback boundaries.
