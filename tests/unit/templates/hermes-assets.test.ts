@@ -312,4 +312,18 @@ describe("Hermes governance assets", () => {
     expect(normalized).toContain("promotion decisions remain evidence-gated and auditable");
     expect(normalized).toContain("k11 meta-learning remains out of scope in k10");
   });
+
+  it("adds K11 learning and strategy schema as advisory-only recommendations", async () => {
+    const schema = await readFile(join(packageRoot, "templates/generic/.bbg/scripts/hermes-schema.sql"), "utf8");
+    const normalized = schema.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("create table if not exists hermes_learning_runs");
+    expect(normalized).toContain("create table if not exists hermes_learning_signals");
+    expect(normalized).toContain("create table if not exists hermes_strategy_recommendations");
+    expect(normalized).toContain(
+      "recommendation_status text not null check (recommendation_status in ('proposed', 'accepted', 'rejected', 'superseded'))",
+    );
+    expect(normalized).not.toContain("auto_apply_strategy");
+    expect(normalized).not.toContain("self_edit_patch");
+  });
 });

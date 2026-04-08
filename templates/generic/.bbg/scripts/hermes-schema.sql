@@ -147,6 +147,42 @@ CREATE TABLE IF NOT EXISTS hermes_promotion_decisions (
   FOREIGN KEY (verification_run_id) REFERENCES hermes_verification_runs(verification_run_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS hermes_learning_runs (
+  learning_run_id      TEXT PRIMARY KEY,
+  started_at           TEXT NOT NULL DEFAULT (datetime('now')),
+  finished_at          TEXT,
+  learner_kind         TEXT NOT NULL CHECK (learner_kind IN ('rule-based', 'human-reviewed', 'hybrid')),
+  recommendation_count INTEGER NOT NULL DEFAULT 0,
+  CHECK (recommendation_count >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS hermes_learning_signals (
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  learning_run_id       TEXT NOT NULL,
+  signal_scope          TEXT NOT NULL CHECK (signal_scope IN ('workflow', 'skill', 'routing')),
+  signal_ref            TEXT NOT NULL,
+  observed_effect       TEXT NOT NULL CHECK (observed_effect IN ('negative', 'neutral', 'positive')),
+  confidence            TEXT NOT NULL CHECK (confidence IN ('low', 'medium', 'high')),
+  evidence_summary      TEXT,
+  source_evaluation_ref TEXT,
+  captured_at           TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (learning_run_id) REFERENCES hermes_learning_runs(learning_run_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS hermes_strategy_recommendations (
+  recommendation_id      TEXT PRIMARY KEY,
+  learning_run_id        TEXT NOT NULL,
+  recommendation_scope   TEXT NOT NULL CHECK (recommendation_scope IN ('workflow', 'skill', 'routing')),
+  recommendation_target  TEXT NOT NULL,
+  recommendation_action  TEXT NOT NULL CHECK (recommendation_action IN ('prefer', 'deprioritize', 'review')),
+  recommendation_status  TEXT NOT NULL CHECK (recommendation_status IN ('proposed', 'accepted', 'rejected', 'superseded')),
+  rationale              TEXT,
+  decided_by             TEXT,
+  decided_at             TEXT,
+  created_at             TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (learning_run_id) REFERENCES hermes_learning_runs(learning_run_id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_hermes_runs_status ON hermes_runs(status);
 CREATE INDEX IF NOT EXISTS idx_hermes_run_artifacts_run_id ON hermes_run_artifacts(run_id);
 CREATE INDEX IF NOT EXISTS idx_hermes_evaluations_run_id ON hermes_evaluations(run_id);
@@ -164,3 +200,9 @@ CREATE INDEX IF NOT EXISTS idx_hermes_verification_results_intake_candidate_id O
 CREATE INDEX IF NOT EXISTS idx_hermes_promotion_decisions_intake_candidate_id ON hermes_promotion_decisions(intake_candidate_id);
 CREATE INDEX IF NOT EXISTS idx_hermes_promotion_decisions_verification_run_id ON hermes_promotion_decisions(verification_run_id);
 CREATE INDEX IF NOT EXISTS idx_hermes_promotion_decisions_status ON hermes_promotion_decisions(decision_status);
+CREATE INDEX IF NOT EXISTS idx_hermes_learning_runs_started_at ON hermes_learning_runs(started_at);
+CREATE INDEX IF NOT EXISTS idx_hermes_learning_signals_learning_run_id ON hermes_learning_signals(learning_run_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_learning_signals_scope_ref ON hermes_learning_signals(signal_scope, signal_ref);
+CREATE INDEX IF NOT EXISTS idx_hermes_strategy_recommendations_learning_run_id ON hermes_strategy_recommendations(learning_run_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_strategy_recommendations_status ON hermes_strategy_recommendations(recommendation_status);
+CREATE INDEX IF NOT EXISTS idx_hermes_strategy_recommendations_scope_target ON hermes_strategy_recommendations(recommendation_scope, recommendation_target);
