@@ -59,6 +59,7 @@ Use this skill to answer questions from the wiki before falling back to raw sour
 ## Rules
 - Always read `docs/wiki/index.md` first
 - Prefer the minimum relevant wiki pages over broad wiki scans
+- Candidate memory is a lower-priority fallback than canonical wiki memory
 - Cite wiki pages used in the answer
 - Read raw sources only to close evidence gaps or resolve ambiguity
 - Separate answering the question from deciding whether to promote the result
@@ -68,9 +69,10 @@ Use this skill to answer questions from the wiki before falling back to raw sour
 ## Query Order
 1. Read `docs/wiki/index.md`
 2. Prefer compiled report or process pages when present and not marked `stale` or `superseded`
-3. Answer from wiki evidence first
-4. Read raw sources only when the wiki is missing or ambiguous
-5. Suggest promotion only if the answer adds durable project knowledge
+3. Check local candidate draft memory only when canonical wiki memory is missing or incomplete
+4. Answer from wiki evidence first
+5. Read raw sources only when the wiki is missing or ambiguous
+6. Suggest promotion only if the answer adds durable project knowledge
 
 ## Promotion Heuristics
 Promotion is appropriate when the answer:

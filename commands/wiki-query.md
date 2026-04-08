@@ -13,9 +13,10 @@ Answer questions using the wiki as the primary knowledge source, falling back to
 ## Query Order
 1. Read `docs/wiki/index.md`
 2. Prefer compiled report or process pages created by `/wiki-compile` or `/wiki-refresh` when they exist and are not marked `stale` or `superseded`
-3. Answer from wiki evidence first
-4. Read raw sources only when the wiki is missing or ambiguous
-5. Suggest promotion only if the answer adds durable project knowledge
+3. Check local candidate draft memory only when canonical wiki memory is missing or incomplete
+4. Answer from wiki evidence first
+5. Read raw sources only when the wiki is missing or ambiguous
+6. Suggest promotion only if the answer adds durable project knowledge
 
 ## Process
 1. **Start at the index** — Read `docs/wiki/index.md` first to locate the relevant wiki pages
@@ -38,6 +39,7 @@ Answer questions using the wiki as the primary knowledge source, falling back to
 ## Rules
 - Always consult `docs/wiki/index.md` before anything else
 - Prefer wiki evidence over raw-source re-interpretation
+- Prefer canonical wiki memory before local candidate draft memory
 - Cite the wiki pages used in the answer
 - Use raw sources only to fill gaps or resolve ambiguity
 - Separate answering the question from deciding whether to promote the result

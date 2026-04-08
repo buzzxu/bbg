@@ -20,6 +20,7 @@ description: Use when converting evaluated Hermes candidates into local wiki or 
 - Distill only candidates with explicit evidence and rationale
 - Prefer wiki/process drafts in K7A; do not generate global assets here
 - Keep promotion decisions separate from draft creation
+- Distilled drafts become candidate memory until separately promoted into canonical knowledge
 
 ## Related
 

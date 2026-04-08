@@ -138,4 +138,22 @@ describe("Hermes governance assets", () => {
     expect(normalizedProcess).toContain("3. raw/runtime artifacts only when needed");
     expect(normalizedIndex).toContain("[hermes memory routing](./processes/hermes-memory-routing.md)");
   });
+
+  it("keeps K8 query workflows canonical-first and candidate-aware without auto-promotion", async () => {
+    const [wikiQueryCommand, wikiQuerySkill, hermesCandidatesCommand, hermesDistillationSkill] = await Promise.all([
+      readFile(join(packageRoot, "commands/wiki-query.md"), "utf8"),
+      readFile(join(packageRoot, "skills/wiki-query/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-candidates.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-distillation/SKILL.md"), "utf8"),
+    ]);
+    const normalizedWikiCommand = wikiQueryCommand.replace(/\s+/g, " ").toLowerCase();
+    const normalizedWikiSkill = wikiQuerySkill.replace(/\s+/g, " ").toLowerCase();
+    const normalizedCandidates = hermesCandidatesCommand.replace(/\s+/g, " ").toLowerCase();
+    const normalizedDistillation = hermesDistillationSkill.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalizedWikiCommand).toContain("canonical wiki memory before local candidate draft memory");
+    expect(normalizedWikiSkill).toContain("candidate memory is a lower-priority fallback than canonical wiki memory");
+    expect(normalizedCandidates).toContain("candidate memory is queryable but not canonical");
+    expect(normalizedDistillation).toContain("distilled drafts become candidate memory until separately promoted");
+  });
 });
