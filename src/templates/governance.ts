@@ -290,11 +290,26 @@ const WIKI_COMPILATION_COMMANDS = ["wiki-compile", "wiki-refresh"];
 
 const WIKI_TRUST_SKILLS = ["wiki-auditor", "wiki-provenance", "wiki-distillation"];
 
-const HERMES_SKILLS = ["hermes-runtime", "hermes-evaluation", "hermes-distillation", "hermes-memory-router"];
+const HERMES_SKILLS = [
+  "hermes-runtime",
+  "hermes-evaluation",
+  "hermes-distillation",
+  "hermes-memory-router",
+  "hermes-skill-drafting",
+  "hermes-rule-drafting",
+];
 
 const WIKI_TRUST_COMMANDS = ["wiki-audit", "wiki-stale", "wiki-promote"];
 
-const HERMES_COMMANDS = ["hermes-log", "hermes-candidates", "hermes-distill", "hermes-refine", "hermes-query"];
+const HERMES_COMMANDS = [
+  "hermes-log",
+  "hermes-candidates",
+  "hermes-distill",
+  "hermes-refine",
+  "hermes-query",
+  "hermes-draft-skill",
+  "hermes-draft-rule",
+];
 
 const WIKI_DOC_FILES = [
   "docs/raw/README.md",
@@ -318,6 +333,7 @@ const HERMES_DOC_FILES = [
   "docs/wiki/processes/hermes-runtime.md",
   "docs/wiki/processes/hermes-distillation.md",
   "docs/wiki/processes/hermes-memory-routing.md",
+  "docs/wiki/processes/hermes-skill-rule-drafting.md",
 ];
 
 const HERMES_SCRIPTS = ["hermes-schema.sql"];
