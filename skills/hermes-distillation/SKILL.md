@@ -19,6 +19,7 @@ description: Use when converting evaluated Hermes candidates into local wiki or 
 - Create local draft outputs, not canonical edits
 - Distill only candidates with explicit evidence and rationale
 - Prefer wiki/process drafts in K7A; do not generate global assets here
+- Route qualified candidates into wiki/process/skill/rule draft workflows while keeping promotion separate
 - Keep promotion decisions separate from draft creation
 - Distilled drafts become candidate memory until separately promoted into canonical knowledge
 

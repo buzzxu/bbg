@@ -158,6 +158,33 @@ describe("Hermes governance assets", () => {
     expect(normalizedIndex).toContain("[hermes memory routing](./processes/hermes-memory-routing.md)");
   });
 
+  it("documents K7B local skill/rule draft generation boundaries", async () => {
+    const [
+      draftSkillCommand,
+      draftRuleCommand,
+      skillDraftingSkill,
+      ruleDraftingSkill,
+      draftingProcess,
+      distillCommand,
+    ] = await Promise.all([
+      readFile(join(packageRoot, "commands/hermes-draft-skill.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-draft-rule.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-skill-drafting/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-rule-drafting/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/docs/wiki/processes/hermes-skill-rule-drafting.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-distill.md"), "utf8"),
+    ]);
+    const normalizedProcess = draftingProcess.toLowerCase();
+
+    expect(draftSkillCommand).toContain("local skill drafts");
+    expect(draftRuleCommand).toContain("local rule drafts");
+    expect(skillDraftingSkill).toContain("drafts remain non-canonical until separately promoted");
+    expect(ruleDraftingSkill).toContain("drafts remain non-canonical until separately promoted");
+    expect(normalizedProcess).toContain("k7b adds local skill/rule draft generation");
+    expect(normalizedProcess).toContain("canonical promotion remains a separate review step");
+    expect(distillCommand).toContain("skill/rule draft targets");
+  });
+
   it("keeps K8 query workflows canonical-first and candidate-aware without auto-promotion", async () => {
     const [wikiQueryCommand, wikiQuerySkill, hermesCandidatesCommand, hermesDistillationSkill] = await Promise.all([
       readFile(join(packageRoot, "commands/wiki-query.md"), "utf8"),

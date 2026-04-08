@@ -39,6 +39,7 @@ workflows.
 
 - Distillation creates local drafts, not final canonical pages.
 - Canonical wiki promotion remains a separate review step.
+- K7 includes local wiki/process/skill/rule draft generation, but promotion stays separate.
 - Only wiki/process draft targets are distillable in K7A.
 - Other candidate types remain reserved for later phases.
 - Cross-project promotion is out of scope.

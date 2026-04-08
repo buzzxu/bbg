@@ -30,10 +30,12 @@ K7A local distillation workflows.
 - evaluated local candidates
 - wiki draft targets
 - process draft targets
+- skill/rule draft targets
 - evidence-backed local distillation
 
-Only wiki/process draft targets are distillable in K7A. Other candidate types
-remain reserved for later phases.
+Only wiki/process draft targets are distillable in K7A. K7B additionally enables
+local skill/rule draft workflows, while other candidate types remain reserved for
+later phases.
 
 ## Related
 

@@ -28,6 +28,7 @@ Review local Hermes candidate objects before they are distilled into draft wiki/
 - low-confidence candidates
 - rejected or superseded candidate history
 - local-only distillation readiness
+- K7B skill/rule draft readiness
 
 Canonical promotion beyond the local project draft workflow is out of scope for K7A.
 Candidate memory is queryable but not canonical.
