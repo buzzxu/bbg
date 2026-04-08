@@ -21,6 +21,7 @@ description: Use when importing and normalizing cross-project Hermes candidates 
 - Use intake review to resolve duplicates and conflicts before acceptance
 - Intake records are reviewable draft memory, not canonical memory
 - intake records remain non-canonical until K10 verification
+- Verification and promotion decisions are deferred to K10 workflows
 
 ## Related
 

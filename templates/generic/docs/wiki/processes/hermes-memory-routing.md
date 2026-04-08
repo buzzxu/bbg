@@ -38,3 +38,4 @@ related:
 - K8 does not auto-promote queried candidates.
 - K8 remains local-only and does not add org/global routing.
 - K9 intake stays collect-and-normalize; verification/promotion is deferred.
+- Verification/promotion records do not override canonical-first local routing.

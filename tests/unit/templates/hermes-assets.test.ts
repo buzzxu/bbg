@@ -283,4 +283,24 @@ describe("Hermes governance assets", () => {
     expect(normalized).not.toContain("auto_promote");
     expect(normalized).not.toContain("meta_learning_score");
   });
+
+  it("documents K10 verification and promotion as evidence-gated and K11-separate", async () => {
+    const [verifyCmd, promoteCmd, verifySkill, promoteSkill, processDoc, intakeReviewCmd] = await Promise.all([
+      readFile(join(packageRoot, "commands/hermes-verify.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-promote.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-verification/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-promotion/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/docs/wiki/processes/hermes-verification-promotion.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-intake-review.md"), "utf8"),
+    ]);
+    const normalizedProcess = processDoc.replace(/\s+/g, " ").toLowerCase();
+
+    expect(verifyCmd).toContain("verify intake candidates with explicit evidence checks");
+    expect(promoteCmd).toContain("record promotion decisions for verified candidates");
+    expect(verifySkill).toContain("verification must be evidence-gated");
+    expect(promoteSkill).toContain("promotion decisions must reference verification results");
+    expect(normalizedProcess).toContain("k10 verifies candidates before promotion decisions");
+    expect(normalizedProcess).toContain("k11 meta-learning remains out of scope");
+    expect(intakeReviewCmd).toContain("handoff verified candidates to /hermes-verify");
+  });
 });

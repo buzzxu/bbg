@@ -34,6 +34,7 @@ k9 collects and normalizes cross-project candidates so reviewers can triage dupl
 - Intake records remain non-canonical candidate memory.
 - global promotion is out of scope in k9.
 - Global verification is deferred until K10.
+- Verified candidate handoff begins in K10, not K9 intake.
 
 ## Related
 

@@ -35,3 +35,4 @@ This step is to review normalized intake candidates for duplicates and conflicts
 - [Hermes Intake Command](./hermes-intake.md)
 - [Hermes Intake Skill](../skills/hermes-intake/SKILL.md)
 - [Hermes Query Command](./hermes-query.md)
+- handoff verified candidates to /hermes-verify for K10 verification workflows.
