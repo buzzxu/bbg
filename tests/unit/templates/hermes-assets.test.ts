@@ -269,4 +269,18 @@ describe("Hermes governance assets", () => {
     expect(normalized).toContain("intake records remain non-canonical until k10 verification");
     expect(normalized).toContain("global promotion remains out of scope in k9");
   });
+
+  it("adds K10 verification and promotion schema without introducing meta-learning automation", async () => {
+    const schema = await readFile(join(packageRoot, "templates/generic/.bbg/scripts/hermes-schema.sql"), "utf8");
+    const normalized = schema.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("create table if not exists hermes_verification_runs");
+    expect(normalized).toContain("create table if not exists hermes_verification_results");
+    expect(normalized).toContain("create table if not exists hermes_promotion_decisions");
+    expect(normalized).toContain(
+      "decision_status text not null check (decision_status in ('approved', 'rejected', 'deferred'))",
+    );
+    expect(normalized).not.toContain("auto_promote");
+    expect(normalized).not.toContain("meta_learning_score");
+  });
 });

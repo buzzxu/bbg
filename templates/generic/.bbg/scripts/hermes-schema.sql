@@ -110,6 +110,43 @@ CREATE TABLE IF NOT EXISTS hermes_intake_candidates (
   FOREIGN KEY (intake_run_id) REFERENCES hermes_candidate_intake_runs(intake_run_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS hermes_verification_runs (
+  verification_run_id TEXT PRIMARY KEY,
+  intake_run_id       TEXT NOT NULL,
+  started_at          TEXT NOT NULL DEFAULT (datetime('now')),
+  finished_at         TEXT,
+  verifier_kind       TEXT NOT NULL CHECK (verifier_kind IN ('rule-based', 'human-reviewed', 'hybrid')),
+  FOREIGN KEY (intake_run_id) REFERENCES hermes_candidate_intake_runs(intake_run_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS hermes_verification_results (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  verification_run_id TEXT NOT NULL,
+  intake_candidate_id TEXT NOT NULL,
+  correctness         TEXT NOT NULL CHECK (correctness IN ('fail', 'partial', 'pass')),
+  reproducibility     TEXT NOT NULL CHECK (reproducibility IN ('low', 'medium', 'high')),
+  reuse_potential     TEXT NOT NULL CHECK (reuse_potential IN ('low', 'medium', 'high')),
+  confidence          TEXT NOT NULL CHECK (confidence IN ('low', 'medium', 'high')),
+  verification_note   TEXT,
+  verified_at         TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (verification_run_id, intake_candidate_id),
+  FOREIGN KEY (verification_run_id) REFERENCES hermes_verification_runs(verification_run_id) ON DELETE CASCADE,
+  FOREIGN KEY (intake_candidate_id) REFERENCES hermes_intake_candidates(intake_candidate_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS hermes_promotion_decisions (
+  promotion_decision_id TEXT PRIMARY KEY,
+  intake_candidate_id   TEXT NOT NULL,
+  verification_run_id   TEXT NOT NULL,
+  decision_status       TEXT NOT NULL CHECK (decision_status IN ('approved', 'rejected', 'deferred')),
+  target_scope          TEXT NOT NULL CHECK (target_scope IN ('bbg-global-skill', 'bbg-global-rule', 'bbg-global-workflow')),
+  target_ref            TEXT,
+  decision_rationale    TEXT,
+  decided_at            TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (intake_candidate_id) REFERENCES hermes_intake_candidates(intake_candidate_id) ON DELETE CASCADE,
+  FOREIGN KEY (verification_run_id) REFERENCES hermes_verification_runs(verification_run_id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_hermes_runs_status ON hermes_runs(status);
 CREATE INDEX IF NOT EXISTS idx_hermes_run_artifacts_run_id ON hermes_run_artifacts(run_id);
 CREATE INDEX IF NOT EXISTS idx_hermes_evaluations_run_id ON hermes_evaluations(run_id);
@@ -121,3 +158,9 @@ CREATE INDEX IF NOT EXISTS idx_hermes_candidate_intake_runs_source_project_id ON
 CREATE INDEX IF NOT EXISTS idx_hermes_intake_candidates_intake_run_id ON hermes_intake_candidates(intake_run_id);
 CREATE INDEX IF NOT EXISTS idx_hermes_intake_candidates_normalized_status ON hermes_intake_candidates(normalized_status);
 CREATE INDEX IF NOT EXISTS idx_hermes_intake_candidates_normalized_hash ON hermes_intake_candidates(normalized_hash);
+CREATE INDEX IF NOT EXISTS idx_hermes_verification_runs_intake_run_id ON hermes_verification_runs(intake_run_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_verification_results_verification_run_id ON hermes_verification_results(verification_run_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_verification_results_intake_candidate_id ON hermes_verification_results(intake_candidate_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_promotion_decisions_intake_candidate_id ON hermes_promotion_decisions(intake_candidate_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_promotion_decisions_verification_run_id ON hermes_promotion_decisions(verification_run_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_promotion_decisions_status ON hermes_promotion_decisions(decision_status);
