@@ -117,6 +117,15 @@ describe("Hermes governance assets", () => {
     expect(normalized).not.toContain("automatic global promotion");
   });
 
+  it("documents K8 local memory routing in the knowledge README", async () => {
+    const knowledgeReadme = await readFile(join(packageRoot, "templates/generic/.bbg/knowledge/README.md"), "utf8");
+    const normalized = knowledgeReadme.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("local canonical wiki memory is consulted before local candidate draft memory");
+    expect(normalized).toContain("candidate memory remains reviewable draft memory");
+    expect(normalized).toContain("raw/runtime artifacts are a fallback layer");
+  });
+
   it("documents K8 local memory routing order and canonical-over-candidate priority", async () => {
     const [queryCommand, routerSkill, routingProcess, wikiIndex] = await Promise.all([
       readFile(join(packageRoot, "commands/hermes-query.md"), "utf8"),

@@ -65,5 +65,7 @@ workflows.
 
 In K7A, Hermes candidates may be distilled into local wiki or process drafts that remain reviewable project-local artifacts. Canonical wiki promotion remains a separate review step, so draft distillation should not bypass trust and maintenance workflows.
 
+In K8, local canonical wiki memory is consulted before local candidate draft memory, and raw/runtime artifacts are a fallback layer only when the local memory layers do not resolve the question. Candidate memory remains reviewable draft memory until separately promoted.
+
 K7A only distills wiki/process drafts. Other candidate types remain reserved for
 later phases.
