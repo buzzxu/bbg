@@ -211,4 +211,30 @@ describe("Hermes governance assets", () => {
     expect(normalizedCandidates).toContain("candidate memory is queryable but not canonical");
     expect(normalizedDistillation).toContain("distilled drafts become candidate memory until separately promoted");
   });
+
+  it("adds K9 intake schema without introducing promotion states", async () => {
+    const schema = await readFile(join(packageRoot, "templates/generic/.bbg/scripts/hermes-schema.sql"), "utf8");
+    const normalized = schema.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("create table if not exists hermes_source_projects");
+    expect(normalized).toContain("create table if not exists hermes_candidate_intake_runs");
+    expect(normalized).toContain("create table if not exists hermes_intake_candidates");
+    expect(normalized).toContain(
+      "normalized_status text not null check (normalized_status in ('pending_review', 'duplicate', 'conflict', 'accepted_local_only', 'rejected'))",
+    );
+    expect(normalized).toContain("check (imported_count >= 0 and rejected_count >= 0 and conflict_count >= 0)");
+    expect(normalized).toContain("unique (intake_run_id, source_candidate_id)");
+    expect(normalized).toContain(
+      "foreign key (source_project_id) references hermes_source_projects(source_project_id) on delete cascade",
+    );
+    expect(normalized).toContain(
+      "foreign key (intake_run_id) references hermes_candidate_intake_runs(intake_run_id) on delete cascade",
+    );
+    expect(normalized).toContain("create index if not exists idx_hermes_candidate_intake_runs_source_project_id");
+    expect(normalized).toContain("create index if not exists idx_hermes_intake_candidates_intake_run_id");
+    expect(normalized).toContain("create index if not exists idx_hermes_intake_candidates_normalized_status");
+    expect(normalized).toContain("create index if not exists idx_hermes_intake_candidates_normalized_hash");
+    expect(normalized).not.toContain("promoted_global");
+    expect(normalized).not.toContain("verified_global");
+  });
 });

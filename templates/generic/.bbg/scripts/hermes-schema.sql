@@ -76,6 +76,40 @@ CREATE TABLE IF NOT EXISTS hermes_candidate_evidence (
   FOREIGN KEY (candidate_id) REFERENCES hermes_candidates(candidate_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS hermes_source_projects (
+  source_project_id  TEXT PRIMARY KEY,
+  source_project_ref TEXT NOT NULL,
+  source_kind        TEXT NOT NULL CHECK (source_kind IN ('bbg-local', 'bbg-remote')),
+  first_seen_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  last_seen_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS hermes_candidate_intake_runs (
+  intake_run_id      TEXT PRIMARY KEY,
+  source_project_id  TEXT NOT NULL,
+  imported_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  imported_count     INTEGER NOT NULL DEFAULT 0,
+  rejected_count     INTEGER NOT NULL DEFAULT 0,
+  conflict_count     INTEGER NOT NULL DEFAULT 0,
+  CHECK (imported_count >= 0 AND rejected_count >= 0 AND conflict_count >= 0),
+  FOREIGN KEY (source_project_id) REFERENCES hermes_source_projects(source_project_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS hermes_intake_candidates (
+  intake_candidate_id TEXT PRIMARY KEY,
+  intake_run_id       TEXT NOT NULL,
+  source_candidate_id TEXT NOT NULL,
+  source_run_id       TEXT,
+  candidate_type      TEXT NOT NULL CHECK (candidate_type IN ('wiki', 'skill', 'rule', 'workflow', 'eval', 'memory')),
+  draft_kind          TEXT CHECK (draft_kind IN ('wiki', 'process', 'skill', 'rule')),
+  normalized_hash     TEXT NOT NULL,
+  normalized_status   TEXT NOT NULL CHECK (normalized_status IN ('pending_review', 'duplicate', 'conflict', 'accepted_local_only', 'rejected')),
+  conflict_reason     TEXT,
+  created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (intake_run_id, source_candidate_id),
+  FOREIGN KEY (intake_run_id) REFERENCES hermes_candidate_intake_runs(intake_run_id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_hermes_runs_status ON hermes_runs(status);
 CREATE INDEX IF NOT EXISTS idx_hermes_run_artifacts_run_id ON hermes_run_artifacts(run_id);
 CREATE INDEX IF NOT EXISTS idx_hermes_evaluations_run_id ON hermes_evaluations(run_id);
@@ -83,3 +117,7 @@ CREATE INDEX IF NOT EXISTS idx_hermes_candidates_source_run_id ON hermes_candida
 CREATE INDEX IF NOT EXISTS idx_hermes_candidates_status ON hermes_candidates(status);
 CREATE INDEX IF NOT EXISTS idx_hermes_candidates_type ON hermes_candidates(candidate_type);
 CREATE INDEX IF NOT EXISTS idx_hermes_candidate_evidence_candidate_id ON hermes_candidate_evidence(candidate_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_candidate_intake_runs_source_project_id ON hermes_candidate_intake_runs(source_project_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_intake_candidates_intake_run_id ON hermes_intake_candidates(intake_run_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_intake_candidates_normalized_status ON hermes_intake_candidates(normalized_status);
+CREATE INDEX IF NOT EXISTS idx_hermes_intake_candidates_normalized_hash ON hermes_intake_candidates(normalized_hash);
