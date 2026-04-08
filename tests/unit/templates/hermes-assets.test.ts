@@ -237,4 +237,27 @@ describe("Hermes governance assets", () => {
     expect(normalized).not.toContain("promoted_global");
     expect(normalized).not.toContain("verified_global");
   });
+
+  it("documents K9 intake as collect-and-normalize without global promotion", async () => {
+    const [
+      intakeCommand,
+      intakeReviewCommand,
+      intakeSkill,
+      intakeProcess,
+      queryCommand,
+    ] = await Promise.all([
+      readFile(join(packageRoot, "commands/hermes-intake.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-intake-review.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-intake/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/docs/wiki/processes/hermes-intake.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-query.md"), "utf8"),
+    ]);
+
+    expect(intakeCommand).toContain("collect and normalize candidate objects from multiple projects");
+    expect(intakeReviewCommand).toContain("review normalized intake candidates for duplicates and conflicts");
+    expect(intakeSkill).toContain("intake records remain non-canonical until K10 verification");
+    expect(intakeProcess).toContain("k9 collects and normalizes cross-project candidates");
+    expect(intakeProcess).toContain("global promotion is out of scope in k9");
+    expect(queryCommand).toContain("intake records are not a canonical memory layer");
+  });
 });

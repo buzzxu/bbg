@@ -29,6 +29,7 @@ related:
 - Prefer canonical over candidate
 - Prefer local over raw/runtime evidence
 - Treat candidate drafts as reviewable memory, not canonical truth
+- Treat K9 intake records as non-canonical review memory, not a canonical layer
 - Keep routing separate from promotion decisions
 
 ## Guardrails
@@ -36,3 +37,4 @@ related:
 - K8 does not introduce embeddings or ranking heuristics.
 - K8 does not auto-promote queried candidates.
 - K8 remains local-only and does not add org/global routing.
+- K9 intake stays collect-and-normalize; verification/promotion is deferred.

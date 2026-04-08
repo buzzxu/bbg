@@ -32,6 +32,7 @@ Answer questions using the K8 local Hermes memory router: local canonical wiki m
 - Prefer local canonical wiki memory before local candidate memory
 - Prefer local memory before raw/runtime evidence
 - Candidate memory can inform answers but does not become canonical by being queried
+- intake records are not a canonical memory layer
 - Keep promotion and routing separate
 
 ## Related

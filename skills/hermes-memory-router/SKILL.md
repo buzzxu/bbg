@@ -18,6 +18,7 @@ description: Use when selecting between local canonical wiki memory, local candi
 - Canonical over candidate
 - Local over raw/runtime evidence
 - Candidate memory is reviewable draft memory, not trusted canonical memory
+- Intake records are non-canonical review memory until K10 verification
 - Querying a candidate does not promote it
 - Keep routing separate from distillation and promotion workflows
 

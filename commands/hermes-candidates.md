@@ -20,6 +20,7 @@ Review local Hermes candidate objects before they are distilled into draft wiki/
 3. **Check evidence links** - Verify that linked artifacts and evaluations support the candidate well enough for review.
 4. **Separate outcomes** - Distinguish ready, low-confidence, rejected, and superseded candidates.
 5. **Prepare local distillation** - Distill strong local candidates into draft wiki/process outputs before any canonical promotion review.
+6. **Handle K9 intake separately** - Treat cross-project intake records as non-canonical review input until K10 verification workflows exist.
 
 ## Focus
 
@@ -32,6 +33,7 @@ Review local Hermes candidate objects before they are distilled into draft wiki/
 
 Canonical promotion beyond the local project draft workflow is out of scope for K7A.
 Candidate memory is queryable but not canonical.
+Intake records stay non-canonical in K9 and do not add global promotion behavior.
 
 ## Related
 
