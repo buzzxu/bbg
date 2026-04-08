@@ -260,4 +260,13 @@ describe("Hermes governance assets", () => {
     expect(intakeProcess).toContain("global promotion is out of scope in k9");
     expect(queryCommand).toContain("intake records are not a canonical memory layer");
   });
+
+  it("documents K9 intake boundaries in knowledge README", async () => {
+    const knowledgeReadme = await readFile(join(packageRoot, "templates/generic/.bbg/knowledge/README.md"), "utf8");
+    const normalized = knowledgeReadme.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("in k9, hermes collects and normalizes cross-project candidates");
+    expect(normalized).toContain("intake records remain non-canonical until k10 verification");
+    expect(normalized).toContain("global promotion remains out of scope in k9");
+  });
 });

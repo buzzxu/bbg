@@ -69,5 +69,7 @@ In K7B, local skill/rule draft generation is added alongside wiki/process drafts
 
 In K8, local canonical wiki memory is consulted before local candidate draft memory, and raw/runtime artifacts are a fallback layer only when the local memory layers do not resolve the question. Candidate memory remains reviewable draft memory until separately promoted.
 
+In K9, Hermes collects and normalizes cross-project candidates into intake records. Intake records remain non-canonical until K10 verification, and global promotion remains out of scope in K9.
+
 K7A only distills wiki/process drafts. Other candidate types remain reserved for
 later phases.
