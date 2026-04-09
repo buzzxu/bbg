@@ -302,6 +302,8 @@ const HERMES_SKILLS = [
   "hermes-promotion",
   "hermes-meta-learning",
   "hermes-strategy-selection",
+  "hermes-strategy-adoption",
+  "hermes-outcome-evaluation",
 ];
 
 const WIKI_TRUST_COMMANDS = ["wiki-audit", "wiki-stale", "wiki-promote"];
@@ -320,6 +322,8 @@ const HERMES_COMMANDS = [
   "hermes-promote",
   "hermes-learn",
   "hermes-strategy",
+  "hermes-adopt",
+  "hermes-outcomes",
 ];
 
 const WIKI_DOC_FILES = [
@@ -348,6 +352,7 @@ const HERMES_DOC_FILES = [
   "docs/wiki/processes/hermes-intake.md",
   "docs/wiki/processes/hermes-verification-promotion.md",
   "docs/wiki/processes/hermes-meta-learning.md",
+  "docs/wiki/processes/hermes-strategy-adoption.md",
 ];
 
 const HERMES_SCRIPTS = ["hermes-schema.sql"];
