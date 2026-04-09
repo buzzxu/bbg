@@ -358,4 +358,20 @@ describe("Hermes governance assets", () => {
     expect(normalized).toContain("strategy changes require explicit human approval");
     expect(normalized).toContain("k11 does not auto-edit workflows, skills, rules, or routing policy");
   });
+
+  it("adds K12 strategy adoption and outcomes schema with evidence lineage", async () => {
+    const schema = await readFile(join(packageRoot, "templates/generic/.bbg/scripts/hermes-schema.sql"), "utf8");
+    const normalized = schema.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("create table if not exists hermes_strategy_adoptions");
+    expect(normalized).toContain("create table if not exists hermes_strategy_outcomes");
+    expect(normalized).toContain(
+      "adoption_status text not null check (adoption_status in ('planned', 'active', 'rolled_back', 'completed'))",
+    );
+    expect(normalized).toContain(
+      "outcome_verdict text not null check (outcome_verdict in ('improved', 'unchanged', 'regressed', 'inconclusive'))",
+    );
+    expect(normalized).not.toContain("auto_adopt");
+    expect(normalized).not.toContain("autonomous_rollout");
+  });
 });

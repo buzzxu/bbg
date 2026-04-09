@@ -183,6 +183,32 @@ CREATE TABLE IF NOT EXISTS hermes_strategy_recommendations (
   FOREIGN KEY (learning_run_id) REFERENCES hermes_learning_runs(learning_run_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS hermes_strategy_adoptions (
+  adoption_id          TEXT PRIMARY KEY,
+  recommendation_id    TEXT NOT NULL,
+  adoption_scope       TEXT NOT NULL CHECK (adoption_scope IN ('workflow', 'skill', 'routing')),
+  adoption_target      TEXT NOT NULL,
+  adoption_status      TEXT NOT NULL CHECK (adoption_status IN ('planned', 'active', 'rolled_back', 'completed')),
+  rollout_note         TEXT,
+  adopted_by           TEXT,
+  adopted_at           TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (recommendation_id) REFERENCES hermes_strategy_recommendations(recommendation_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS hermes_strategy_outcomes (
+  outcome_id           TEXT PRIMARY KEY,
+  adoption_id          TEXT NOT NULL,
+  measured_window      TEXT NOT NULL,
+  metric_name          TEXT NOT NULL,
+  baseline_value       REAL,
+  observed_value       REAL,
+  outcome_verdict      TEXT NOT NULL CHECK (outcome_verdict IN ('improved', 'unchanged', 'regressed', 'inconclusive')),
+  confidence           TEXT NOT NULL CHECK (confidence IN ('low', 'medium', 'high')),
+  evidence_ref         TEXT,
+  measured_at          TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (adoption_id) REFERENCES hermes_strategy_adoptions(adoption_id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_hermes_runs_status ON hermes_runs(status);
 CREATE INDEX IF NOT EXISTS idx_hermes_run_artifacts_run_id ON hermes_run_artifacts(run_id);
 CREATE INDEX IF NOT EXISTS idx_hermes_evaluations_run_id ON hermes_evaluations(run_id);
@@ -206,3 +232,9 @@ CREATE INDEX IF NOT EXISTS idx_hermes_learning_signals_scope_ref ON hermes_learn
 CREATE INDEX IF NOT EXISTS idx_hermes_strategy_recommendations_learning_run_id ON hermes_strategy_recommendations(learning_run_id);
 CREATE INDEX IF NOT EXISTS idx_hermes_strategy_recommendations_status ON hermes_strategy_recommendations(recommendation_status);
 CREATE INDEX IF NOT EXISTS idx_hermes_strategy_recommendations_scope_target ON hermes_strategy_recommendations(recommendation_scope, recommendation_target);
+CREATE INDEX IF NOT EXISTS idx_hermes_strategy_adoptions_recommendation_id ON hermes_strategy_adoptions(recommendation_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_strategy_adoptions_status ON hermes_strategy_adoptions(adoption_status);
+CREATE INDEX IF NOT EXISTS idx_hermes_strategy_adoptions_scope_target ON hermes_strategy_adoptions(adoption_scope, adoption_target);
+CREATE INDEX IF NOT EXISTS idx_hermes_strategy_outcomes_adoption_id ON hermes_strategy_outcomes(adoption_id);
+CREATE INDEX IF NOT EXISTS idx_hermes_strategy_outcomes_verdict ON hermes_strategy_outcomes(outcome_verdict);
+CREATE INDEX IF NOT EXISTS idx_hermes_strategy_outcomes_metric ON hermes_strategy_outcomes(metric_name);
