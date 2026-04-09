@@ -33,11 +33,26 @@ vi.mock("../../src/utils/prompts.js", async (importOriginal) => {
       const useDetected = await promptState.promptConfirm({ message: "Use detected stack info?", default: true });
       if (useDetected) return detectedStack;
       return {
-        language: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack language", default: detectedStack.language }), detectedStack.language),
-        framework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack framework", default: detectedStack.framework }), detectedStack.framework),
-        buildTool: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack build tool", default: detectedStack.buildTool }), detectedStack.buildTool),
-        testFramework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack test framework", default: detectedStack.testFramework }), detectedStack.testFramework),
-        packageManager: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack package manager", default: detectedStack.packageManager }), detectedStack.packageManager),
+        language: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack language", default: detectedStack.language }),
+          detectedStack.language,
+        ),
+        framework: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack framework", default: detectedStack.framework }),
+          detectedStack.framework,
+        ),
+        buildTool: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack build tool", default: detectedStack.buildTool }),
+          detectedStack.buildTool,
+        ),
+        testFramework: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack test framework", default: detectedStack.testFramework }),
+          detectedStack.testFramework,
+        ),
+        packageManager: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack package manager", default: detectedStack.packageManager }),
+          detectedStack.packageManager,
+        ),
       };
     },
   };
@@ -111,12 +126,20 @@ async function writeSeededConfig(cwd: string): Promise<void> {
   await mkdir(join(cwd, "docs", "architecture"), { recursive: true });
 
   await Promise.all([
-    import("../../src/utils/fs.js").then(({ writeTextFile }) => writeTextFile(join(cwd, ".bbg", "config.json"), `${JSON.stringify(config, null, 2)}\n`)),
-    import("../../src/utils/fs.js").then(({ writeTextFile }) => writeTextFile(join(cwd, ".bbg", "file-hashes.json"), "{}\n")),
+    import("../../src/utils/fs.js").then(({ writeTextFile }) =>
+      writeTextFile(join(cwd, ".bbg", "config.json"), `${JSON.stringify(config, null, 2)}\n`),
+    ),
+    import("../../src/utils/fs.js").then(({ writeTextFile }) =>
+      writeTextFile(join(cwd, ".bbg", "file-hashes.json"), "{}\n"),
+    ),
     import("../../src/utils/fs.js").then(({ writeTextFile }) => writeTextFile(join(cwd, "AGENTS.md"), "seeded\n")),
     import("../../src/utils/fs.js").then(({ writeTextFile }) => writeTextFile(join(cwd, "README.md"), "seeded\n")),
-    import("../../src/utils/fs.js").then(({ writeTextFile }) => writeTextFile(join(cwd, "docs", "workflows", "code-review-policy.md"), "seeded\n")),
-    import("../../src/utils/fs.js").then(({ writeTextFile }) => writeTextFile(join(cwd, "docs", "architecture", "order-lifecycle.md"), "seeded\n")),
+    import("../../src/utils/fs.js").then(({ writeTextFile }) =>
+      writeTextFile(join(cwd, "docs", "workflows", "code-review-policy.md"), "seeded\n"),
+    ),
+    import("../../src/utils/fs.js").then(({ writeTextFile }) =>
+      writeTextFile(join(cwd, "docs", "architecture", "order-lifecycle.md"), "seeded\n"),
+    ),
   ]);
 }
 
@@ -208,6 +231,10 @@ describe("add-repo command", () => {
       branch: "main",
       targetDir: join(cwd, "new-repo"),
       credentials: undefined,
+    });
+    expect(promptState.promptConfirm).toHaveBeenCalledWith({
+      message: "Analyze new-repo now for technical and business architecture mapping?",
+      default: true,
     });
   });
 

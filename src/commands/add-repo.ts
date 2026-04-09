@@ -44,10 +44,7 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
   }
 
   const config = parseConfig(await readTextFile(configPath));
-  const resolvedUrl = sanitizePromptValue(
-    input.url ?? (await promptInput({ message: "Repository git URL" })),
-    "",
-  );
+  const resolvedUrl = sanitizePromptValue(input.url ?? (await promptInput({ message: "Repository git URL" })), "");
   if (!isParseableGitUrl(resolvedUrl)) {
     throw new Error("Repository git URL is invalid. Please provide a parseable git URL.");
   }
@@ -97,10 +94,7 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     choices: REPO_TYPE_CHOICES,
     default: "other",
   });
-  const description = sanitizePromptValue(
-    await promptInput({ message: "Repository description", default: "" }),
-    "",
-  );
+  const description = sanitizePromptValue(await promptInput({ message: "Repository description", default: "" }), "");
 
   const repoEntry: RepoEntry = {
     name: repoName,
@@ -160,9 +154,7 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
       }),
     ]);
 
-    const existingHashes = previousHashText
-      ? (JSON.parse(previousHashText) as FileHashRecord)
-      : ({} as FileHashRecord);
+    const existingHashes = previousHashText ? (JSON.parse(previousHashText) as FileHashRecord) : ({} as FileHashRecord);
     const generatedAt = new Date().toISOString();
     const trackedFiles = [configPath, ...rootAgentsFiles, ...childAgentsFiles];
     for (const trackedFile of trackedFiles) {
@@ -194,6 +186,17 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     await Promise.allSettled(rollbackTasks);
 
     throw error;
+  }
+
+  const shouldAnalyzeNow = await promptConfirm({
+    message: `Analyze ${repoName} now for technical and business architecture mapping?`,
+    default: true,
+  });
+
+  if (shouldAnalyzeNow) {
+    process.stdout.write(
+      `Recommended next step: run /analyze-repo ${repoName} and persist results under docs/architecture/repos/${repoName}.md\n`,
+    );
   }
 
   return { addedRepoName: repoName };

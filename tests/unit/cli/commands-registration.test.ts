@@ -83,6 +83,11 @@ vi.mock("../../../src/commands/sessions.js", () => ({ runSessionsCommand: vi.fn(
 vi.mock("../../../src/commands/eval.js", () => ({ runEvalCommand: vi.fn() }));
 vi.mock("../../../src/commands/harness-audit.js", () => ({ runHarnessAuditCommand: vi.fn() }));
 vi.mock("../../../src/commands/model-route.js", () => ({ runModelRouteCommand: vi.fn() }));
+vi.mock("../../../src/commands/task-start.js", () => ({ runTaskStartCommand: vi.fn() }));
+vi.mock("../../../src/commands/analyze.js", () => ({ runAnalyzeCommand: vi.fn() }));
+vi.mock("../../../src/commands/analyze-repo.js", () => ({ runAnalyzeRepoCommand: vi.fn() }));
+vi.mock("../../../src/commands/deliver.js", () => ({ runDeliverCommand: vi.fn() }));
+vi.mock("../../../src/commands/cross-audit.js", () => ({ runCrossAuditCommand: vi.fn() }));
 
 describe("cli command registration", () => {
   beforeEach(() => {
@@ -109,11 +114,16 @@ describe("cli command registration", () => {
       "quality-gate",
       "checkpoint",
       "verify",
-        "sessions",
-        "eval",
-        "harness-audit",
-        "model-route [task...]",
-      ]);
+      "sessions",
+      "eval",
+      "harness-audit",
+      "model-route [task...]",
+      "task-start [requirement...]",
+      "analyze",
+      "analyze-repo <repo>",
+      "deliver",
+      "cross-audit",
+    ]);
   });
 
   it.each([

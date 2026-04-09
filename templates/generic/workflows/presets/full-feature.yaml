@@ -2,11 +2,12 @@
 # Full Feature Workflow -- 7 steps (9 for backend projects with red team)
 name: full-feature
 title: "Full Feature with Interview"
-version: "1.0"
+version: "1.1"
 description: >
   Complete feature development with Socratic interview, planning, TDD,
-  security review, documentation, and commit. Backend projects get 2
-  additional red-team steps. This is the most comprehensive workflow.
+  cross-audit, security review, documentation, commit, and optional
+  client delivery package generation. Backend projects get 2 additional
+  red-team steps.
 
 config:
   max_retries: 2
@@ -18,10 +19,12 @@ steps:
   - id: interview
     title: "Socratic Requirements Interview"
     agent: architect
-    command: plan
+    command: interview
     outputs:
       - requirements_doc
       - acceptance_criteria
+      - confirmed_spec
+      - wiki_requirement_page
     success_criteria:
       - "Requirements elicited through structured questioning"
       - "Acceptance criteria defined and agreed"
@@ -91,6 +94,22 @@ steps:
       - "Input validation complete"
       - "No hardcoded secrets"
 
+  - id: cross-audit
+    title: "Cross Model Audit"
+    agent: code-reviewer
+    command: cross-audit
+    depends_on:
+      - security-review
+    inputs:
+      - review_findings
+      - security_findings
+    outputs:
+      - cross_audit_report
+    success_criteria:
+      - "Independent second-pass audit completed"
+      - "Conflicts adjudicated or escalated"
+      - "Final cross-audit verdict recorded"
+
   # --- Backend-only steps (condition: backend_project) ---
 
   - id: red-team-sweep
@@ -134,7 +153,7 @@ steps:
     agent: doc-updater
     command: update-docs
     depends_on:
-      - security-review
+      - cross-audit
       # Backend projects also depend on red-team-creative, evaluated at runtime
     inputs:
       - impl_files
@@ -160,3 +179,18 @@ steps:
       - "Lint clean"
       - "Documentation complete"
       - "Changes committed with conventional commit message"
+
+  - id: delivery-report
+    title: "Optional Client Delivery Package"
+    agent: doc-updater
+    command: deliver
+    depends_on:
+      - commit
+    outputs:
+      - delivery_report
+      - delivery_diagrams
+    success_criteria:
+      - "Prompt shown with 10-second timeout"
+      - "If confirmed, client report generated with effort summary"
+      - "If timeout/no response, step is safely skipped"
+    condition: "optional_delivery"

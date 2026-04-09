@@ -16,6 +16,26 @@ const runHarnessAuditState = vi.hoisted(() => ({
   runHarnessAuditCommand: vi.fn(),
 }));
 
+const runTaskStartState = vi.hoisted(() => ({
+  runTaskStartCommand: vi.fn(),
+}));
+
+const runAnalyzeState = vi.hoisted(() => ({
+  runAnalyzeCommand: vi.fn(),
+}));
+
+const runAnalyzeRepoState = vi.hoisted(() => ({
+  runAnalyzeRepoCommand: vi.fn(),
+}));
+
+const runDeliverState = vi.hoisted(() => ({
+  runDeliverCommand: vi.fn(),
+}));
+
+const runCrossAuditState = vi.hoisted(() => ({
+  runCrossAuditCommand: vi.fn(),
+}));
+
 const commandState = vi.hoisted(() => {
   const name = vi.fn().mockReturnThis();
   const description = vi.fn().mockReturnThis();
@@ -118,6 +138,26 @@ vi.mock("../../../src/commands/harness-audit.js", () => ({
   runHarnessAuditCommand: runHarnessAuditState.runHarnessAuditCommand,
 }));
 
+vi.mock("../../../src/commands/task-start.js", () => ({
+  runTaskStartCommand: runTaskStartState.runTaskStartCommand,
+}));
+
+vi.mock("../../../src/commands/analyze.js", () => ({
+  runAnalyzeCommand: runAnalyzeState.runAnalyzeCommand,
+}));
+
+vi.mock("../../../src/commands/analyze-repo.js", () => ({
+  runAnalyzeRepoCommand: runAnalyzeRepoState.runAnalyzeRepoCommand,
+}));
+
+vi.mock("../../../src/commands/deliver.js", () => ({
+  runDeliverCommand: runDeliverState.runDeliverCommand,
+}));
+
+vi.mock("../../../src/commands/cross-audit.js", () => ({
+  runCrossAuditCommand: runCrossAuditState.runCrossAuditCommand,
+}));
+
 describe("cli bootstrap", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -133,6 +173,11 @@ describe("cli bootstrap", () => {
     runAddRepoState.runAddRepo.mockReset();
     runSyncState.runSync.mockReset();
     runHarnessAuditState.runHarnessAuditCommand.mockReset();
+    runTaskStartState.runTaskStartCommand.mockReset();
+    runAnalyzeState.runAnalyzeCommand.mockReset();
+    runAnalyzeRepoState.runAnalyzeRepoCommand.mockReset();
+    runDeliverState.runDeliverCommand.mockReset();
+    runCrossAuditState.runCrossAuditCommand.mockReset();
     runInitState.runInit.mockResolvedValue({
       createdFiles: ["/tmp/workspace/.bbg/config.json"],
       clonedRepos: ["/tmp/workspace/repo-a"],
@@ -171,8 +216,40 @@ describe("cli bootstrap", () => {
       checks: [],
       summary: {
         warnings: 2,
-        gaps: ["runtime-telemetry: missing telemetry store", "policy: Approval required for 'harness-audit': review first."],
+        gaps: [
+          "runtime-telemetry: missing telemetry store",
+          "policy: Approval required for 'harness-audit': review first.",
+        ],
       },
+    });
+    runTaskStartState.runTaskStartCommand.mockResolvedValue({
+      taskId: "TASK-20260409-120000",
+      workflow: "full-feature",
+      specPath: "docs/specs/2026/04/sample.md",
+      wikiPath: "docs/wiki/concepts/sample.md",
+    });
+    runAnalyzeState.runAnalyzeCommand.mockResolvedValue({
+      analyzedRepos: ["repo-a"],
+      technicalArchitecturePath: "docs/architecture/technical-architecture.md",
+      businessArchitecturePath: "docs/architecture/business-architecture.md",
+      dependencyGraphPath: "docs/architecture/repo-dependency-graph.md",
+      repoDocs: ["docs/architecture/repos/repo-a.md"],
+    });
+    runAnalyzeRepoState.runAnalyzeRepoCommand.mockResolvedValue({
+      repo: "repo-a",
+      repoDocPath: "docs/architecture/repos/repo-a.md",
+    });
+    runDeliverState.runDeliverCommand.mockResolvedValue({
+      taskId: "TASK-20260409-120000",
+      reportPath: "docs/delivery/2026/04/sample-delivery.md",
+      diagramPaths: ["docs/delivery/2026/04/diagrams/sample-flow.svg"],
+    });
+    runCrossAuditState.runCrossAuditCommand.mockResolvedValue({
+      reportPath: "docs/reports/2026/04/cross-audit-2026-04-09.md",
+      verdict: "PASS",
+      agreementRate: 0.9,
+      conflicts: 1,
+      unresolvedCriticalOrHigh: 0,
     });
   });
 
@@ -194,21 +271,9 @@ describe("cli bootstrap", () => {
     const initCommand = commandState.getCommandMock("init");
     expect(initCommand).toBeDefined();
     expect(commandState.command).toHaveBeenCalledWith("init");
-    expect(initCommand?.description).toHaveBeenCalledWith(
-      "Initialize bbg project files in current directory",
-    );
-    expect(initCommand?.option).toHaveBeenNthCalledWith(
-      1,
-      "-y, --yes",
-      "Accept defaults and skip prompts",
-      false,
-    );
-    expect(initCommand?.option).toHaveBeenNthCalledWith(
-      2,
-      "--dry-run",
-      "Show files that would be created",
-      false,
-    );
+    expect(initCommand?.description).toHaveBeenCalledWith("Initialize bbg project files in current directory");
+    expect(initCommand?.option).toHaveBeenNthCalledWith(1, "-y, --yes", "Accept defaults and skip prompts", false);
+    expect(initCommand?.option).toHaveBeenNthCalledWith(2, "--dry-run", "Show files that would be created", false);
     expect(initCommand?.action).toHaveBeenCalledTimes(1);
     const evalCommand = commandState.getCommandMock("eval");
     const evalSeedCommand = commandState.getCommandMock("eval seed");

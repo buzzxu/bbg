@@ -75,6 +75,12 @@ const CORE_SKILLS = [
   "context-loading",
   "session-memory",
   "workflow-orchestration",
+  "cross-audit",
+  "architecture-analysis",
+  "business-analysis",
+  "cross-repo-analysis",
+  "task-intake",
+  "client-delivery",
 ];
 
 const OPERATIONS_SKILLS = [
@@ -167,6 +173,11 @@ const CORE_COMMANDS = [
   "workflow-start",
   "workflow-resume",
   "workflow-status",
+  "cross-audit",
+  "analyze",
+  "analyze-repo",
+  "task-start",
+  "deliver",
 ];
 
 const LANGUAGE_COMMANDS: Record<string, string[]> = {

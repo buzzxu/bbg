@@ -46,11 +46,26 @@ vi.mock("../../src/utils/prompts.js", async (importOriginal) => {
       const useDetected = await promptState.promptConfirm({ message: "Use detected stack info?", default: true });
       if (useDetected) return detectedStack;
       return {
-        language: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack language", default: detectedStack.language }), detectedStack.language),
-        framework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack framework", default: detectedStack.framework }), detectedStack.framework),
-        buildTool: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack build tool", default: detectedStack.buildTool }), detectedStack.buildTool),
-        testFramework: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack test framework", default: detectedStack.testFramework }), detectedStack.testFramework),
-        packageManager: actual.sanitizePromptValue(await promptState.promptInput({ message: "Stack package manager", default: detectedStack.packageManager }), detectedStack.packageManager),
+        language: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack language", default: detectedStack.language }),
+          detectedStack.language,
+        ),
+        framework: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack framework", default: detectedStack.framework }),
+          detectedStack.framework,
+        ),
+        buildTool: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack build tool", default: detectedStack.buildTool }),
+          detectedStack.buildTool,
+        ),
+        testFramework: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack test framework", default: detectedStack.testFramework }),
+          detectedStack.testFramework,
+        ),
+        packageManager: actual.sanitizePromptValue(
+          await promptState.promptInput({ message: "Stack package manager", default: detectedStack.packageManager }),
+          detectedStack.packageManager,
+        ),
       };
     },
   };
@@ -242,7 +257,9 @@ describe("init command", () => {
       expect(snapshotContent).toBe(generatedContent);
     }
 
-    await expect(readFile(join(cwd, ".bbg", "generated-snapshots", ".bbg", "file-hashes.json.gen"), "utf8")).rejects.toThrow();
+    await expect(
+      readFile(join(cwd, ".bbg", "generated-snapshots", ".bbg", "file-hashes.json.gen"), "utf8"),
+    ).rejects.toThrow();
 
     if (process.platform !== "win32") {
       const preCommitMode = (await stat(join(cwd, ".githooks", "pre-commit"))).mode;
@@ -282,6 +299,11 @@ describe("init command", () => {
         join(cwd, "docs", "changes", "TEMPLATE.md"),
         join(cwd, "docs", "handoffs", "TEMPLATE.md"),
         join(cwd, "docs", "reports", "cross-audit-report-TEMPLATE.md"),
+        join(cwd, "docs", "reports", "delivery-report-TEMPLATE.md"),
+        join(cwd, "docs", "delivery", "index.md"),
+        join(cwd, "docs", "delivery", "TEMPLATE.md"),
+        join(cwd, "docs", "delivery", "diagrams", ".gitkeep"),
+        join(cwd, "docs", "specs", "CONFIRMED-TEMPLATE.md"),
         join(cwd, "docs", "cleanup", "secrets-and-config-governance.md"),
         join(cwd, "docs", "environments", "env-overview.md"),
         join(cwd, "docs", "architecture", "order-lifecycle.md"),
@@ -322,9 +344,7 @@ describe("init command", () => {
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(true);
 
-    promptState.promptSelect
-      .mockResolvedValueOnce("main")
-      .mockResolvedValueOnce("backend");
+    promptState.promptSelect.mockResolvedValueOnce("main").mockResolvedValueOnce("backend");
 
     const result = await runInit({ cwd, yes: false, dryRun: true });
 
@@ -384,9 +404,7 @@ describe("init command", () => {
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true);
 
-    promptState.promptSelect
-      .mockResolvedValueOnce("main")
-      .mockResolvedValueOnce("backend");
+    promptState.promptSelect.mockResolvedValueOnce("main").mockResolvedValueOnce("backend");
 
     gitState.listRemoteBranches.mockResolvedValue({ branches: ["main", "develop"], credentials: null });
 
@@ -615,9 +633,7 @@ describe("init command", () => {
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(true);
 
-    promptState.promptSelect
-      .mockResolvedValueOnce("main")
-      .mockResolvedValueOnce("backend");
+    promptState.promptSelect.mockResolvedValueOnce("main").mockResolvedValueOnce("backend");
 
     await runInit({ cwd, yes: false, dryRun: false });
 

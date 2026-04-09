@@ -19,11 +19,11 @@ Use this skill to turn vague requests into testable specifications. The workflow
 
 ## Depth Profiles
 
-| Profile | Target Threshold | Typical Rounds | Use Case |
-| --- | --- | --- | --- |
-| quick | <= 0.30 | 3-5 | Small, low-risk features |
-| standard | <= 0.20 | 5-10 | Default option |
-| deep | <= 0.15 | 8-15 | High-risk or novel systems |
+| Profile  | Target Threshold | Typical Rounds | Use Case                   |
+| -------- | ---------------- | -------------- | -------------------------- |
+| quick    | <= 0.30          | 3-5            | Small, low-risk features   |
+| standard | <= 0.20          | 5-10           | Default option             |
+| deep     | <= 0.15          | 8-15           | High-risk or novel systems |
 
 Continue until composite ambiguity <= threshold or user ends the session.
 
@@ -40,26 +40,26 @@ A_composite = sum(w_i * d_i) / sum(w_i)
 
 ### Dimensions
 
-| Dimension | Weight | Examples of unresolved ambiguity |
-| --- | --- | --- |
-| Functional Scope | 0.20 | "Handle payments" (which flows?) |
-| Data Model | 0.15 | Entity lifecycle unknown |
-| Integration Boundaries | 0.15 | API contracts unclear |
-| Error and Edge Cases | 0.15 | Failure behavior unspecified |
-| Performance Constraints | 0.10 | No latency/throughput targets |
-| Security and Access | 0.10 | Authz model undefined |
-| User Experience | 0.10 | Workflow states missing |
-| Operational Lifecycle | 0.05 | Rollout/rollback undefined |
+| Dimension               | Weight | Examples of unresolved ambiguity |
+| ----------------------- | ------ | -------------------------------- |
+| Functional Scope        | 0.20   | "Handle payments" (which flows?) |
+| Data Model              | 0.15   | Entity lifecycle unknown         |
+| Integration Boundaries  | 0.15   | API contracts unclear            |
+| Error and Edge Cases    | 0.15   | Failure behavior unspecified     |
+| Performance Constraints | 0.10   | No latency/throughput targets    |
+| Security and Access     | 0.10   | Authz model undefined            |
+| User Experience         | 0.10   | Workflow states missing          |
+| Operational Lifecycle   | 0.05   | Rollout/rollback undefined       |
 
 ### Score Guide
 
-| Range | Label |
-| --- | --- |
-| 0.8-1.0 | Opaque |
-| 0.5-0.7 | Unclear |
-| 0.3-0.4 | Partial |
-| 0.1-0.2 | Clear |
-| 0.0 | Resolved |
+| Range   | Label    |
+| ------- | -------- |
+| 0.8-1.0 | Opaque   |
+| 0.5-0.7 | Unclear  |
+| 0.3-0.4 | Partial  |
+| 0.1-0.2 | Clear    |
+| 0.0     | Resolved |
 
 After each round, re-score all dimensions and report deltas.
 
@@ -158,6 +158,31 @@ When threshold is reached, generate specification with:
 
 Save to configured path (default `docs/specs/<slug>.md`).
 
+### Phase 4.5: Confirm With User
+
+Before execution planning, present the crystallized draft and require explicit confirmation.
+
+1. Show requirement summary, assumptions, edge cases, and open questions
+2. Ask user to choose: confirm, revise, or defer
+3. If revise, apply edits and re-show only changed sections
+4. Persist confirmation decision and revision notes
+5. Do not bridge to execution until status is `confirmed`
+
+Confirmed output path should use dated folders:
+
+- `docs/specs/YYYY/MM/<slug>.md`
+
+Also maintain a normalized confirmation shape matching `docs/specs/CONFIRMED-TEMPLATE.md`.
+
+### Phase 4.6: Knowledge Ingestion
+
+After confirmation, ingest the requirement artifact into the wiki knowledge layer.
+
+1. Run wiki ingestion from confirmed spec path
+2. Update concept/decision pages with provenance back to interview session
+3. Add candidate updates for reusable requirement patterns when confidence is not final
+4. Record links to wiki outputs in interview session metadata
+
 ### Phase 5: Bridge To Execution
 
 Offer:
@@ -196,6 +221,7 @@ Offer:
 - Set `completed_at` and `status = completed`
 - Persist final ambiguity
 - Persist spec path
+- Persist confirmed-spec path and wiki output references
 
 ### Persistence
 
@@ -215,6 +241,8 @@ Use SQLite tables in `.bbg/scripts/interview-schema.sql`:
 - Record all assumptions
 - If user says "I don't know", keep as open question
 - Require at least 2 rounds before crystallization
+- Require explicit user confirmation before bridging to `/plan`
+- Use dated spec paths (`docs/specs/YYYY/MM/...`) for confirmed artifacts
 
 ## Anti-patterns
 

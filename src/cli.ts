@@ -16,6 +16,11 @@ import { runVerifyCommand } from "./commands/verify.js";
 import { runEvalCommand } from "./commands/eval.js";
 import { runHarnessAuditCommand } from "./commands/harness-audit.js";
 import { runModelRouteCommand } from "./commands/model-route.js";
+import { runTaskStartCommand } from "./commands/task-start.js";
+import { runAnalyzeCommand } from "./commands/analyze.js";
+import { runAnalyzeRepoCommand } from "./commands/analyze-repo.js";
+import { runDeliverCommand } from "./commands/deliver.js";
+import { runCrossAuditCommand } from "./commands/cross-audit.js";
 import { ConfigParseError, ConfigValidationError } from "./config/read-write.js";
 import { BbgConfigError, BbgError, BbgGitError, BbgTemplateError } from "./utils/errors.js";
 
@@ -103,35 +108,43 @@ export const buildProgram = (): Command => {
     .option("--governance-only", "Skip repo directory checks", false)
     .option("--workspace", "Include workspace checks", false)
     .option("--self", "Validate bbg's own governance content integrity", false)
-    .action(async (options: { json?: boolean; fix?: boolean; governanceOnly?: boolean; workspace?: boolean; self?: boolean }) => {
-      const report = await runDoctor({
-        cwd: process.cwd(),
-        json: options.json ?? false,
-        fix: options.fix ?? false,
-        governanceOnly: options.governanceOnly ?? false,
-        workspace: options.workspace ?? false,
-        self: options.self ?? false,
-      });
+    .action(
+      async (options: {
+        json?: boolean;
+        fix?: boolean;
+        governanceOnly?: boolean;
+        workspace?: boolean;
+        self?: boolean;
+      }) => {
+        const report = await runDoctor({
+          cwd: process.cwd(),
+          json: options.json ?? false,
+          fix: options.fix ?? false,
+          governanceOnly: options.governanceOnly ?? false,
+          workspace: options.workspace ?? false,
+          self: options.self ?? false,
+        });
 
-      if (options.json) {
-        process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-      } else {
-        process.stdout.write(`Doctor status: ${report.ok ? "OK" : "FAIL"} (${report.mode})\n`);
-        process.stdout.write(`Errors: ${report.errors.length}\n`);
-        process.stdout.write(`Warnings: ${report.warnings.length}\n`);
-        process.stdout.write(`Checks: ${report.checks.length}\n`);
-        if (report.fixesApplied.length > 0) {
-          process.stdout.write(`Fixes applied (${report.fixesApplied.length}):\n`);
-          for (const fixedPath of report.fixesApplied) {
-            process.stdout.write(`- ${fixedPath}\n`);
+        if (options.json) {
+          process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+        } else {
+          process.stdout.write(`Doctor status: ${report.ok ? "OK" : "FAIL"} (${report.mode})\n`);
+          process.stdout.write(`Errors: ${report.errors.length}\n`);
+          process.stdout.write(`Warnings: ${report.warnings.length}\n`);
+          process.stdout.write(`Checks: ${report.checks.length}\n`);
+          if (report.fixesApplied.length > 0) {
+            process.stdout.write(`Fixes applied (${report.fixesApplied.length}):\n`);
+            for (const fixedPath of report.fixesApplied) {
+              process.stdout.write(`- ${fixedPath}\n`);
+            }
           }
         }
-      }
 
-      if (!report.ok) {
-        process.exitCode = report.exitCode;
-      }
-    });
+        if (!report.ok) {
+          process.exitCode = report.exitCode;
+        }
+      },
+    );
 
   program
     .command("sync")
@@ -208,7 +221,13 @@ export const buildProgram = (): Command => {
       const result = await runQualityGateCommand({ cwd: process.cwd() });
 
       process.stdout.write(`Quality gate: ${result.ok ? "PASS" : "FAIL"}\n`);
-      for (const check of [result.checks.build, result.checks.typecheck, result.checks.tests, result.checks.lint, result.checks.security]) {
+      for (const check of [
+        result.checks.build,
+        result.checks.typecheck,
+        result.checks.tests,
+        result.checks.lint,
+        result.checks.security,
+      ]) {
         process.stdout.write(`[${check.ok ? "PASS" : "FAIL"}] ${check.name} (${check.command})\n`);
       }
 
@@ -261,9 +280,7 @@ export const buildProgram = (): Command => {
       }
     });
 
-  const evalCommand = program
-    .command("eval")
-    .description("Seed and run deterministic offline eval experiments");
+  const evalCommand = program.command("eval").description("Seed and run deterministic offline eval experiments");
 
   evalCommand
     .command("seed")
@@ -352,7 +369,115 @@ export const buildProgram = (): Command => {
       process.stdout.write(`Task: ${result.task}\n`);
       process.stdout.write(`Recommended class: ${result.recommendation?.modelClass ?? "balanced"}\n`);
       process.stdout.write(`Reason: ${result.recommendation?.reason ?? "Default balanced recommendation."}\n`);
-      process.stdout.write(`Telemetry: ${result.recommendation?.telemetryNote ?? "No local telemetry feedback available."}\n`);
+      process.stdout.write(
+        `Telemetry: ${result.recommendation?.telemetryNote ?? "No local telemetry feedback available."}\n`,
+      );
+    });
+
+  program
+    .command("task-start [requirement...]")
+    .description("Start a task from requirement text or file")
+    .option("--file <path>", "Requirement file path")
+    .option("--workflow <name>", "Workflow preset name")
+    .option("--profile <name>", "Interview profile: quick, standard, deep")
+    .option("--no-auto-wiki", "Disable automatic wiki write")
+    .action(
+      async (
+        requirement: string[] | undefined,
+        options: { file?: string; workflow?: string; profile?: "quick" | "standard" | "deep"; autoWiki?: boolean },
+      ) => {
+        const result = await runTaskStartCommand({
+          cwd: process.cwd(),
+          requirement: requirement?.join(" "),
+          file: options.file,
+          workflow: options.workflow,
+          profile: options.profile,
+          autoWiki: options.autoWiki,
+        });
+
+        process.stdout.write(`Task ID: ${result.taskId}\n`);
+        process.stdout.write(`Workflow: ${result.workflow}\n`);
+        process.stdout.write(`Spec: ${result.specPath}\n`);
+        if (result.wikiPath) {
+          process.stdout.write(`Wiki: ${result.wikiPath}\n`);
+        }
+      },
+    );
+
+  program
+    .command("analyze")
+    .description("Analyze all or selected repositories")
+    .option("--repos <names>", "Comma-separated repos or all")
+    .action(async (options: { repos?: string }) => {
+      const repos = options.repos?.split(",").map((value) => value.trim());
+      const result = await runAnalyzeCommand({ cwd: process.cwd(), repos });
+      process.stdout.write(`Analyzed repos: ${result.analyzedRepos.join(", ")}\n`);
+      process.stdout.write(`Technical architecture: ${result.technicalArchitecturePath}\n`);
+      process.stdout.write(`Business architecture: ${result.businessArchitecturePath}\n`);
+      process.stdout.write(`Dependency graph: ${result.dependencyGraphPath}\n`);
+    });
+
+  program
+    .command("analyze-repo <repo>")
+    .description("Analyze a single repository and update its architecture doc")
+    .action(async (repo: string) => {
+      const result = await runAnalyzeRepoCommand({ cwd: process.cwd(), repo });
+      process.stdout.write(`Repo: ${result.repo}\n`);
+      process.stdout.write(`Architecture doc: ${result.repoDocPath}\n`);
+    });
+
+  program
+    .command("deliver")
+    .description("Generate client-facing delivery report")
+    .option("--task <id>", "Task identifier")
+    .option("--spec <path>", "Confirmed spec path")
+    .option("--no-include-svg", "Disable SVG diagram generation")
+    .option("--hours <value>", "Override effort-hours total")
+    .action(async (options: { task?: string; spec?: string; includeSvg?: boolean; hours?: string }) => {
+      const hours = options.hours ? Number.parseFloat(options.hours) : undefined;
+      const result = await runDeliverCommand({
+        cwd: process.cwd(),
+        task: options.task,
+        spec: options.spec,
+        includeSvg: options.includeSvg,
+        hours,
+      });
+      process.stdout.write(`Task ID: ${result.taskId}\n`);
+      process.stdout.write(`Delivery report: ${result.reportPath}\n`);
+      process.stdout.write(`Diagrams: ${result.diagramPaths.length}\n`);
+    });
+
+  program
+    .command("cross-audit")
+    .description("Run independent second-pass cross audit")
+    .option("--cross-model <model>", "Cross-audit model")
+    .option("--primary-model <model>", "Primary audit model")
+    .option("--scope <items>", "Comma-separated scope items")
+    .option("--from <paths>", "Comma-separated source report paths")
+    .action(async (options: { crossModel: string; primaryModel?: string; scope?: string; from?: string }) => {
+      if (!options.crossModel || options.crossModel.trim().length === 0) {
+        throw new Error("cross-audit requires --cross-model.");
+      }
+      const result = await runCrossAuditCommand({
+        cwd: process.cwd(),
+        primaryModel: options.primaryModel,
+        crossModel: options.crossModel,
+        scope: options.scope
+          ?.split(",")
+          .map((value) => value.trim())
+          .filter((value) => value.length > 0),
+        from: options.from
+          ?.split(",")
+          .map((value) => value.trim())
+          .filter((value) => value.length > 0),
+      });
+
+      process.stdout.write(`Cross-audit report: ${result.reportPath}\n`);
+      process.stdout.write(`Cross-audit JSON: ${result.reportJsonPath}\n`);
+      process.stdout.write(`Verdict: ${result.verdict}\n`);
+      process.stdout.write(`Agreement rate: ${result.agreementRate}\n`);
+      process.stdout.write(`Conflicts: ${result.conflicts}\n`);
+      process.stdout.write(`Unresolved critical/high: ${result.unresolvedCriticalOrHigh}\n`);
     });
 
   return program;

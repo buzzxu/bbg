@@ -63,6 +63,31 @@ export const ROOT_TEMPLATE_MANIFEST: ReadonlyArray<RenderTemplateTask> = [
     mode: "copy",
   },
   {
+    source: "generic/docs/reports/delivery-report-TEMPLATE.md",
+    destination: "docs/reports/delivery-report-TEMPLATE.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/docs/delivery/index.md",
+    destination: "docs/delivery/index.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/docs/delivery/TEMPLATE.md",
+    destination: "docs/delivery/TEMPLATE.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/docs/delivery/diagrams/.gitkeep",
+    destination: "docs/delivery/diagrams/.gitkeep",
+    mode: "copy",
+  },
+  {
+    source: "generic/docs/specs/CONFIRMED-TEMPLATE.md",
+    destination: "docs/specs/CONFIRMED-TEMPLATE.md",
+    mode: "copy",
+  },
+  {
     source: "generic/docs/cleanup/secrets-and-config-governance.md",
     destination: "docs/cleanup/secrets-and-config-governance.md",
     mode: "copy",
@@ -125,18 +150,34 @@ export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
   { source: "generic/.claude/commands/tdd.md", destination: ".claude/commands/tdd.md", mode: "copy" },
   { source: "generic/.claude/commands/code-review.md", destination: ".claude/commands/code-review.md", mode: "copy" },
   { source: "generic/.claude/commands/build-fix.md", destination: ".claude/commands/build-fix.md", mode: "copy" },
-  { source: "generic/.claude/commands/security-scan.md", destination: ".claude/commands/security-scan.md", mode: "copy" },
+  {
+    source: "generic/.claude/commands/security-scan.md",
+    destination: ".claude/commands/security-scan.md",
+    mode: "copy",
+  },
   // Cursor
   { source: "generic/.cursor/rules/standards.mdc", destination: ".cursor/rules/standards.mdc", mode: "copy" },
   { source: "generic/.cursor/rules/security.mdc", destination: ".cursor/rules/security.mdc", mode: "copy" },
   { source: "generic/.cursor/rules/testing.mdc", destination: ".cursor/rules/testing.mdc", mode: "copy" },
   // OpenCode
   { source: "generic/.opencode/opencode.json", destination: ".opencode/opencode.json", mode: "copy" },
-  { source: "generic/.opencode/instructions/coding-standards.md", destination: ".opencode/instructions/coding-standards.md", mode: "copy" },
-  { source: "generic/.opencode/instructions/security.md", destination: ".opencode/instructions/security.md", mode: "copy" },
+  {
+    source: "generic/.opencode/instructions/coding-standards.md",
+    destination: ".opencode/instructions/coding-standards.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.opencode/instructions/security.md",
+    destination: ".opencode/instructions/security.md",
+    mode: "copy",
+  },
   { source: "generic/.opencode/commands/plan.md", destination: ".opencode/commands/plan.md", mode: "copy" },
   { source: "generic/.opencode/commands/tdd.md", destination: ".opencode/commands/tdd.md", mode: "copy" },
-  { source: "generic/.opencode/commands/code-review.md", destination: ".opencode/commands/code-review.md", mode: "copy" },
+  {
+    source: "generic/.opencode/commands/code-review.md",
+    destination: ".opencode/commands/code-review.md",
+    mode: "copy",
+  },
   { source: "generic/.opencode/commands/build-fix.md", destination: ".opencode/commands/build-fix.md", mode: "copy" },
   { source: "generic/.opencode/commands/security.md", destination: ".opencode/commands/security.md", mode: "copy" },
   { source: "generic/.opencode/commands/doctor.md", destination: ".opencode/commands/doctor.md", mode: "copy" },
@@ -144,7 +185,11 @@ export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
   { source: "generic/.codex/config.toml", destination: ".codex/config.toml", mode: "copy" },
   { source: "handlebars/.codex/AGENTS.md.hbs", destination: ".codex/AGENTS.md", mode: "handlebars" },
   // GitHub Copilot
-  { source: "handlebars/.github/copilot-instructions.md.hbs", destination: ".github/copilot-instructions.md", mode: "handlebars" },
+  {
+    source: "handlebars/.github/copilot-instructions.md.hbs",
+    destination: ".github/copilot-instructions.md",
+    mode: "handlebars",
+  },
   // Kiro
   { source: "generic/.kiro/steering/coding-style.md", destination: ".kiro/steering/coding-style.md", mode: "copy" },
   { source: "generic/.kiro/steering/security.md", destination: ".kiro/steering/security.md", mode: "copy" },
@@ -169,10 +214,5 @@ export function buildTemplatePlan(config: BbgConfig): RenderTemplateTask[] {
   const ctx = buildTemplateContext(config);
   const governanceTemplates = buildGovernanceManifest(ctx);
 
-  return [
-    ...getRootTemplateManifest(),
-    ...getToolConfigTemplates(),
-    ...governanceTemplates,
-    ...childAgentTemplates,
-  ];
+  return [...getRootTemplateManifest(), ...getToolConfigTemplates(), ...governanceTemplates, ...childAgentTemplates];
 }
