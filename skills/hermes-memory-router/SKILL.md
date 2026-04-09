@@ -21,6 +21,7 @@ description: Use when selecting between local canonical wiki memory, local candi
 - Intake records are non-canonical review memory until K10 verification
 - K10 verification/promotion records are not canonical routing layers by default
 - K11 recommendations are advisory inputs and only apply when explicitly approved
+- K12 adopted routing strategies must retain provenance to recommendation and adoption records
 - Querying a candidate does not promote it
 - Keep routing separate from distillation and promotion workflows
 

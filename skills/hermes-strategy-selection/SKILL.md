@@ -19,6 +19,7 @@ description: Use when reviewing and deciding K11 strategy recommendations.
 - strategy changes require explicit human approval
 - Decisions must preserve canonical-first and evidence-first governance boundaries
 - Strategy decisions do not auto-apply edits or promotions
+- K12 handles adoption rollout and outcome tracking after K11 decisions
 
 ## Related
 

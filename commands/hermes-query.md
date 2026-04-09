@@ -35,6 +35,7 @@ Answer questions using the K8 local Hermes memory router: local canonical wiki m
 - intake records are not a canonical memory layer
 - Verification/promotion records do not bypass canonical local routing layers
 - k11 recommendations are advisory and do not bypass canonical routing order
+- adopted strategies still follow canonical-first routing and trust boundaries
 - Keep promotion and routing separate
 
 ## Related

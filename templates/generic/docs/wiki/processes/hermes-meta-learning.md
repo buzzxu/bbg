@@ -26,3 +26,4 @@ K11 computes advisory strategy recommendations from prior evidence.
 - Recommendations must reference auditable evidence.
 - Strategy adoption requires explicit human decisions.
 - K11 does not auto-edit workflows, skills, or rules.
+- K12 receives accepted recommendations for rollout tracking and outcomes.

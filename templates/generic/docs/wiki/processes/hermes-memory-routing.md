@@ -40,3 +40,4 @@ related:
 - K9 intake stays collect-and-normalize; verification/promotion is deferred.
 - Verification/promotion records do not override canonical-first local routing.
 - K11 recommendations are advisory and require explicit approval before policy changes.
+- K12 regressions require explicit rollback decisions; no automatic routing rollback.

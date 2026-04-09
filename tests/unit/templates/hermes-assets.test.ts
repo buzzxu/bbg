@@ -374,4 +374,26 @@ describe("Hermes governance assets", () => {
     expect(normalized).not.toContain("auto_adopt");
     expect(normalized).not.toContain("autonomous_rollout");
   });
+
+  it("documents K12 strategy adoption as explicit rollout and measured outcomes", async () => {
+    const [adoptCmd, outcomesCmd, adoptionSkill, outcomeSkill, processDoc, strategyCmd, queryCmd] = await Promise.all([
+      readFile(join(packageRoot, "commands/hermes-adopt.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-outcomes.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-strategy-adoption/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "skills/hermes-outcome-evaluation/SKILL.md"), "utf8"),
+      readFile(join(packageRoot, "templates/generic/docs/wiki/processes/hermes-strategy-adoption.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-strategy.md"), "utf8"),
+      readFile(join(packageRoot, "commands/hermes-query.md"), "utf8"),
+    ]);
+    const normalizedProcess = processDoc.replace(/\s+/g, " ").toLowerCase();
+
+    expect(adoptCmd).toContain("record approved strategy adoption events with rollout metadata");
+    expect(outcomesCmd).toContain("review measured outcomes for adopted strategies over defined windows");
+    expect(adoptionSkill).toContain("adoption requires explicit linkage to accepted recommendations");
+    expect(outcomeSkill).toContain("outcome verdicts must reference measurable evidence windows");
+    expect(normalizedProcess).toContain("k12 records strategy adoption before outcome measurement");
+    expect(normalizedProcess).toContain("k12 does not auto-apply or auto-roll back strategies");
+    expect(strategyCmd).toContain("handoff accepted strategy decisions to /hermes-adopt for controlled rollout tracking");
+    expect(queryCmd).toContain("adopted strategies still follow canonical-first routing and trust boundaries");
+  });
 });

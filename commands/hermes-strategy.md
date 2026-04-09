@@ -16,6 +16,7 @@ review and decide Hermes strategy recommendations with human approval.
 - Strategy decisions must reference recommendation evidence and rationale
 - Accepted/rejected/superseded updates are recorded as explicit decisions
 - K11 strategy decisions do not auto-apply code or content edits
+- handoff accepted strategy decisions to /hermes-adopt for controlled rollout tracking
 
 ## Related
 
