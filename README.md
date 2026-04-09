@@ -82,6 +82,7 @@ your-project/
 | Codex CLI      | `.codex/`                         | Config, AGENTS.md reference               |
 | GitHub Copilot | `.github/copilot-instructions.md` | Full project instructions                 |
 | Kiro           | `.kiro/`                          | Agents, steering files, hooks             |
+| Gemini         | `.gemini/`                        | Settings and reusable command prompts     |
 
 All tools also share `AGENTS.md` and `RULES.md` at the project root.
 

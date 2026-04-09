@@ -194,6 +194,15 @@ export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
   { source: "generic/.kiro/steering/coding-style.md", destination: ".kiro/steering/coding-style.md", mode: "copy" },
   { source: "generic/.kiro/steering/security.md", destination: ".kiro/steering/security.md", mode: "copy" },
   { source: "generic/.kiro/steering/testing.md", destination: ".kiro/steering/testing.md", mode: "copy" },
+  // Gemini
+  { source: "generic/.gemini/settings.json", destination: ".gemini/settings.json", mode: "copy" },
+  { source: "generic/.gemini/commands/plan.md", destination: ".gemini/commands/plan.md", mode: "copy" },
+  {
+    source: "generic/.gemini/commands/code-review.md",
+    destination: ".gemini/commands/code-review.md",
+    mode: "copy",
+  },
+  { source: "generic/.gemini/commands/tdd.md", destination: ".gemini/commands/tdd.md", mode: "copy" },
 ];
 
 export function getRootTemplateManifest(): RenderTemplateTask[] {

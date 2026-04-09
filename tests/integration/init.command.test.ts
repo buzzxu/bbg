@@ -166,6 +166,10 @@ describe("init command", () => {
     expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "development-standards.md"));
     expect(result.createdFiles).toContain(join(cwd, "scripts", "doctor.py"));
     expect(result.createdFiles).toContain(join(cwd, ".githooks", "pre-commit"));
+    expect(result.createdFiles).toContain(join(cwd, ".gemini", "settings.json"));
+    expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "plan.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "code-review.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "tdd.md"));
 
     const configText = await readFile(join(cwd, ".bbg", "config.json"), "utf8");
     const config = JSON.parse(configText) as {
