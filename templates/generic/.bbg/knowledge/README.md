@@ -75,5 +75,7 @@ K10 verifies candidates before promotion decisions. Promotion decisions remain e
 
 K11 derives advisory strategy recommendations from historical evidence. Strategy changes require explicit human approval, and K11 does not auto-edit workflows, skills, rules, or routing policy.
 
+K12 records adopted strategies and measures outcomes over explicit windows. K12 does not auto-apply or auto-roll back strategy changes, and adoption and outcome records must remain evidence-linked and auditable.
+
 K7A only distills wiki/process drafts. Other candidate types remain reserved for
 later phases.

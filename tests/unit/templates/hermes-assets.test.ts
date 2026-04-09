@@ -396,4 +396,13 @@ describe("Hermes governance assets", () => {
     expect(strategyCmd).toContain("handoff accepted strategy decisions to /hermes-adopt for controlled rollout tracking");
     expect(queryCmd).toContain("adopted strategies still follow canonical-first routing and trust boundaries");
   });
+
+  it("documents K12 adoption and outcome boundaries in knowledge README", async () => {
+    const readme = await readFile(join(packageRoot, "templates/generic/.bbg/knowledge/README.md"), "utf8");
+    const normalized = readme.replace(/\s+/g, " ").toLowerCase();
+
+    expect(normalized).toContain("k12 records adopted strategies and measures outcomes over explicit windows");
+    expect(normalized).toContain("k12 does not auto-apply or auto-roll back strategy changes");
+    expect(normalized).toContain("adoption and outcome records must remain evidence-linked and auditable");
+  });
 });
