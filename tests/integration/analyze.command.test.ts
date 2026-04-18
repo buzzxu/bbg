@@ -97,6 +97,40 @@ describe("analyze command", () => {
     const result = await runAnalyzeCommand({ cwd, repos: ["repo-a"] });
 
     expect(result.analyzedRepos).toEqual(["repo-a"]);
+    expect(result.runId).toBeTruthy();
+    expect(result.scope).toBe("repo");
     expect(result.repoDocs).toContain("docs/architecture/repos/repo-a.md");
+    expect(result.repositoryDocs).toContain("docs/repositories/repo-a.md");
+    expect(result.docsUpdated).toContain("docs/business/module-map.md");
+    expect(result.docsUpdated).toContain("docs/architecture/integration-map.md");
+    expect(result.docsUpdated).toContain("docs/wiki/reports/workspace-analysis-summary.md");
+    expect(result.docsUpdated).toContain("docs/wiki/concepts/repo-repo-a-overview.md");
+    const latest = JSON.parse(await import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "analyze", "latest.json"), "utf8"))) as {
+      runId: string;
+      repos: string[];
+    };
+    expect(latest.runId).toBe(result.runId);
+    expect(latest.repos).toEqual(["repo-a"]);
+    const knowledge = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "knowledge", "repos", "repo-a", "technical.json"), "utf8"),
+      ),
+    ) as { repo: string };
+    expect(knowledge.repo).toBe("repo-a");
+    const repoSummary = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(join(cwd, "docs", "repositories", "repo-a.md"), "utf8"),
+    );
+    expect(repoSummary).toContain("# repo-a");
+    const wikiIndex = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(join(cwd, "docs", "wiki", "index.md"), "utf8"),
+    );
+    expect(wikiIndex).toContain("Workspace Analysis Summary");
+    expect(wikiIndex).toContain("repo-a Overview");
+    const businessModules = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "knowledge", "workspace", "business-modules.json"), "utf8"),
+      ),
+    ) as { repos: Array<{ name: string }> };
+    expect(businessModules.repos).toEqual([expect.objectContaining({ name: "repo-a" })]);
   });
 });

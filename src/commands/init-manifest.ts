@@ -28,6 +28,21 @@ export const ROOT_TEMPLATE_MANIFEST: ReadonlyArray<RenderTemplateTask> = [
     mode: "copy",
   },
   {
+    source: "generic/docs/workflows/task-environment-playbook.md",
+    destination: "docs/workflows/task-environment-playbook.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/docs/workflows/observability-playbook.md",
+    destination: "docs/workflows/observability-playbook.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/docs/workflows/doc-gardening-playbook.md",
+    destination: "docs/workflows/doc-gardening-playbook.md",
+    mode: "copy",
+  },
+  {
     source: "generic/docs/workflows/ai-task-prompt-template.md",
     destination: "docs/workflows/ai-task-prompt-template.md",
     mode: "copy",
@@ -146,6 +161,10 @@ export const ROOT_TEMPLATE_MANIFEST: ReadonlyArray<RenderTemplateTask> = [
 export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
   // Claude Code
   { source: "generic/.claude/settings.json", destination: ".claude/settings.json", mode: "copy" },
+  { source: "generic/.claude/commands/analyze.md", destination: ".claude/commands/analyze.md", mode: "copy" },
+  { source: "generic/.claude/commands/start.md", destination: ".claude/commands/start.md", mode: "copy" },
+  { source: "generic/.claude/commands/resume.md", destination: ".claude/commands/resume.md", mode: "copy" },
+  { source: "generic/.claude/commands/status.md", destination: ".claude/commands/status.md", mode: "copy" },
   { source: "generic/.claude/commands/plan.md", destination: ".claude/commands/plan.md", mode: "copy" },
   { source: "generic/.claude/commands/tdd.md", destination: ".claude/commands/tdd.md", mode: "copy" },
   { source: "generic/.claude/commands/code-review.md", destination: ".claude/commands/code-review.md", mode: "copy" },
@@ -171,6 +190,10 @@ export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
     destination: ".opencode/instructions/security.md",
     mode: "copy",
   },
+  { source: "generic/.opencode/commands/analyze.md", destination: ".opencode/commands/analyze.md", mode: "copy" },
+  { source: "generic/.opencode/commands/start.md", destination: ".opencode/commands/start.md", mode: "copy" },
+  { source: "generic/.opencode/commands/resume.md", destination: ".opencode/commands/resume.md", mode: "copy" },
+  { source: "generic/.opencode/commands/status.md", destination: ".opencode/commands/status.md", mode: "copy" },
   { source: "generic/.opencode/commands/plan.md", destination: ".opencode/commands/plan.md", mode: "copy" },
   { source: "generic/.opencode/commands/tdd.md", destination: ".opencode/commands/tdd.md", mode: "copy" },
   {
@@ -184,18 +207,12 @@ export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
   // Codex CLI
   { source: "generic/.codex/config.toml", destination: ".codex/config.toml", mode: "copy" },
   { source: "handlebars/.codex/AGENTS.md.hbs", destination: ".codex/AGENTS.md", mode: "handlebars" },
-  // GitHub Copilot
-  {
-    source: "handlebars/.github/copilot-instructions.md.hbs",
-    destination: ".github/copilot-instructions.md",
-    mode: "handlebars",
-  },
-  // Kiro
-  { source: "generic/.kiro/steering/coding-style.md", destination: ".kiro/steering/coding-style.md", mode: "copy" },
-  { source: "generic/.kiro/steering/security.md", destination: ".kiro/steering/security.md", mode: "copy" },
-  { source: "generic/.kiro/steering/testing.md", destination: ".kiro/steering/testing.md", mode: "copy" },
   // Gemini
   { source: "generic/.gemini/settings.json", destination: ".gemini/settings.json", mode: "copy" },
+  { source: "generic/.gemini/commands/analyze.md", destination: ".gemini/commands/analyze.md", mode: "copy" },
+  { source: "generic/.gemini/commands/start.md", destination: ".gemini/commands/start.md", mode: "copy" },
+  { source: "generic/.gemini/commands/resume.md", destination: ".gemini/commands/resume.md", mode: "copy" },
+  { source: "generic/.gemini/commands/status.md", destination: ".gemini/commands/status.md", mode: "copy" },
   { source: "generic/.gemini/commands/plan.md", destination: ".gemini/commands/plan.md", mode: "copy" },
   {
     source: "generic/.gemini/commands/code-review.md",
@@ -205,12 +222,21 @@ export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
   { source: "generic/.gemini/commands/tdd.md", destination: ".gemini/commands/tdd.md", mode: "copy" },
 ];
 
+export const ADAPTER_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
+  { source: "handlebars/CLAUDE.md.hbs", destination: "CLAUDE.md", mode: "handlebars" },
+  ...TOOL_CONFIG_TEMPLATES,
+];
+
 export function getRootTemplateManifest(): RenderTemplateTask[] {
   return ROOT_TEMPLATE_MANIFEST.map((template) => ({ ...template }));
 }
 
 export function getToolConfigTemplates(): RenderTemplateTask[] {
   return TOOL_CONFIG_TEMPLATES.map((template) => ({ ...template }));
+}
+
+export function getAdapterTemplates(): RenderTemplateTask[] {
+  return ADAPTER_TEMPLATES.map((template) => ({ ...template }));
 }
 
 export function buildTemplatePlan(config: BbgConfig): RenderTemplateTask[] {

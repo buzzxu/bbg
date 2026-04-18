@@ -24,12 +24,19 @@ export interface RuntimeCommandsSetting {
   lint?: RuntimeCommandConfigEntry;
 }
 
+export interface RuntimeAutonomySetting {
+  maxAttempts: number;
+  maxVerifyFailures: number;
+  maxDurationMs: number;
+}
+
 export interface RuntimeConfig {
   telemetry: RuntimeFileSetting;
   evaluation: RuntimeFileSetting;
   policy: RuntimeFileSetting;
   context: RuntimeContextSetting;
   commands?: RuntimeCommandsSetting;
+  autonomy: RuntimeAutonomySetting;
 }
 
 export interface SessionHistoryDocument {
@@ -60,6 +67,11 @@ export function buildDefaultRuntimeConfig(): RuntimeConfig {
       enabled: true,
       repoMapFile: ".bbg/context/repo-map.json",
       sessionHistoryFile: ".bbg/sessions/history.json",
+    },
+    autonomy: {
+      maxAttempts: 5,
+      maxVerifyFailures: 3,
+      maxDurationMs: 3600000,
     },
   };
 }

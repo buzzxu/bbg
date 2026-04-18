@@ -45,6 +45,19 @@ export interface KnowledgeConfig {
   hermes?: HermesRuntimeConfig;
 }
 
+export interface AgentRunnerToolConfig {
+  type?: "cli" | "gui";
+  command: string;
+  args?: string[];
+  detached?: boolean;
+  env?: Record<string, string>;
+}
+
+export interface AgentRunnerConfig {
+  defaultTool?: string;
+  tools?: Record<string, AgentRunnerToolConfig>;
+}
+
 export interface BbgConfig {
   version: string;
   projectName: string;
@@ -66,4 +79,5 @@ export interface BbgConfig {
   plugins?: PluginConfig;
   organization?: OrganizationConfig;
   knowledge?: KnowledgeConfig;
+  agentRunner?: AgentRunnerConfig;
 }

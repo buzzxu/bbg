@@ -1,10 +1,12 @@
-# Gemini Code Review Prompt
+# Gemini Review Adapter
 
-Review code changes with priority:
+<!-- BBG:BEGIN MANAGED -->
+Run `bbg workflow review`.
 
-1. Security issues
-2. Correctness and edge cases
-3. Test coverage gaps
-4. Maintainability and readability
+If the CLI workflow is unavailable:
 
-Use `rules/common/security.md` and language-specific rules as references.
+1. Read `AGENTS.md`
+2. Read `RULES.md`
+3. Follow `commands/code-review.md`
+4. Use `skills/code-review-checklist/SKILL.md`
+<!-- BBG:END MANAGED -->

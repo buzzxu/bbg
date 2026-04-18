@@ -17,6 +17,7 @@ import {
   toSnapshotRelativePath,
 } from "../utils/paths.js";
 import { promptConfirm } from "../utils/prompts.js";
+import { isManagedAdapterPath, replaceManagedSection } from "../adapters/managed.js";
 
 export interface RunUpgradeInput {
   cwd: string;
@@ -246,6 +247,24 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
     }
 
     const currentContent = await readTextFile(absolutePath);
+    if (isManagedAdapterPath(trackedFile.path)) {
+      const managedUpdated = replaceManagedSection(currentContent, nextContent);
+      if (managedUpdated !== null) {
+        if (managedUpdated !== currentContent) {
+          merged.push(trackedFile.path);
+        }
+        if (!input.dryRun) {
+          await writeTextFile(absolutePath, managedUpdated);
+          await writeSnapshot(input.cwd, trackedFile.path, nextContent);
+          nextHashes[trackedFile.path] = {
+            generatedHash: sha256Hex(nextContent),
+            generatedAt: nowIso,
+            templateVersion: CLI_VERSION,
+          };
+        }
+        continue;
+      }
+    }
     const currentHash = sha256Hex(currentContent);
     const snapshotContent = await loadSnapshot(input.cwd, trackedFile.path);
     const oldGeneratedContent =

@@ -232,10 +232,15 @@ describe("add-repo command", () => {
       targetDir: join(cwd, "new-repo"),
       credentials: undefined,
     });
-    expect(promptState.promptConfirm).toHaveBeenCalledWith({
-      message: "Analyze new-repo now for technical and business architecture mapping?",
-      default: true,
-    });
+    const registration = JSON.parse(
+      await readFile(join(cwd, ".bbg", "repos", "new-repo", "registration.json"), "utf8"),
+    ) as { analyzeStatus: string; workspaceFusionStatus: string };
+    expect(registration).toEqual(
+      expect.objectContaining({
+        analyzeStatus: "completed",
+        workspaceFusionStatus: "completed",
+      }),
+    );
   });
 
   it("allows overriding detected stack fields before persisting", async () => {

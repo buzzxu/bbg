@@ -62,6 +62,11 @@ const sampleConfig: BbgConfig = {
       repoMapFile: ".bbg/context/repo-map.json",
       sessionHistoryFile: ".bbg/sessions/history.json",
     },
+    autonomy: {
+      maxAttempts: 5,
+      maxVerifyFailures: 3,
+      maxDurationMs: 3600000,
+    },
   },
 };
 
@@ -72,6 +77,24 @@ const sampleConfigWithKnowledge: BbgConfig = {
     databaseFile: ".bbg/knowledge.db",
     sourceRoot: "docs/raw",
     wikiRoot: "docs/wiki",
+  },
+};
+
+const sampleConfigWithAgentRunner: BbgConfig = {
+  ...sampleConfig,
+  agentRunner: {
+    defaultTool: "claude",
+    tools: {
+      claude: {
+        type: "cli",
+        command: "claude",
+        args: ["resume", "{taskId}"],
+        detached: true,
+        env: {
+          BBG_HANDOFF_PATH: "{handoffPath}",
+        },
+      },
+    },
   },
 };
 
@@ -111,6 +134,12 @@ describe("config read-write", () => {
     const raw = serializeConfig(configWithHermes);
 
     expect(parseConfig(raw)).toEqual(configWithHermes);
+  });
+
+  it("round-trips config with agent runner settings", () => {
+    const raw = serializeConfig(sampleConfigWithAgentRunner);
+
+    expect(parseConfig(raw)).toEqual(sampleConfigWithAgentRunner);
   });
 
   it("throws ConfigParseError for invalid JSON", () => {
@@ -204,6 +233,23 @@ describe("config read-write", () => {
           runsRoot: "../runs",
           evaluationsRoot: "/tmp/evals",
           candidatesRoot: ".bbg/hermes/candidates",
+        },
+      },
+    });
+
+    expect(() => parseConfig(invalidShape)).toThrow(ConfigValidationError);
+  });
+
+  it("throws ConfigValidationError for invalid agent runner structure", () => {
+    const invalidShape = JSON.stringify({
+      ...sampleConfig,
+      agentRunner: {
+        defaultTool: "claude",
+        tools: {
+          claude: {
+            command: "",
+            args: ["resume"],
+          },
         },
       },
     });

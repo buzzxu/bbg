@@ -1,5 +1,5 @@
 {
-  "instructions": ["AGENTS.md", "RULES.md"],
+  "instructions": ["AGENTS.md", "RULES.md", ".bbg/context/repo-map.json", ".bbg/policy/decisions.json"],
   "context": {
     "commandsDir": "commands",
     "skillsDir": "skills",

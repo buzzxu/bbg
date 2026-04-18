@@ -1,9 +1,12 @@
-# Gemini TDD Prompt
+# Gemini TDD Adapter
 
-Follow RED -> GREEN -> IMPROVE:
+<!-- BBG:BEGIN MANAGED -->
+Run `bbg workflow tdd`.
 
-1. Write/adjust failing tests first
-2. Implement minimal code to pass
-3. Refactor while preserving behavior
+If the CLI workflow is unavailable:
 
-Always run the relevant test suite before finishing.
+1. Read `AGENTS.md`
+2. Read `RULES.md`
+3. Follow `commands/tdd.md`
+4. Use `skills/tdd-workflow/SKILL.md`
+<!-- BBG:END MANAGED -->

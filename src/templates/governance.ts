@@ -67,6 +67,9 @@ const CORE_SKILLS = [
   "docker-patterns",
   "kubernetes-patterns",
   "harness-engineering",
+  "task-environments",
+  "agent-observability",
+  "doc-gardening",
   "autonomous-loops",
   "mcp-integration",
   "telemetry-dashboard",
@@ -175,9 +178,16 @@ const CORE_COMMANDS = [
   "workflow-status",
   "cross-audit",
   "analyze",
+  "start",
+  "resume",
+  "status",
+  "add-repo",
   "analyze-repo",
   "task-start",
   "deliver",
+  "task-env",
+  "doc-garden",
+  "observe",
 ];
 
 const LANGUAGE_COMMANDS: Record<string, string[]> = {

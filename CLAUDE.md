@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project Overview
 
-**bbg** (BadBoy Genesis) is a CLI tool that generates and maintains AI development workflow governance scaffolding for mono-repo and multi-repo projects. It produces agent instructions, rules, hooks, commands, skills, and MCP configurations for 6 AI coding tools: Claude Code, OpenCode, Cursor, Codex CLI, GitHub Copilot, and Kiro.
+**bbg** (BadBoy Genesis) is a CLI tool that generates and maintains AI development workflow governance scaffolding for mono-repo and multi-repo projects. It produces agent instructions, rules, hooks, commands, skills, and MCP configurations for 5 AI coding tools: Claude Code, OpenCode, Cursor, Codex CLI, and Gemini.
 
 **Version:** 0.1.0  
 **License:** AGPL-3.0  

@@ -1,19 +1,12 @@
-# /code-review -- Code Quality Review
+# /code-review -- Repo Workflow Entry
 
-Read and follow the agent instructions in `agents/code-reviewer.md` and the skill workflow in `skills/code-review-checklist/SKILL.md`.
+<!-- BBG:BEGIN MANAGED -->
+Run `bbg workflow review`.
 
-## Review Checklist
+If the CLI workflow is unavailable:
 
-1. **Correctness**: Does the code do what it's supposed to?
-2. **Testing**: Are there adequate tests? Do they cover edge cases?
-3. **Security**: No hardcoded secrets, input validation, path sanitization
-4. **Performance**: No blocking operations, efficient algorithms
-5. **Style**: Follows coding standards in `rules/`
-6. **DRY**: No duplicated logic
-7. **Error handling**: Explicit try/catch, meaningful error messages
-
-## References
-
-- Agent: `agents/code-reviewer.md`
-- Skill: `skills/code-review-checklist/SKILL.md`
-- Rules: `rules/common/coding-style.md`
+1. Read `AGENTS.md`
+2. Read `RULES.md`
+3. Follow `commands/code-review.md`
+4. Use `skills/code-review-checklist/SKILL.md`
+<!-- BBG:END MANAGED -->

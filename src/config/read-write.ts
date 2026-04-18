@@ -27,6 +27,10 @@ function isString(value: unknown): value is string {
   return typeof value === "string";
 }
 
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+
 function isNumber(value: unknown): value is number {
   return typeof value === "number";
 }
@@ -151,6 +155,24 @@ function isRuntimeCommandsSetting(value: unknown): value is NonNullable<BbgConfi
   );
 }
 
+function isRuntimeAutonomySetting(value: unknown): value is NonNullable<BbgConfig["runtime"]>["autonomy"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.maxAttempts === "number"
+    && Number.isInteger(value.maxAttempts)
+    && value.maxAttempts > 0
+    && typeof value.maxVerifyFailures === "number"
+    && Number.isInteger(value.maxVerifyFailures)
+    && value.maxVerifyFailures > 0
+    && typeof value.maxDurationMs === "number"
+    && Number.isInteger(value.maxDurationMs)
+    && value.maxDurationMs > 0
+  );
+}
+
 function isRuntimeConfig(value: unknown): value is NonNullable<BbgConfig["runtime"]> {
   if (!isRecord(value)) {
     return false;
@@ -161,6 +183,7 @@ function isRuntimeConfig(value: unknown): value is NonNullable<BbgConfig["runtim
     isRuntimeFileSetting(value.evaluation) &&
     isRuntimeFileSetting(value.policy) &&
     isRuntimeContextSetting(value.context) &&
+    isRuntimeAutonomySetting(value.autonomy) &&
     (value.commands === undefined || isRuntimeCommandsSetting(value.commands))
   );
 }
@@ -196,6 +219,36 @@ function isKnowledgeConfig(value: unknown): value is NonNullable<BbgConfig["know
   );
 }
 
+function isAgentRunnerToolConfig(value: unknown): value is NonNullable<
+  NonNullable<BbgConfig["agentRunner"]>["tools"]
+>[string] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    (value.type === undefined || value.type === "cli" || value.type === "gui") &&
+    isString(value.command) &&
+    value.command.trim().length > 0 &&
+    (value.args === undefined || (Array.isArray(value.args) && value.args.every(isString))) &&
+    (value.detached === undefined || isBoolean(value.detached)) &&
+    (value.env === undefined ||
+      (isRecord(value.env) && Object.values(value.env).every(isString)))
+  );
+}
+
+function isAgentRunnerConfig(value: unknown): value is NonNullable<BbgConfig["agentRunner"]> {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    (value.defaultTool === undefined || isString(value.defaultTool)) &&
+    (value.tools === undefined ||
+      (isRecord(value.tools) && Object.values(value.tools).every(isAgentRunnerToolConfig)))
+  );
+}
+
 function isBbgConfig(value: unknown): value is BbgConfig {
   if (!isRecord(value)) {
     return false;
@@ -222,7 +275,8 @@ function isBbgConfig(value: unknown): value is BbgConfig {
     typeof value.governance.enableCrossAudit === "boolean" &&
     isRecord(value.context) &&
     (typeof value.runtime === "undefined" || isRuntimeConfig(value.runtime)) &&
-    (typeof value.knowledge === "undefined" || isKnowledgeConfig(value.knowledge))
+    (typeof value.knowledge === "undefined" || isKnowledgeConfig(value.knowledge)) &&
+    (typeof value.agentRunner === "undefined" || isAgentRunnerConfig(value.agentRunner))
   );
 }
 

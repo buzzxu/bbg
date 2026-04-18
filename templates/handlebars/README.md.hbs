@@ -22,8 +22,7 @@ This project is equipped with comprehensive AI development workflow governance, 
 | OpenCode | `.opencode/` | Instructions, commands |
 | Cursor | `.cursor/rules/` | Rule files (.mdc) |
 | Codex CLI | `.codex/` | Config, AGENTS.md |
-| GitHub Copilot | `.github/` | Copilot instructions |
-| Kiro | `.kiro/steering/` | Steering files |
+| Gemini | `.gemini/` | Settings, reusable prompts |
 
 ### Governance Resources
 
@@ -37,13 +36,28 @@ This project is equipped with comprehensive AI development workflow governance, 
 | `contexts/` | Operational modes (dev, review, research) |
 | `mcp-configs/` | MCP server configurations |
 
-### Key Workflows
+### Primary Entrypoints
 
-- **TDD**: `/tdd` -- RED-GREEN-IMPROVE cycle
-- **Code Review**: `/code-review` -- Structured quality review
-- **Security Scan**: `/security-scan` -- Vulnerability detection
-- **Build Fix**: `/build-fix` -- Automated build error resolution
-- **Planning**: `/plan` -- Implementation planning
+- **Analyze**: `bbg analyze` -- Build or refresh project and workspace understanding
+- **Start**: `bbg start "<task>"` -- Begin a task using the primary workflow entrypoint
+- **Resume**: `bbg resume <task-id>` -- Continue an existing prepared task session
+- **Status**: `bbg status` -- Inspect analyze and task session state
+- **Add Repo**: `bbg add-repo <path-or-url>` -- Register a new repository and analyze it by default
+
+### Harness + Hermes
+
+- **Harness** keeps execution quality consistent across Claude Code, Codex, Cursor, Gemini, and OpenCode
+- **Hermes** captures reusable learnings through query, distill, draft, verify, and promote flows
+- Use `bbg analyze` before implementation on first adoption or after major repo changes
+- Use `bbg start "<task>"` as the default implementation entrypoint
+- Common Hermes entry points: `bbg hermes query`, `bbg hermes distill`, `bbg hermes draft-skill`, `bbg hermes draft-rule`, `bbg hermes verify`, `bbg hermes promote`
+
+Practical harness-engineering helpers:
+
+- `bbg task-env start "<task>"` for isolated git worktrees and per-task artifact directories
+- `bbg observe start "<topic>"` for UI, log, metric, and trace capture
+- `bbg doc-garden` for stale-reference scans across repo docs
+- `bbg loop-start` and `bbg loop-status` for long-running verification loops
 
 ## Governance Thresholds
 
@@ -60,8 +74,34 @@ This project is equipped with comprehensive AI development workflow governance, 
 
 1. Open this project with your AI coding tool of choice
 2. The tool will automatically load its configuration from the appropriate directory
-3. Use slash commands like `/plan`, `/tdd`, `/code-review` to trigger workflows
-4. Reference agents in `agents/` and skills in `skills/` for specialized guidance
+3. Run `bbg analyze` the first time you work in this project or after major repository changes
+4. Run `bbg start "<task>"` to begin implementation work
+5. Use `bbg resume <task-id>` or `bbg status` when switching tools or continuing later
+6. Reference agents in `agents/` and skills in `skills/` for specialized guidance
+
+### Task Resume Guidance
+
+When resuming a task, prefer the structured task state files over ad-hoc memory:
+
+1. `.bbg/tasks/<task-id>/context.json`
+2. `.bbg/tasks/<task-id>/handoff.md`
+3. `.bbg/tasks/<task-id>/decisions.json`
+
+If your AI tool was launched by `bbg`, it may also receive structured runtime hints through:
+
+- `BBG_TASK_ID`
+- `BBG_TASK_STATUS`
+- `BBG_TASK_STEP`
+- `BBG_HANDOFF_PATH`
+- `BBG_CONTEXT_PATH`
+- `BBG_DECISIONS_PATH`
+- `BBG_RESUME_STRATEGY`
+- `BBG_RECOVERY_PLAN`
+- `BBG_RECOVERY_ACTIONS`
+- `BBG_ATTEMPT_COUNT`
+- `BBG_VERIFY_FAILURE_COUNT`
+- `BBG_AUTONOMY_ESCALATED`
+- `BBG_AUTONOMY_ESCALATION_REASON`
 
 ## Detected Stack
 

@@ -7,6 +7,7 @@ import { sha256Hex } from "../config/hash.js";
 import { parseConfig, serializeConfig } from "../config/read-write.js";
 import type { RepoEntry, RepoType } from "../config/schema.js";
 import { CLI_VERSION, REPO_TYPE_CHOICES } from "../constants.js";
+import { writeRepoRegistrationState } from "../runtime/repos.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates } from "../templates/render.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
@@ -14,12 +15,14 @@ import { cloneRepo, listRemoteBranches } from "../utils/git.js";
 import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
 import { normalizeWorkspaceRelativePath, resolveBuiltinTemplatesRoot } from "../utils/paths.js";
 import { collectStackInfo, promptConfirm, promptInput, promptSelect, sanitizePromptValue } from "../utils/prompts.js";
+import { runAnalyzeCommand } from "./analyze.js";
 import { runDoctor } from "./doctor.js";
 
 export interface RunAddRepoInput {
   cwd: string;
   url?: string;
   branch?: string;
+  analyze?: boolean;
 }
 
 export interface RunAddRepoResult {
@@ -188,16 +191,30 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     throw error;
   }
 
-  const shouldAnalyzeNow = await promptConfirm({
-    message: `Analyze ${repoName} now for technical and business architecture mapping?`,
-    default: true,
-  });
+  const shouldAnalyzeNow = input.analyze ?? true;
+  let analyzeStatus: "completed" | "pending" | "failed" = "pending";
+  let workspaceFusionStatus: "completed" | "pending" | "failed" = "pending";
 
   if (shouldAnalyzeNow) {
-    process.stdout.write(
-      `Recommended next step: run /analyze-repo ${repoName} and persist results under docs/architecture/repos/${repoName}.md\n`,
-    );
+    try {
+      await runAnalyzeCommand({ cwd: input.cwd, repos: [repoName] });
+      analyzeStatus = "completed";
+      workspaceFusionStatus = "completed";
+    } catch {
+      analyzeStatus = "failed";
+      workspaceFusionStatus = "failed";
+    }
   }
+
+  await writeRepoRegistrationState(input.cwd, {
+    version: 1,
+    name: repoName,
+    source: resolvedUrl,
+    branch: resolvedBranch,
+    registeredAt: new Date().toISOString(),
+    analyzeStatus,
+    workspaceFusionStatus,
+  });
 
   return { addedRepoName: repoName };
 }

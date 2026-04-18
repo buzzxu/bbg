@@ -1,6 +1,8 @@
 import { applyDoctorFixes } from "../doctor/fix.js";
 import { runDoctorChecks, type DoctorCheckResult } from "../doctor/checks.js";
 import { runSelfChecks } from "../doctor/self-checks.js";
+import type { ToolMatrixEntry } from "../adapters/layout.js";
+import { analyzeToolMatrix } from "../adapters/matrix.js";
 import { resolvePackageRoot } from "../utils/paths.js";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +14,7 @@ export interface RunDoctorInput {
   governanceOnly?: boolean;
   workspace?: boolean;
   self?: boolean;
+  toolMatrix?: boolean;
 }
 
 export interface RunDoctorResult {
@@ -23,6 +26,7 @@ export interface RunDoctorResult {
   info: DoctorCheckResult[];
   exitCode: 0 | 1;
   fixesApplied: string[];
+  toolMatrix?: ToolMatrixEntry[];
 }
 
 export async function runDoctor(input: RunDoctorInput): Promise<RunDoctorResult> {
@@ -50,8 +54,8 @@ export async function runDoctor(input: RunDoctorInput): Promise<RunDoctorResult>
   const firstPass = await runDoctorChecks({
     cwd: input.cwd,
     governanceOnly: input.governanceOnly ?? false,
-    workspace: input.workspace ?? false,
-  });
+      workspace: input.workspace ?? false,
+    });
 
   let fixesApplied: string[] = [];
   let checks = firstPass.checks;
@@ -70,6 +74,7 @@ export async function runDoctor(input: RunDoctorInput): Promise<RunDoctorResult>
   const warnings = checks.filter((check) => check.severity === "warning" && !check.passed);
   const info = checks.filter((check) => check.severity === "info");
   const ok = errors.length === 0;
+  const toolMatrix = input.toolMatrix ? await analyzeToolMatrix(input.cwd) : undefined;
 
   return {
     ok,
@@ -80,5 +85,6 @@ export async function runDoctor(input: RunDoctorInput): Promise<RunDoctorResult>
     info,
     exitCode: ok ? 0 : 1,
     fixesApplied,
+    toolMatrix,
   };
 }

@@ -6,6 +6,7 @@ import { serializeConfig } from "../../../src/config/read-write.js";
 import type { BbgConfig } from "../../../src/config/schema.js";
 import { writeTextFile } from "../../../src/utils/fs.js";
 import { runDoctor } from "../../../src/commands/doctor.js";
+import { runRepairAdapters } from "../../../src/commands/repair-adapters.js";
 
 const tempDirs: string[] = [];
 
@@ -81,6 +82,25 @@ async function createGovernanceWorkspaceOnly(cwd: string): Promise<void> {
   await writeTextFile(join(cwd, ".gitignore"), "node_modules/\n");
 }
 
+async function seedAnalyzeState(cwd: string): Promise<void> {
+  await writeTextFile(
+    join(cwd, ".bbg", "analyze", "latest.json"),
+    `${JSON.stringify({
+      version: 1,
+      runId: "run-1",
+      status: "completed",
+      scope: "workspace",
+      repos: ["repo-a"],
+      startedAt: "2026-04-17T00:00:00.000Z",
+      updatedAt: "2026-04-17T00:00:00.000Z",
+      docsUpdated: [],
+      knowledgeUpdated: [],
+      warnings: [],
+      failures: [],
+    }, null, 2)}\n`,
+  );
+}
+
 describe("doctor command", () => {
   afterEach(async () => {
     const { rm } = await import("node:fs/promises");
@@ -109,6 +129,22 @@ describe("doctor command", () => {
     expect(Array.isArray(report.warnings)).toBe(true);
     expect(Array.isArray(report.info)).toBe(true);
     expect(Array.isArray(report.checks)).toBe(true);
+  });
+
+  it("reports tool-matrix status for supported adapters", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+    await runRepairAdapters({ cwd });
+
+    const report = await runDoctor({ cwd, json: true, toolMatrix: true });
+
+    expect(report.toolMatrix).toBeDefined();
+    expect(report.toolMatrix?.find((entry) => entry.tool === "claude")).toEqual(expect.objectContaining({
+      status: "full",
+    }));
+    expect(report.toolMatrix?.find((entry) => entry.tool === "gemini")).toEqual(expect.objectContaining({
+      status: "full",
+    }));
   });
 
   it("fix mode repairs missing repo entries in .gitignore", async () => {
@@ -214,6 +250,77 @@ describe("doctor command", () => {
     expect(report.checks.find((entry) => entry.id === "runtime-policy-coverage")?.passed).toBe(false);
   });
 
+  it("reports missing analyze artifacts when analyze state exists but docs and knowledge are absent", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+    await seedAnalyzeState(cwd);
+
+    const report = await runDoctor({ cwd, json: true, workspace: true });
+
+    expect(report.checks.find((entry) => entry.id === "analyze-artifacts")).toEqual(
+      expect.objectContaining({
+        passed: false,
+      }),
+    );
+    expect(report.checks.find((entry) => entry.id === "knowledge-artifacts")?.message).toContain(".bbg/knowledge/");
+  });
+
+  it("reports stale task environments and observation note reuse", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+    await writeTextFile(
+      join(cwd, ".bbg", "task-envs", "bugfix", "manifest.json"),
+      `${JSON.stringify({
+        version: 1,
+        id: "bugfix",
+        task: "Bugfix",
+        slug: "bugfix",
+        createdAt: "2026-04-17T00:00:00.000Z",
+        updatedAt: "2026-04-17T00:00:00.000Z",
+        gitRoot: ".",
+        baseRef: "HEAD",
+        worktreePath: ".bbg/task-envs/bugfix/worktree",
+        artifactRoot: ".bbg/task-envs/bugfix/artifacts",
+        uiArtifactsPath: ".bbg/task-envs/bugfix/artifacts/ui",
+        logArtifactsPath: ".bbg/task-envs/bugfix/artifacts/logs",
+        metricArtifactsPath: ".bbg/task-envs/bugfix/artifacts/metrics",
+        traceArtifactsPath: ".bbg/task-envs/bugfix/artifacts/traces",
+        notesPath: ".bbg/task-envs/bugfix/notes.md",
+        status: "stale",
+      }, null, 2)}\n`,
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "task-envs", "bugfix", "observations", "latency", "manifest.json"),
+      `${JSON.stringify({
+        version: 1,
+        id: "latency",
+        topic: "Latency",
+        createdAt: "2026-04-17T00:00:00.000Z",
+        updatedAt: "2026-04-17T00:00:00.000Z",
+        envId: "bugfix",
+        rootPath: ".bbg/task-envs/bugfix/artifacts",
+        uiArtifactsPath: ".bbg/task-envs/bugfix/artifacts/ui",
+        logArtifactsPath: ".bbg/task-envs/bugfix/artifacts/logs",
+        metricArtifactsPath: ".bbg/task-envs/bugfix/artifacts/metrics",
+        traceArtifactsPath: ".bbg/task-envs/bugfix/artifacts/traces",
+        notesPath: ".bbg/task-envs/bugfix/notes.md",
+      }, null, 2)}\n`,
+    );
+
+    const report = await runDoctor({ cwd, json: true, workspace: true });
+
+    expect(report.checks.find((entry) => entry.id === "task-runtime-env-health")).toEqual(
+      expect.objectContaining({
+        passed: false,
+      }),
+    );
+    expect(report.checks.find((entry) => entry.id === "task-runtime-observe-isolation")).toEqual(
+      expect.objectContaining({
+        passed: false,
+      }),
+    );
+  });
+
   it("accepts absolute-path runtime command wrappers", async () => {
     const cwd = await makeTempDir();
     await createMinimalWorkspace(cwd);
@@ -298,6 +405,11 @@ describe("doctor command", () => {
           enabled: true,
           repoMapFile: ".bbg/context/repo-map.json",
           sessionHistoryFile: ".bbg/sessions/history.json",
+        },
+        autonomy: {
+          maxAttempts: 5,
+          maxVerifyFailures: 3,
+          maxDurationMs: 3600000,
         },
         commands: {
           build: { command: "/usr/bin/env", args: ["node", "-e", "process.exit(0)"] },

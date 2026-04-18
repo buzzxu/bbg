@@ -1,16 +1,16 @@
 ---
-description: Review code changes for quality, security, and style
+description: Enter the repo-level review workflow
 ---
 
-# /code-review -- Code Quality Review
+# /code-review -- Repo Workflow Entry
 
-Follow `agents/code-reviewer.md` and `skills/code-review-checklist/SKILL.md`.
+<!-- BBG:BEGIN MANAGED -->
+Run `bbg workflow review`.
 
-Review checklist:
-1. Correctness -- does the code work as intended?
-2. Testing -- adequate coverage, edge cases?
-3. Security -- no secrets, input validation, path safety?
-4. Performance -- no blocking, efficient algorithms?
-5. Style -- follows `rules/` coding standards?
-6. DRY -- no duplicated logic?
-7. Error handling -- explicit try/catch, meaningful messages?
+If the CLI workflow is unavailable:
+
+1. Read `AGENTS.md`
+2. Read `RULES.md`
+3. Follow `commands/code-review.md`
+4. Use `skills/code-review-checklist/SKILL.md`
+<!-- BBG:END MANAGED -->

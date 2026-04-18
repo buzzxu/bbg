@@ -1,28 +1,18 @@
 ---
-description: Coding standards and style guidelines
+description: Canonical repo guidance entrypoint for Cursor
 globs: "**/*.{ts,tsx,js,jsx,py,go,java,rs,kt,php}"
 alwaysApply: true
 ---
 
-# Coding Standards
+<!-- BBG:BEGIN MANAGED -->
+# Cursor Standards Adapter
 
-Follow the coding rules defined in the `rules/` directory of this project.
+Use the repo-level canonical governance files as the primary source of truth:
 
-## General Rules
-
-- Small, focused functions (< 50 lines)
-- Descriptive naming conventions
-- Consistent formatting and indentation
-- Handle errors explicitly with try/catch
-- Never mutate function arguments
-- Extract shared logic -- never duplicate functions
-
-## Git Commits
-
-Use conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
-
-## References
-
-- Full rules: `rules/common/coding-style.md`
-- Agents: `agents/` directory
-- Skills: `skills/` directory
+- Read `AGENTS.md`
+- Read `RULES.md`
+- Use `rules/`, `skills/`, `.bbg/context/`, and `.bbg/policy/`
+- Prefer `bbg analyze`, `bbg start "<task>"`, `bbg resume <task-id>`, and `bbg status`
+- When resuming a task, prefer `.bbg/tasks/<task-id>/context.json`, then `handoff.md`, then `decisions.json`
+- If the tool was launched by `bbg`, prefer `BBG_TASK_*`, `BBG_LOOP_*`, `BBG_HANDOFF_PATH`, `BBG_CONTEXT_PATH`, `BBG_RESUME_STRATEGY`, and `BBG_RECOVERY_PLAN`
+<!-- BBG:END MANAGED -->

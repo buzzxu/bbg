@@ -9,6 +9,13 @@ description: AI harness optimization — CLAUDE.md tuning, agent delegation, hoo
 ## Overview
 Load this skill when configuring AI development environments — CLAUDE.md, AGENTS.md, rules files, hooks, and multi-agent workflows. A well-tuned harness makes AI agents more reliable, consistent, and efficient. A poorly-tuned one wastes tokens and produces inconsistent results.
 
+Harness and Hermes are complementary:
+
+- `harness` governs how agents execute work now
+- `Hermes` governs how the project learns from that work over time
+
+Keep execution guidance and learned candidate knowledge separate until evidence-backed promotion happens.
+
 ## Patterns
 
 ### Instruction File Hierarchy
@@ -17,7 +24,7 @@ CLAUDE.md / AGENTS.md    → Project-wide instructions (always loaded)
 rules/                   → Modular rules loaded by convention or keyword
 skills/                  → Deep workflow knowledge loaded on demand
 .cursorrules             → Cursor-specific rules
-.github/copilot/         → GitHub Copilot instructions
+.gemini/                → Gemini settings and command prompts
 ```
 - Project-wide file: keep under 200 lines — essential rules only
 - Rules: one concern per file — loaded when relevant
@@ -96,6 +103,30 @@ Success criteria: [how to verify the task is done]
 - Compact summaries for completed work — preserve decisions, discard process
 - Monitor token usage — if responses degrade, the context is too large
 
+### Harness + Hermes Loop
+- Use harness assets as the canonical execution layer: `AGENTS.md`, `RULES.md`, `rules/`, `skills/`, `.bbg/context/`, `.bbg/policy/`
+- Use repo workflows as the cross-tool entry points: `bbg workflow plan|review|tdd|security`
+- Use task environments for isolated execution: `bbg task-env start`
+- Use observation sessions for runtime evidence: `bbg observe start`
+- Use doc gardening to keep repo docs agent-readable: `bbg doc-garden`
+- Use loop runtime state for long-running verification work: `bbg loop-start`, `bbg loop-status`
+- Let workflows recommend Hermes follow-up when a reusable pattern appears
+- Use Hermes explicitly for learning operations: query, distill, draft, verify, promote
+- Only move Hermes outputs back into canonical assets after review and promotion
+
+### When Hermes Should Be Recommended
+- **Planning**: if similar tasks or rollout decisions may already exist, recommend `bbg hermes query`
+- **Review**: if a reusable fix pattern appears, recommend `bbg hermes distill` or `bbg hermes draft-skill`
+- **TDD**: if a test-and-fix loop is reusable, recommend `bbg hermes draft-skill`
+- **Security**: if findings imply a durable policy boundary, recommend `bbg hermes draft-rule`
+
+### When Hermes Should Stay Manual
+- Querying prior local memory
+- Distilling candidate knowledge from evidence
+- Drafting local skills or rules
+- Verifying candidates before promotion
+- Promoting trusted outputs back into canonical harness assets
+
 ## Rules
 - Instruction files must be under 200 lines — split into rules/skills if larger
 - Every rule must have a clear rationale
@@ -103,6 +134,8 @@ Success criteria: [how to verify the task is done]
 - Agent delegation must include specific success criteria
 - Update instructions when agents repeatedly make the same mistake
 - Never duplicate instructions across multiple files
+- Keep Hermes candidate memory separate from canonical harness instructions until promotion
+- Prefer workflow recommendations over automatic Hermes execution
 
 ## Anti-patterns
 - Mega instruction files (500+ lines) — agents lose focus in long documents
@@ -111,6 +144,8 @@ Success criteria: [how to verify the task is done]
 - Slow hooks (>30s) — developers bypass them with `--no-verify`
 - Delegating without context — agents waste tokens re-discovering information
 - Never updating instructions — the harness must evolve with the project
+- Letting Hermes auto-promote drafts directly into canonical rules or skills
+- Duplicating the same guidance in adapters, canonical assets, and Hermes drafts
 
 ## Checklist
 - [ ] Main instruction file under 200 lines
@@ -121,9 +156,14 @@ Success criteria: [how to verify the task is done]
 - [ ] Token usage monitored and optimized
 - [ ] Instructions updated when recurring agent mistakes are identified
 - [ ] No duplicated instructions across files
+- [ ] Hermes is available for learning but not forced into every task
+- [ ] Reusable findings have a clear path from workflow recommendation to Hermes draft to promotion
+- [ ] Active complex tasks can use task environments and observation sessions
+- [ ] Repo docs are periodically checked for stale references
+- [ ] Long-running verification work has explicit loop state and handoff artifacts
 
 
 ## Related
 
 - **Agents**: [harness-optimizer](../../agents/harness-optimizer.md)
-- **Commands**: [/harness-audit](../../commands/harness-audit.md)
+- **Commands**: [/harness-audit](../../commands/harness-audit.md), [Hermes Query](../../commands/hermes-query.md), [Hermes Distill](../../commands/hermes-distill.md)

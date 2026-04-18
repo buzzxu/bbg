@@ -1,5 +1,5 @@
 import { constants as fsConstants } from "node:fs";
-import { access } from "node:fs/promises";
+import { access, readdir } from "node:fs/promises";
 import { extname, isAbsolute, join } from "node:path";
 import fg from "fast-glob";
 import { parseConfig } from "../config/read-write.js";
@@ -7,12 +7,15 @@ import { sha256Hex, type FileHashRecord } from "../config/hash.js";
 import type { BbgConfig } from "../config/schema.js";
 import { getPolicyCoverageReport } from "../policy/engine.js";
 import { POLICY_COMMANDS } from "../policy/schema.js";
+import { readLatestAnalyzeRunState } from "../runtime/analyze-runs.js";
 import { resolveRuntimeCommands } from "../runtime/commands.js";
 import { resolveRuntimePaths } from "../runtime/paths.js";
 import { buildDefaultRuntimeConfig, type RuntimeConfig } from "../runtime/schema.js";
 import { readTelemetryDocument } from "../runtime/telemetry.js";
+import { readWikiDoctorArtifacts } from "../runtime/wiki.js";
 import { exists, readTextFile } from "../utils/fs.js";
 import { expectedRepoIgnoreEntries } from "./shared.js";
+import { extractManagedSection, isManagedAdapterPath } from "../adapters/managed.js";
 
 export type DoctorSeverity = "error" | "warning" | "info";
 
@@ -47,6 +50,13 @@ const WORKFLOW_DOCS = [
 ];
 
 const TASK_TEMPLATES = ["docs/tasks/TEMPLATE.md", "docs/changes/TEMPLATE.md", "docs/handoffs/TEMPLATE.md"];
+const PRIMARY_COMMAND_DOCS = [
+  "commands/analyze.md",
+  "commands/start.md",
+  "commands/resume.md",
+  "commands/status.md",
+  "commands/add-repo.md",
+];
 
 const REQUIRED_SCRIPTS = ["scripts/doctor.py", "scripts/sync_versions.py"];
 const REQUIRED_HOOKS = [".githooks/pre-commit", ".githooks/pre-push"];
@@ -136,6 +146,20 @@ async function runHashIntegrityCheck(cwd: string): Promise<DoctorCheckResult> {
     }
 
     const currentContent = await readTextFile(absolutePath);
+    if (isManagedAdapterPath(relativePath)) {
+      const snapshotPath = join(cwd, ".bbg", "generated-snapshots", `${relativePath}.gen`);
+      if (!(await exists(snapshotPath))) {
+        mismatched.push(relativePath);
+        continue;
+      }
+      const snapshotContent = await readTextFile(snapshotPath);
+      const currentSection = extractManagedSection(currentContent);
+      const snapshotSection = extractManagedSection(snapshotContent);
+      if (currentSection === null || snapshotSection === null || currentSection !== snapshotSection) {
+        mismatched.push(relativePath);
+      }
+      continue;
+    }
     if (sha256Hex(currentContent) !== entry.generatedHash) {
       mismatched.push(relativePath);
     }
@@ -164,6 +188,152 @@ async function runAiFillMarkersCheck(cwd: string): Promise<DoctorCheckResult> {
     markerCount === 0,
     markerCount === 0 ? "no AI-FILL markers found" : `${markerCount} AI-FILL markers remain`,
   );
+}
+
+async function runAnalyzeArtifactChecks(cwd: string, config: BbgConfig | null): Promise<DoctorCheckResult[]> {
+  const state = await readLatestAnalyzeRunState(cwd);
+  const reposToCheck = state?.repos.length
+    ? state.repos
+    : (config?.repos.map((repo) => repo.name) ?? []);
+  const wikiArtifacts = await readWikiDoctorArtifacts({
+    cwd,
+    repos: reposToCheck,
+    hasAnalyzeState: state !== null,
+  });
+  const canonicalWikiCheck = buildCheck(
+    "wiki-canonical-layer",
+    "warning",
+    wikiArtifacts.missingCanonical.length === 0,
+    wikiArtifacts.missingCanonical.length === 0
+      ? "wiki canonical layer exists"
+      : `missing wiki canonical files: ${wikiArtifacts.missingCanonical.join(", ")}`,
+  );
+  if (state === null) {
+    return [
+      buildCheck("analyze-artifacts", "info", false, "analyze has not been run yet"),
+      buildCheck("knowledge-artifacts", "info", false, "workspace knowledge has not been generated yet"),
+      canonicalWikiCheck,
+      buildCheck("wiki-generated-artifacts", "info", false, "wiki generated artifacts have not been created yet"),
+    ];
+  }
+
+  const requiredDocs = reposToCheck.flatMap((repo) => [
+    `docs/architecture/repos/${repo}.md`,
+    `docs/repositories/${repo}.md`,
+    `.bbg/knowledge/repos/${repo}/technical.json`,
+    `.bbg/knowledge/repos/${repo}/business.json`,
+    `.bbg/knowledge/repos/${repo}/patterns.json`,
+  ]);
+  const workspaceDocs = [
+    "docs/architecture/technical-architecture.md",
+    "docs/architecture/business-architecture.md",
+    "docs/architecture/repo-dependency-graph.md",
+    "docs/architecture/workspace-topology.md",
+    "docs/architecture/integration-map.md",
+    "docs/business/module-map.md",
+    "docs/business/core-flows.md",
+    ".bbg/knowledge/workspace/topology.json",
+    ".bbg/knowledge/workspace/integration-map.json",
+    ".bbg/knowledge/workspace/business-modules.json",
+  ];
+  const requiredPaths = state.scope === "workspace" ? [...requiredDocs, ...workspaceDocs] : requiredDocs;
+  const missing = (await checkManyExist(cwd, requiredPaths)).missing;
+
+  return [
+    buildCheck(
+      "analyze-artifacts",
+      "warning",
+      missing.length === 0,
+      missing.length === 0
+        ? `analyze artifacts exist for ${reposToCheck.length} repo(s)`
+        : `missing analyze artifacts: ${missing.slice(0, 8).join(", ")}${missing.length > 8 ? "..." : ""}`,
+    ),
+    buildCheck(
+      "knowledge-artifacts",
+      "warning",
+      missing.filter((entry) => entry.startsWith(".bbg/knowledge/")).length === 0,
+      missing.filter((entry) => entry.startsWith(".bbg/knowledge/")).length === 0
+        ? "repo/workspace knowledge artifacts exist"
+        : `missing knowledge artifacts: ${missing.filter((entry) => entry.startsWith(".bbg/knowledge/")).slice(0, 8).join(", ")}`,
+    ),
+    canonicalWikiCheck,
+    buildCheck(
+      "wiki-generated-artifacts",
+      "warning",
+      wikiArtifacts.missingGenerated.length === 0,
+      wikiArtifacts.missingGenerated.length === 0
+        ? "wiki generated artifacts exist"
+        : `missing wiki generated artifacts: ${wikiArtifacts.missingGenerated.join(", ")}`,
+    ),
+  ];
+}
+
+async function runTaskRuntimeChecks(cwd: string): Promise<DoctorCheckResult[]> {
+  const checks: DoctorCheckResult[] = [];
+  const taskEnvRoot = join(cwd, ".bbg", "task-envs");
+  const brokenEnvIds: string[] = [];
+  const reusedNotes: string[] = [];
+
+  if (await exists(taskEnvRoot)) {
+    const envEntries = await readdir(taskEnvRoot, { withFileTypes: true });
+    for (const entry of envEntries.filter((candidate) => candidate.isDirectory())) {
+      const manifestPath = join(taskEnvRoot, entry.name, "manifest.json");
+      if (!(await exists(manifestPath))) {
+        brokenEnvIds.push(entry.name);
+        continue;
+      }
+
+      try {
+        const manifest = JSON.parse(await readTextFile(manifestPath)) as Record<string, unknown>;
+        const status = typeof manifest.status === "string" ? manifest.status : "broken";
+        if (status === "stale" || status === "broken") {
+          brokenEnvIds.push(entry.name);
+        }
+
+        const envNotesPath = typeof manifest.notesPath === "string" ? manifest.notesPath : null;
+        const observationsRoot = join(taskEnvRoot, entry.name, "observations");
+        if (envNotesPath && (await exists(observationsRoot))) {
+          const observationEntries = await readdir(observationsRoot, { withFileTypes: true });
+          for (const observationEntry of observationEntries.filter((candidate) => candidate.isDirectory())) {
+            const observationManifestPath = join(observationsRoot, observationEntry.name, "manifest.json");
+            if (!(await exists(observationManifestPath))) {
+              continue;
+            }
+            const observationManifest = JSON.parse(await readTextFile(observationManifestPath)) as Record<string, unknown>;
+            const notesPath = typeof observationManifest.notesPath === "string" ? observationManifest.notesPath : null;
+            if (notesPath === envNotesPath) {
+              reusedNotes.push(`${entry.name}/${observationEntry.name}`);
+            }
+          }
+        }
+      } catch {
+        brokenEnvIds.push(entry.name);
+      }
+    }
+  }
+
+  checks.push(
+    buildCheck(
+      "task-runtime-env-health",
+      "warning",
+      brokenEnvIds.length === 0,
+      brokenEnvIds.length === 0
+        ? "task environments are healthy"
+        : `stale or broken task environments: ${brokenEnvIds.join(", ")}`,
+    ),
+  );
+  checks.push(
+    buildCheck(
+      "task-runtime-observe-isolation",
+      "warning",
+      reusedNotes.length === 0,
+      reusedNotes.length === 0
+        ? "observation notes are isolated from task environment notes"
+        : `observation notes reuse task env notes for: ${reusedNotes.join(", ")}`,
+    ),
+  );
+
+  return checks;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -540,6 +710,41 @@ export async function runDoctorChecks(options: DoctorChecksOptions): Promise<Doc
         : `missing task templates: ${taskTemplatesResult.missing.join(", ")}`,
     ),
   );
+
+  const primaryCommandDocsResult = await checkManyExist(options.cwd, PRIMARY_COMMAND_DOCS);
+  checks.push(
+    buildCheck(
+      "primary-command-docs",
+      "warning",
+      primaryCommandDocsResult.missing.length === 0,
+      primaryCommandDocsResult.missing.length === 0
+        ? "primary command docs exist"
+        : `missing primary command docs: ${primaryCommandDocsResult.missing.join(", ")}`,
+    ),
+  );
+
+  const analyzeLatestPath = join(options.cwd, ".bbg", "analyze", "latest.json");
+  checks.push(
+    buildCheck(
+      "analyze-state",
+      "info",
+      await exists(analyzeLatestPath),
+      (await exists(analyzeLatestPath)) ? "analyze latest state exists" : "analyze has not been run yet",
+    ),
+  );
+
+  checks.push(...(await runAnalyzeArtifactChecks(options.cwd, config)));
+
+  const tasksRoot = join(options.cwd, ".bbg", "tasks");
+  checks.push(
+    buildCheck(
+      "task-sessions",
+      "info",
+      await exists(tasksRoot),
+      (await exists(tasksRoot)) ? "task sessions directory exists" : "no task sessions recorded yet",
+    ),
+  );
+  checks.push(...(await runTaskRuntimeChecks(options.cwd)));
 
   const missingScripts: string[] = [];
   for (const scriptPath of REQUIRED_SCRIPTS) {

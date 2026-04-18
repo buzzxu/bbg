@@ -1,10 +1,12 @@
-# Gemini Plan Prompt
+# Gemini Plan Adapter
 
-Read `AGENTS.md` and `RULES.md` first, then create an implementation plan with:
+<!-- BBG:BEGIN MANAGED -->
+Run `bbg workflow plan`.
 
-1. Problem framing and constraints
-2. Affected files and risks
-3. Step-by-step execution plan
-4. Validation checklist (tests/build/security)
+If the CLI workflow is unavailable:
 
-Keep the plan concise and actionable.
+1. Read `AGENTS.md`
+2. Read `RULES.md`
+3. Follow `commands/plan.md`
+4. Use `skills/tdd-workflow/SKILL.md`
+<!-- BBG:END MANAGED -->

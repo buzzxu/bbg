@@ -21,8 +21,20 @@ import { runAnalyzeCommand } from "./commands/analyze.js";
 import { runAnalyzeRepoCommand } from "./commands/analyze-repo.js";
 import { runDeliverCommand } from "./commands/deliver.js";
 import { runCrossAuditCommand } from "./commands/cross-audit.js";
+import { runRepairAdapters } from "./commands/repair-adapters.js";
+import { runHermesCommand, type HermesKind } from "./commands/hermes.js";
+import { runTaskEnvCommand } from "./commands/task-env.js";
+import { runDocGardenCommand } from "./commands/doc-garden.js";
+import { runObserveCommand } from "./commands/observe.js";
+import { runLoopStartCommand } from "./commands/loop-start.js";
+import { runLoopStatusCommand } from "./commands/loop-status.js";
+import { runWorkflowCommand } from "./commands/workflow.js";
+import { runStartCommand } from "./commands/start.js";
+import { runResumeCommand } from "./commands/resume.js";
+import { runStatusCommand } from "./commands/status.js";
 import { ConfigParseError, ConfigValidationError } from "./config/read-write.js";
 import { BbgConfigError, BbgError, BbgGitError, BbgTemplateError } from "./utils/errors.js";
+import type { WorkflowDecisionSet, WorkflowKind } from "./workflow/types.js";
 
 const mapCliErrorToExitCode = (error: unknown): number => {
   if (error instanceof BbgConfigError) {
@@ -53,6 +65,207 @@ const mapCliErrorToExitCode = (error: unknown): number => {
   }
 
   return 1;
+};
+
+const printWorkflowResult = (result: {
+  kind: WorkflowKind;
+  task: string | null;
+  commandSpecPath: string;
+  summary: string;
+  references: string[];
+  hermesRecommendations: string[];
+  decisions: WorkflowDecisionSet;
+  nextActions: string[];
+}): void => {
+  process.stdout.write(`Workflow: ${result.kind}\n`);
+  if (result.task) {
+    process.stdout.write(`Task: ${result.task}\n`);
+  }
+  process.stdout.write(`Spec: ${result.commandSpecPath}\n`);
+  process.stdout.write(`Summary: ${result.summary}\n`);
+  process.stdout.write(`References: ${result.references.join(", ")}\n`);
+  if (result.hermesRecommendations.length > 0) {
+    process.stdout.write("Hermes recommendations:\n");
+    for (const recommendation of result.hermesRecommendations) {
+      process.stdout.write(`- ${recommendation}\n`);
+    }
+  }
+  process.stdout.write("Decisions:\n");
+  for (const [name, decision] of Object.entries(result.decisions)) {
+    const suffix = decision.reasons.length > 0 ? ` (${decision.reasons.join(", ")})` : "";
+    process.stdout.write(`- ${name}: ${decision.decision}${suffix}\n`);
+  }
+  if (result.nextActions.length > 0) {
+    process.stdout.write(`Next: ${result.nextActions.join(", ")}\n`);
+  }
+};
+
+const printHermesResult = (result: {
+  kind: HermesKind;
+  topic: string | null;
+  commandSpecPath: string;
+  summary: string;
+  references: string[];
+}): void => {
+  process.stdout.write(`Hermes: ${result.kind}\n`);
+  if (result.topic) {
+    process.stdout.write(`Topic: ${result.topic}\n`);
+  }
+  process.stdout.write(`Spec: ${result.commandSpecPath}\n`);
+  process.stdout.write(`Summary: ${result.summary}\n`);
+  process.stdout.write(`References: ${result.references.join(", ")}\n`);
+};
+
+const printTaskEnvResult = (result: Awaited<ReturnType<typeof runTaskEnvCommand>>): void => {
+  if (result.mode === "status") {
+    process.stdout.write(`Task environments: ${result.envs?.length ?? 0}\n`);
+    for (const env of result.envs ?? []) {
+      process.stdout.write(`- ${env.id}: ${env.status} (${env.worktreePath})\n`);
+    }
+    return;
+  }
+
+  if (!result.env) {
+    return;
+  }
+
+  process.stdout.write(`Task environment: ${result.env.id}\n`);
+  process.stdout.write(`Status: ${result.env.status}\n`);
+  process.stdout.write(`Worktree: ${result.env.worktreePath}\n`);
+  process.stdout.write(`Artifacts: ${result.env.artifactRoot}\n`);
+};
+
+const printDocGardenResult = (result: Awaited<ReturnType<typeof runDocGardenCommand>>): void => {
+  if (!result.report) {
+    process.stdout.write("Doc garden report: none\n");
+    return;
+  }
+
+  process.stdout.write(`Doc garden docs: ${result.report.docsScanned}\n`);
+  process.stdout.write(`Doc garden findings: ${result.report.findings.length}\n`);
+  for (const finding of result.report.findings.slice(0, 10)) {
+    process.stdout.write(`- ${finding.docPath}: ${finding.message}\n`);
+  }
+};
+
+const printObserveResult = (result: Awaited<ReturnType<typeof runObserveCommand>>): void => {
+  if (result.mode === "start" && result.session) {
+    process.stdout.write(`Observation: ${result.session.id}\n`);
+    process.stdout.write(`Artifacts: ${result.session.rootPath}\n`);
+    return;
+  }
+
+  if (result.report) {
+    process.stdout.write(`Observation: ${result.report.id}\n`);
+    process.stdout.write(`UI artifacts: ${result.report.uiArtifacts}\n`);
+    process.stdout.write(`Log artifacts: ${result.report.logArtifacts}\n`);
+    process.stdout.write(`Metric artifacts: ${result.report.metricArtifacts}\n`);
+    process.stdout.write(`Trace artifacts: ${result.report.traceArtifacts}\n`);
+    process.stdout.write(`Evidence kinds: ${result.report.evidenceKinds.length > 0 ? result.report.evidenceKinds.join(", ") : "none"}\n`);
+    process.stdout.write(`Readiness: ${result.report.readiness}\n`);
+  }
+};
+
+const printTaskSessionResult = (label: "Start" | "Resume", result: Awaited<ReturnType<typeof runStartCommand>>): void => {
+  const runner = result.session.runner ?? { mode: "prepare", tool: result.session.tool ?? null, launched: false };
+  const currentStep = result.session.currentStep ?? "none";
+  const attemptCount = result.session.attemptCount ?? 0;
+  process.stdout.write(`${label}: ${result.session.taskId}\n`);
+  process.stdout.write(`Status: ${result.session.status}\n`);
+  process.stdout.write(`Task: ${result.session.task}\n`);
+  process.stdout.write(`Workflow: ${result.session.workflowKind}\n`);
+  process.stdout.write(`Tool: ${result.session.tool ?? "none"}\n`);
+  process.stdout.write(`Step: ${currentStep}\n`);
+  process.stdout.write(`Attempts: ${attemptCount}\n`);
+  process.stdout.write(
+    `Autonomy: attempts=${result.session.attemptCount}/${result.session.autonomy.maxAttempts}, verify-failures=${result.session.autonomy.verifyFailureCount}/${result.session.autonomy.maxVerifyFailures}, escalated=${result.session.autonomy.escalated ? "yes" : "no"}\n`,
+  );
+  if (result.session.autonomy.escalationReason) {
+    process.stdout.write(`Autonomy reason: ${result.session.autonomy.escalationReason}\n`);
+  }
+  process.stdout.write(
+    `Runner: ${runner.mode} (tool=${runner.tool ?? "none"}, launched=${runner.launched ? "yes" : "no"}, command=${runner.command ?? "none"})\n`,
+  );
+  if (result.session.taskEnvId) {
+    process.stdout.write(`Task environment: ${result.session.taskEnvId}\n`);
+  }
+  if (result.session.observeSessionIds.length > 0) {
+    process.stdout.write(`Observations: ${result.session.observeSessionIds.join(", ")}\n`);
+  }
+  process.stdout.write(`Handoff: ${result.handoffPath}\n`);
+  if (result.session.lastError) {
+    process.stdout.write(`Last error: ${result.session.lastError}\n`);
+  }
+  if (result.session.blockedReason) {
+    process.stdout.write(`Blocked: ${result.session.blockedReason}\n`);
+  }
+  process.stdout.write(`Next: ${result.session.nextActions.join(", ")}\n`);
+};
+
+const printStatusResult = (result: Awaited<ReturnType<typeof runStatusCommand>>): void => {
+  process.stdout.write(
+    `Analyze: ${result.analyze.status ?? "none"} (${result.analyze.scope ?? "n/a"}, ${result.analyze.runId ?? "latest-none"})\n`,
+  );
+  process.stdout.write(`Tasks: ${result.tasks.length}\n`);
+  for (const task of result.tasks) {
+    const currentStep = task.currentStep ?? "none";
+    const attemptCount = task.attemptCount ?? 0;
+    const runner = task.runner ?? { mode: "prepare", tool: task.tool ?? null, launched: false };
+    process.stdout.write(
+      `- ${task.taskId}: ${task.status} (step=${currentStep}, attempts=${attemptCount}, tool=${task.tool ?? "unknown"}, env=${task.taskEnvId ?? "none"})\n`,
+    );
+    process.stdout.write(
+      `  autonomy: attempts=${task.attemptCount}/${task.autonomy.maxAttempts}, verify-failures=${task.autonomy.verifyFailureCount}/${task.autonomy.maxVerifyFailures}, escalated=${task.autonomy.escalated ? "yes" : "no"}\n`,
+    );
+    if (task.autonomy.escalationReason) {
+      process.stdout.write(`  autonomy reason: ${task.autonomy.escalationReason}\n`);
+    }
+    process.stdout.write(
+      `  runner: ${runner.mode} (tool=${runner.tool ?? "none"}, launched=${runner.launched ? "yes" : "no"}, command=${runner.command ?? "none"})\n`,
+    );
+    if (runner.lastLaunchError) {
+      process.stdout.write(`  runner error: ${runner.lastLaunchError}\n`);
+    }
+    process.stdout.write(
+      `  resume: ${task.resumeStrategy.kind} (preferred=${task.resumeStrategy.preferredTool ?? "none"}, fallback=${task.resumeStrategy.fallbackTool ?? "none"})\n`,
+    );
+    process.stdout.write(`  resume reason: ${task.resumeStrategy.reason}\n`);
+    process.stdout.write(
+      `  recovery: ${task.recoveryPlan.kind} (${task.recoveryPlan.actions.length > 0 ? task.recoveryPlan.actions.join(", ") : "none"})\n`,
+    );
+    process.stdout.write(`  recovery reason: ${task.recoveryPlan.reason}\n`);
+    process.stdout.write(`  next: ${task.nextActions.length > 0 ? task.nextActions.join(", ") : "(none)"}\n`);
+    if (task.lastVerification) {
+      process.stdout.write(
+        `  verification: ${task.lastVerification.ok ? "pass" : "fail"} (readiness=${task.lastVerification.observationReadiness}, missing=${task.lastVerification.missingEvidence.length > 0 ? task.lastVerification.missingEvidence.join(", ") : "none"})\n`,
+      );
+    }
+    if (task.lastRecoveryAction) {
+      process.stdout.write(`  recovery action: ${task.lastRecoveryAction.kind} (${task.lastRecoveryAction.detail})\n`);
+    }
+    if (task.lastError) {
+      process.stdout.write(`  last error: ${task.lastError}\n`);
+    }
+    if (task.blockedReason) {
+      process.stdout.write(`  blocked: ${task.blockedReason}\n`);
+    }
+  }
+  process.stdout.write(`Task envs: ${result.taskEnvs.length}\n`);
+  for (const env of result.taskEnvs) {
+    process.stdout.write(`- ${env.id}: ${env.status} (base=${env.baseRef}, worktree=${env.worktreePath})\n`);
+  }
+  process.stdout.write(`Observations: ${result.observations.length}\n`);
+  for (const observation of result.observations) {
+    process.stdout.write(
+      `- ${observation.id}: readiness=${observation.readiness}, total=${observation.totalArtifacts}, ui=${observation.uiArtifacts}, logs=${observation.logArtifacts}, metrics=${observation.metricArtifacts}, traces=${observation.traceArtifacts}, env=${observation.envId ?? "none"}\n`,
+    );
+  }
+  process.stdout.write(`Loops: ${result.loops.length}\n`);
+  for (const loop of result.loops) {
+    process.stdout.write(
+      `- ${loop.id}: ${loop.status} (iterations=${loop.iterations}, task=${loop.taskId ?? "none"}, env=${loop.taskEnvId ?? "none"})\n`,
+    );
+  }
 };
 
 export const buildProgram = (): Command => {
@@ -90,14 +303,61 @@ export const buildProgram = (): Command => {
     .description("Add a repository to current workspace")
     .option("--url <url>", "Repository git URL")
     .option("--branch <branch>", "Repository branch")
-    .action(async (options: { url?: string; branch?: string }) => {
+    .option("--no-analyze", "Skip automatic analysis after registration")
+    .action(async (options: { url?: string; branch?: string; analyze?: boolean }) => {
       const result = await runAddRepo({
         cwd: process.cwd(),
         url: options.url,
         branch: options.branch,
+        analyze: options.analyze,
       });
 
       process.stdout.write(`Added repository: ${result.addedRepoName}\n`);
+    });
+
+  program
+    .command("start [task...]")
+    .description("Start a task using the primary workflow entrypoint")
+    .option("--json", "Output task session as JSON", false)
+    .action(async (task: string[] | undefined, options?: { json?: boolean }) => {
+      const result = await runStartCommand({
+        cwd: process.cwd(),
+        task: task?.join(" ") ?? "",
+      });
+      if (options?.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      printTaskSessionResult("Start", result);
+    });
+
+  program
+    .command("resume <taskId>")
+    .description("Resume a prepared or in-progress task session")
+    .option("--json", "Output task session as JSON", false)
+    .action(async (taskId: string, options?: { json?: boolean }) => {
+      const result = await runResumeCommand({
+        cwd: process.cwd(),
+        taskId,
+      });
+      if (options?.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      printTaskSessionResult("Resume", result);
+    });
+
+  program
+    .command("status")
+    .description("Show the current analyze and task session status")
+    .option("--json", "Output status as JSON", false)
+    .action(async (options?: { json?: boolean }) => {
+      const result = await runStatusCommand({ cwd: process.cwd() });
+      if (options?.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      printStatusResult(result);
     });
 
   program
@@ -108,6 +368,7 @@ export const buildProgram = (): Command => {
     .option("--governance-only", "Skip repo directory checks", false)
     .option("--workspace", "Include workspace checks", false)
     .option("--self", "Validate bbg's own governance content integrity", false)
+    .option("--tool-matrix", "Include supported tool adapter status", false)
     .action(
       async (options: {
         json?: boolean;
@@ -115,6 +376,7 @@ export const buildProgram = (): Command => {
         governanceOnly?: boolean;
         workspace?: boolean;
         self?: boolean;
+        toolMatrix?: boolean;
       }) => {
         const report = await runDoctor({
           cwd: process.cwd(),
@@ -123,6 +385,7 @@ export const buildProgram = (): Command => {
           governanceOnly: options.governanceOnly ?? false,
           workspace: options.workspace ?? false,
           self: options.self ?? false,
+          toolMatrix: options.toolMatrix ?? false,
         });
 
         if (options.json) {
@@ -136,6 +399,12 @@ export const buildProgram = (): Command => {
             process.stdout.write(`Fixes applied (${report.fixesApplied.length}):\n`);
             for (const fixedPath of report.fixesApplied) {
               process.stdout.write(`- ${fixedPath}\n`);
+            }
+          }
+          if (report.toolMatrix) {
+            process.stdout.write(`Tool adapters (${report.toolMatrix.length}):\n`);
+            for (const entry of report.toolMatrix) {
+              process.stdout.write(`- ${entry.label}: ${entry.status}\n`);
             }
           }
         }
@@ -215,6 +484,262 @@ export const buildProgram = (): Command => {
     });
 
   program
+    .command("repair-adapters")
+    .description("Repair generated AI tool adapter files")
+    .action(async () => {
+      const result = await runRepairAdapters({ cwd: process.cwd() });
+
+      process.stdout.write(`Repaired: ${result.repaired.length}\n`);
+      process.stdout.write(`Created: ${result.created.length}\n`);
+    });
+
+  const taskEnvCommand = program.command("task-env").description("Manage git worktree task environments");
+
+  taskEnvCommand
+    .command("start [task...]")
+    .description("Create a task-scoped worktree with artifact directories")
+    .option("--base <ref>", "Base git ref for the worktree")
+    .action(async (task: string[] | undefined, options: { base?: string }) => {
+      const result = await runTaskEnvCommand({
+        cwd: process.cwd(),
+        mode: "start",
+        task: task?.join(" "),
+        baseRef: options.base,
+      });
+      printTaskEnvResult(result);
+    });
+
+  taskEnvCommand
+    .command("attach <id>")
+    .description("Load an existing task environment without creating a new worktree")
+    .action(async (id: string) => {
+      const result = await runTaskEnvCommand({ cwd: process.cwd(), mode: "attach", id });
+      printTaskEnvResult(result);
+    });
+
+  taskEnvCommand
+    .command("repair <id>")
+    .description("Repair a stale task environment worktree")
+    .action(async (id: string) => {
+      const result = await runTaskEnvCommand({ cwd: process.cwd(), mode: "repair", id });
+      printTaskEnvResult(result);
+    });
+
+  taskEnvCommand
+    .command("finish <id>")
+    .description("Remove a task environment worktree and mark it finished")
+    .action(async (id: string) => {
+      const result = await runTaskEnvCommand({ cwd: process.cwd(), mode: "finish", id });
+      printTaskEnvResult(result);
+    });
+
+  taskEnvCommand
+    .command("status")
+    .description("List known task environments")
+    .action(async () => {
+      const result = await runTaskEnvCommand({ cwd: process.cwd(), mode: "status" });
+      printTaskEnvResult(result);
+    });
+
+  program
+    .command("doc-garden")
+    .description("Scan governance and workflow docs for stale local references")
+    .option("--status", "Read the latest doc garden report instead of rescanning", false)
+    .action(async (options: { status?: boolean }) => {
+      const result = await runDocGardenCommand({ cwd: process.cwd(), mode: options.status ? "status" : "scan" });
+      printDocGardenResult(result);
+    });
+
+  const observeCommand = program.command("observe").description("Manage UI and observability artifact sessions");
+
+  observeCommand
+    .command("start [topic...]")
+    .description("Create an observation session or attach one to a task environment")
+    .option("--env <id>", "Attach to an existing task environment")
+    .action(async (topic: string[] | undefined, options: { env?: string }) => {
+      const result = await runObserveCommand({
+        cwd: process.cwd(),
+        mode: "start",
+        topic: topic?.join(" "),
+        envId: options.env,
+      });
+      printObserveResult(result);
+    });
+
+  observeCommand
+    .command("report <id>")
+    .description("Summarize captured UI, log, metric, and trace artifacts")
+    .action(async (id: string) => {
+      const result = await runObserveCommand({ cwd: process.cwd(), mode: "report", id });
+      printObserveResult(result);
+    });
+
+  const workflowCommand = program.command("workflow").description("Run repo-level workflow guidance");
+
+  const hermesCommand = program.command("hermes").description("Run explicit Hermes learning guidance");
+
+  hermesCommand
+    .command("query [topic...]")
+    .description("Show local-memory-first Hermes query guidance")
+    .action(async (topic: string[] | undefined) => {
+      const result = await runHermesCommand({ cwd: process.cwd(), kind: "query", topic: topic?.join(" ") });
+      printHermesResult(result);
+    });
+
+  hermesCommand
+    .command("candidates [topic...]")
+    .description("Show Hermes candidate review guidance")
+    .action(async (topic: string[] | undefined) => {
+      const result = await runHermesCommand({ cwd: process.cwd(), kind: "candidates", topic: topic?.join(" ") });
+      printHermesResult(result);
+    });
+
+  hermesCommand
+    .command("distill [topic...]")
+    .description("Show Hermes distillation guidance")
+    .action(async (topic: string[] | undefined) => {
+      const result = await runHermesCommand({ cwd: process.cwd(), kind: "distill", topic: topic?.join(" ") });
+      printHermesResult(result);
+    });
+
+  hermesCommand
+    .command("draft-skill [topic...]")
+    .description("Show Hermes local skill drafting guidance")
+    .action(async (topic: string[] | undefined) => {
+      const result = await runHermesCommand({ cwd: process.cwd(), kind: "draft-skill", topic: topic?.join(" ") });
+      printHermesResult(result);
+    });
+
+  hermesCommand
+    .command("draft-rule [topic...]")
+    .description("Show Hermes local rule drafting guidance")
+    .action(async (topic: string[] | undefined) => {
+      const result = await runHermesCommand({ cwd: process.cwd(), kind: "draft-rule", topic: topic?.join(" ") });
+      printHermesResult(result);
+    });
+
+  hermesCommand
+    .command("verify [topic...]")
+    .description("Show Hermes verification guidance")
+    .action(async (topic: string[] | undefined) => {
+      const result = await runHermesCommand({ cwd: process.cwd(), kind: "verify", topic: topic?.join(" ") });
+      printHermesResult(result);
+    });
+
+  hermesCommand
+    .command("promote [topic...]")
+    .description("Show Hermes promotion guidance")
+    .action(async (topic: string[] | undefined) => {
+      const result = await runHermesCommand({ cwd: process.cwd(), kind: "promote", topic: topic?.join(" ") });
+      printHermesResult(result);
+    });
+
+  workflowCommand
+    .command("plan [task...]")
+    .description("Show canonical planning workflow guidance")
+    .option("--json", "Output workflow result as JSON", false)
+    .action(async (task: string[] | undefined, options?: { json?: boolean }) => {
+      const result = await runWorkflowCommand({ cwd: process.cwd(), kind: "plan", task: task?.join(" ") });
+      if (options?.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      printWorkflowResult(result);
+    });
+
+  workflowCommand
+    .command("review [task...]")
+    .description("Show canonical review workflow guidance")
+    .action(async (task: string[] | undefined) => {
+      const result = await runWorkflowCommand({ cwd: process.cwd(), kind: "review", task: task?.join(" ") });
+      printWorkflowResult(result);
+    });
+
+  workflowCommand
+    .command("tdd [task...]")
+    .description("Show canonical TDD workflow guidance")
+    .action(async (task: string[] | undefined) => {
+      const result = await runWorkflowCommand({ cwd: process.cwd(), kind: "tdd", task: task?.join(" ") });
+      printWorkflowResult(result);
+    });
+
+  workflowCommand
+    .command("security [task...]")
+    .description("Show canonical security workflow guidance")
+    .action(async (task: string[] | undefined) => {
+      const result = await runWorkflowCommand({ cwd: process.cwd(), kind: "security", task: task?.join(" ") });
+      printWorkflowResult(result);
+    });
+
+  program
+    .command("loop-start")
+    .description("Run a runtime-backed autonomous verification loop")
+    .option("--id <name>", "Loop identifier")
+    .option("--task-id <taskId>", "Bind the loop to a task session")
+    .option("--env-id <envId>", "Bind the loop to a task environment")
+    .option("--checks <names>", "Comma-separated checks: build,tests,typecheck,lint")
+    .option("--max-iterations <count>", "Maximum loop iterations")
+    .option("--poll-ms <count>", "Workspace change poll interval in milliseconds")
+    .option("--idle-ms <count>", "How long to wait for changes before pausing")
+    .action(async (options: {
+      id?: string;
+      taskId?: string;
+      envId?: string;
+      checks?: string;
+      maxIterations?: string;
+      pollMs?: string;
+      idleMs?: string;
+    }) => {
+      const checks = options.checks
+        ?.split(",")
+        .map((value) => value.trim())
+        .filter((value): value is "build" | "tests" | "typecheck" | "lint" =>
+          value === "build" || value === "tests" || value === "typecheck" || value === "lint",
+        );
+      const result = await runLoopStartCommand({
+        cwd: process.cwd(),
+        id: options.id,
+        taskId: options.taskId,
+        envId: options.envId,
+        checks,
+        maxIterations: options.maxIterations ? Number.parseInt(options.maxIterations, 10) : undefined,
+        pollIntervalMs: options.pollMs ? Number.parseInt(options.pollMs, 10) : undefined,
+        idleTimeoutMs: options.idleMs ? Number.parseInt(options.idleMs, 10) : undefined,
+      });
+      process.stdout.write(`Loop: ${result.id}\n`);
+      if (result.taskId) {
+        process.stdout.write(`Task: ${result.taskId}\n`);
+      }
+      if (result.taskEnvId) {
+        process.stdout.write(`Task environment: ${result.taskEnvId}\n`);
+      }
+      process.stdout.write(`Status: ${result.status}\n`);
+      process.stdout.write(`Iterations: ${result.iterations.length}\n`);
+    });
+
+  program
+    .command("loop-status")
+    .description("Show the latest runtime-backed loop status")
+    .option("--id <name>", "Loop identifier")
+    .action(async (options: { id?: string }) => {
+      const result = await runLoopStatusCommand({ cwd: process.cwd(), id: options.id });
+      process.stdout.write(`Loop: ${result.id}\n`);
+      if (result.taskId) {
+        process.stdout.write(`Task: ${result.taskId}\n`);
+      }
+      if (result.taskEnvId) {
+        process.stdout.write(`Task environment: ${result.taskEnvId}\n`);
+      }
+      process.stdout.write(`Status: ${result.status}\n`);
+      process.stdout.write(`Iterations: ${result.iterations.length}\n`);
+      const latest = result.iterations.at(-1);
+      if (latest) {
+        process.stdout.write(`Latest iteration: ${latest.iteration}\n`);
+        process.stdout.write(`Latest changes: ${latest.changedFiles.length}\n`);
+      }
+    });
+
+  program
     .command("quality-gate")
     .description("Run runtime-backed quality checks")
     .action(async () => {
@@ -261,6 +786,20 @@ export const buildProgram = (): Command => {
       process.stdout.write(`Verify: ${result.ok ? "PASS" : "FAIL"}\n`);
       process.stdout.write(`Checkpoint: ${result.checkpointName}\n`);
       process.stdout.write(`Changed files: ${result.changedFiles.length}\n`);
+      if (result.taskVerification) {
+        process.stdout.write(`Task: ${result.taskVerification.taskId}\n`);
+        process.stdout.write(`Task verification: ${result.taskVerification.ok ? "PASS" : "FAIL"}\n`);
+        process.stdout.write(`Task status: ${result.taskVerification.status}\n`);
+        process.stdout.write(`Task step: ${result.taskVerification.currentStep ?? "none"}\n`);
+        process.stdout.write(`Observation readiness: ${result.taskVerification.observationReadiness}\n`);
+        process.stdout.write(`Observations: ${result.taskVerification.observations.length}\n`);
+        if (result.taskVerification.reasons.length > 0) {
+          process.stdout.write(`Task verification reasons: ${result.taskVerification.reasons.join(", ")}\n`);
+        }
+        if (result.taskVerification.missingEvidence.length > 0) {
+          process.stdout.write(`Missing evidence: ${result.taskVerification.missingEvidence.join(", ")}\n`);
+        }
+      }
 
       if (!result.ok) {
         process.exitCode = 1;
@@ -293,6 +832,14 @@ export const buildProgram = (): Command => {
 
       process.stdout.write(`Dataset: ${result.datasetFile}\n`);
       process.stdout.write(`Experiment: ${result.experimentFile}\n`);
+      process.stdout.write(`Taskflow dataset: ${result.taskflowDatasetFile}\n`);
+      process.stdout.write(`Taskflow experiment: ${result.taskflowExperimentFile}\n`);
+      process.stdout.write(`Recovery taskflow dataset: ${result.recoveryTaskflowDatasetFile}\n`);
+      process.stdout.write(`Recovery taskflow experiment: ${result.recoveryTaskflowExperimentFile}\n`);
+      process.stdout.write(`Autonomy taskflow dataset: ${result.autonomyTaskflowDatasetFile}\n`);
+      process.stdout.write(`Autonomy taskflow experiment: ${result.autonomyTaskflowExperimentFile}\n`);
+      process.stdout.write(`Hermes strategy suite: ${result.hermesStrategySuiteFile}\n`);
+      process.stdout.write(`Suite: ${result.suiteFile}\n`);
       process.stdout.write(`Fixture: ${result.fixtureDirectory}\n`);
     });
 
@@ -322,6 +869,146 @@ export const buildProgram = (): Command => {
 
       if (result.report.failed > 0) {
         process.exitCode = 1;
+      }
+    });
+
+  evalCommand
+    .command("suite")
+    .description("Run a suite of eval experiments and print aggregate metrics")
+    .option("--file <path>", "Suite JSON path")
+    .action(async (options: { file?: string }) => {
+      const result = await runEvalCommand({
+        cwd: process.cwd(),
+        mode: "suite",
+        suite: options.file,
+      });
+      if (result.mode !== "suite") {
+        throw new Error("Unexpected eval mode response.");
+      }
+
+      process.stdout.write(`Suite: ${result.report.suiteName}\n`);
+      process.stdout.write(`Passed: ${result.report.passed}\n`);
+      process.stdout.write(`Failed: ${result.report.failed}\n`);
+      process.stdout.write(`Pass rate: ${result.report.metrics.passRate}\n`);
+      process.stdout.write(`Task completion rate: ${result.report.metrics.taskCompletionRate}\n`);
+      if (result.report.reportFile) {
+        process.stdout.write(`Report: ${result.report.reportFile}\n`);
+      }
+
+      if (result.report.failed > 0) {
+        process.exitCode = 1;
+      }
+    });
+
+  evalCommand
+    .command("compare")
+    .description("Compare two eval reports and print metric deltas")
+    .option("--base <path>", "Base report JSON path")
+    .option("--head <path>", "Head report JSON path")
+    .action(async (options: { base?: string; head?: string }) => {
+      const result = await runEvalCommand({
+        cwd: process.cwd(),
+        mode: "compare",
+        base: options.base,
+        head: options.head,
+      });
+      if (result.mode !== "compare") {
+        throw new Error("Unexpected eval mode response.");
+      }
+
+      process.stdout.write(`Base: ${result.comparison.baseName}\n`);
+      process.stdout.write(`Head: ${result.comparison.headName}\n`);
+      for (const [key, value] of Object.entries(result.comparison.metricDiffs)) {
+        process.stdout.write(`- ${key}: ${value}\n`);
+      }
+      process.stdout.write(
+        `Regressions: ${result.comparison.regressions.length > 0 ? result.comparison.regressions.join("; ") : "none"}\n`,
+      );
+
+      if (result.comparison.regressions.length > 0) {
+        process.exitCode = 1;
+      }
+    });
+
+  evalCommand
+    .command("history")
+    .description("Show recent eval history and metric trends")
+    .option("--limit <count>", "Number of recent history entries to print", "5")
+    .action(async (options: { limit?: string }) => {
+      const result = await runEvalCommand({
+        cwd: process.cwd(),
+        mode: "history",
+        limit: options.limit ? Number.parseInt(options.limit, 10) : 5,
+      });
+      if (result.mode !== "history") {
+        throw new Error("Unexpected eval mode response.");
+      }
+
+      process.stdout.write(`History entries: ${result.history.totalEntries}\n`);
+      if (result.history.latest) {
+        process.stdout.write(`Latest: ${result.history.latest.name} (${result.history.latest.kind})\n`);
+      }
+      if (result.history.previous) {
+        process.stdout.write(`Previous: ${result.history.previous.name} (${result.history.previous.kind})\n`);
+      }
+      const trendKeys = Object.keys(result.history.trend.metricDiffs);
+      if (trendKeys.length > 0) {
+        process.stdout.write("Trend:\n");
+        for (const key of trendKeys) {
+          process.stdout.write(`- ${key}: ${result.history.trend.metricDiffs[key]}\n`);
+        }
+      }
+      if (result.history.trend.regressions.length > 0) {
+        process.stdout.write("Regressions:\n");
+        for (const regression of result.history.trend.regressions) {
+          process.stdout.write(`- ${regression}\n`);
+        }
+      }
+      if (result.history.trend.improvements.length > 0) {
+        process.stdout.write("Improvements:\n");
+        for (const improvement of result.history.trend.improvements) {
+          process.stdout.write(`- ${improvement}\n`);
+        }
+      }
+    });
+
+  evalCommand
+    .command("benchmark")
+    .description("Summarize eval history into a benchmark report")
+    .option("--limit <count>", "Number of recent history entries to summarize", "10")
+    .option("--file <path>", "Optional output path for the benchmark JSON report")
+    .action(async (options: { limit?: string; file?: string }) => {
+      const result = await runEvalCommand({
+        cwd: process.cwd(),
+        mode: "benchmark",
+        limit: options.limit ? Number.parseInt(options.limit, 10) : 10,
+        reportFile: options.file,
+      });
+      if (result.mode !== "benchmark") {
+        throw new Error("Unexpected eval mode response.");
+      }
+
+      process.stdout.write(`Benchmark latest: ${result.report.latest ?? "none"}\n`);
+      process.stdout.write(`Benchmark previous: ${result.report.previous ?? "none"}\n`);
+      process.stdout.write(`History window: ${result.report.entries.length}/${result.report.totalEntries}\n`);
+      for (const [key, value] of Object.entries(result.report.metrics)) {
+        process.stdout.write(`- ${key}: latest=${value.latest} avg=${value.average} best=${value.best} worst=${value.worst}\n`);
+      }
+      process.stdout.write("Recovery plan coverage:\n");
+      process.stdout.write(`- collect-evidence: ${result.report.recoveryPlanCoverage.collectEvidenceRate ?? "n/a"}\n`);
+      process.stdout.write(`- retry-implement: ${result.report.recoveryPlanCoverage.retryImplementRate ?? "n/a"}\n`);
+      process.stdout.write(`- manual-review: ${result.report.recoveryPlanCoverage.manualReviewRate ?? "n/a"}\n`);
+      process.stdout.write(`- auto-recovery-action: ${result.report.recoveryPlanCoverage.autoRecoveryActionRate ?? "n/a"}\n`);
+      process.stdout.write(`- autonomy-guardrail: ${result.report.recoveryPlanCoverage.autonomyGuardrailRate ?? "n/a"}\n`);
+      process.stdout.write(`- budget-escalation: ${result.report.recoveryPlanCoverage.budgetEscalationRate ?? "n/a"}\n`);
+      process.stdout.write(`- manual-handoff: ${result.report.recoveryPlanCoverage.manualHandoffRate ?? "n/a"}\n`);
+      if (result.report.hermesStrategyComparison.control && result.report.hermesStrategyComparison.treatment) {
+        process.stdout.write("Hermes strategy comparison:\n");
+        process.stdout.write(`- control: ${result.report.hermesStrategyComparison.control}\n`);
+        process.stdout.write(`- treatment: ${result.report.hermesStrategyComparison.treatment}\n`);
+        for (const [key, value] of Object.entries(result.report.hermesStrategyComparison.metricDiffs)) {
+          process.stdout.write(`  - ${key}: ${value}\n`);
+        }
       }
     });
 
@@ -408,9 +1095,23 @@ export const buildProgram = (): Command => {
     .command("analyze")
     .description("Analyze all or selected repositories")
     .option("--repos <names>", "Comma-separated repos or all")
-    .action(async (options: { repos?: string }) => {
+    .option("--repo <name>", "Single repo to analyze")
+    .option("--refresh", "Force a full refresh of analysis artifacts", false)
+    .option("--json", "Output analyze result as JSON", false)
+    .action(async (options: { repos?: string; repo?: string; refresh?: boolean; json?: boolean }) => {
       const repos = options.repos?.split(",").map((value) => value.trim());
-      const result = await runAnalyzeCommand({ cwd: process.cwd(), repos });
+      const result = await runAnalyzeCommand({
+        cwd: process.cwd(),
+        repos: options.repo ? [options.repo] : repos,
+        refresh: options.refresh,
+      });
+      if (options.json) {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        return;
+      }
+      process.stdout.write(`Run: ${result.runId}\n`);
+      process.stdout.write(`Status: ${result.status}\n`);
+      process.stdout.write(`Scope: ${result.scope}\n`);
       process.stdout.write(`Analyzed repos: ${result.analyzedRepos.join(", ")}\n`);
       process.stdout.write(`Technical architecture: ${result.technicalArchitecturePath}\n`);
       process.stdout.write(`Business architecture: ${result.businessArchitecturePath}\n`);

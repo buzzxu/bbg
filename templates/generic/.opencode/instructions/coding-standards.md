@@ -1,24 +1,17 @@
-# Coding Standards
+# OpenCode Adapter Notes
 
-Follow the coding rules in `rules/common/coding-style.md` and language-specific rules in `rules/<language>/`.
+<!-- BBG:BEGIN MANAGED -->
+Use the repo-level canonical governance files as the primary source of truth:
 
-## Key Principles
+- Read `AGENTS.md`
+- Read `RULES.md`
+- Use `rules/`, `skills/`, `.bbg/context/`, and `.bbg/policy/`
+- Hermes workflows live in `commands/hermes-*.md` and `skills/hermes-*/`
 
-- Small, focused functions (< 50 lines)
-- Descriptive naming conventions
-- Handle errors explicitly -- never silently swallow exceptions
-- Never mutate function arguments or shared state
-- Extract shared logic -- never duplicate functions
-- Use conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
+Prefer repo-level workflow commands:
 
-## Before Making Changes
-
-1. Read the relevant agent in `agents/` for your task type
-2. Follow the skill workflow in `skills/` for structured guidance
-3. Check `rules/` for language-specific coding standards
-
-## References
-
-- Rules: `rules/`
-- Agents: `agents/`
-- Skills: `skills/`
+- `bbg workflow plan`
+- `bbg workflow review`
+- `bbg workflow tdd`
+- `bbg workflow security`
+<!-- BBG:END MANAGED -->

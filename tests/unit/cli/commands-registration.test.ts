@@ -83,7 +83,18 @@ vi.mock("../../../src/commands/sessions.js", () => ({ runSessionsCommand: vi.fn(
 vi.mock("../../../src/commands/eval.js", () => ({ runEvalCommand: vi.fn() }));
 vi.mock("../../../src/commands/harness-audit.js", () => ({ runHarnessAuditCommand: vi.fn() }));
 vi.mock("../../../src/commands/model-route.js", () => ({ runModelRouteCommand: vi.fn() }));
+vi.mock("../../../src/commands/repair-adapters.js", () => ({ runRepairAdapters: vi.fn() }));
+vi.mock("../../../src/commands/hermes.js", () => ({ runHermesCommand: vi.fn() }));
+vi.mock("../../../src/commands/task-env.js", () => ({ runTaskEnvCommand: vi.fn() }));
+vi.mock("../../../src/commands/doc-garden.js", () => ({ runDocGardenCommand: vi.fn() }));
+vi.mock("../../../src/commands/observe.js", () => ({ runObserveCommand: vi.fn() }));
+vi.mock("../../../src/commands/loop-start.js", () => ({ runLoopStartCommand: vi.fn() }));
+vi.mock("../../../src/commands/loop-status.js", () => ({ runLoopStatusCommand: vi.fn() }));
 vi.mock("../../../src/commands/task-start.js", () => ({ runTaskStartCommand: vi.fn() }));
+vi.mock("../../../src/commands/workflow.js", () => ({ runWorkflowCommand: vi.fn() }));
+vi.mock("../../../src/commands/start.js", () => ({ runStartCommand: vi.fn() }));
+vi.mock("../../../src/commands/resume.js", () => ({ runResumeCommand: vi.fn() }));
+vi.mock("../../../src/commands/status.js", () => ({ runStatusCommand: vi.fn() }));
 vi.mock("../../../src/commands/analyze.js", () => ({ runAnalyzeCommand: vi.fn() }));
 vi.mock("../../../src/commands/analyze-repo.js", () => ({ runAnalyzeRepoCommand: vi.fn() }));
 vi.mock("../../../src/commands/deliver.js", () => ({ runDeliverCommand: vi.fn() }));
@@ -107,10 +118,21 @@ describe("cli command registration", () => {
     expect(latestInstance?.command.mock.calls.map(([name]) => name)).toEqual([
       "init",
       "add-repo",
+      "start [task...]",
+      "resume <taskId>",
+      "status",
       "doctor",
       "sync",
       "release",
       "upgrade",
+      "repair-adapters",
+      "task-env",
+      "doc-garden",
+      "observe",
+      "workflow",
+      "hermes",
+      "loop-start",
+      "loop-status",
       "quality-gate",
       "checkpoint",
       "verify",

@@ -4,18 +4,19 @@
 [![license](https://img.shields.io/npm/l/@buzzxu/bbg-cli)](./LICENSE)
 [![CI](https://github.com/buzzxu/bbg/actions/workflows/ci.yml/badge.svg)](https://github.com/buzzxu/bbg/actions)
 
-**AI Development Workflow Governance CLI** — generates and maintains agents, skills, rules, commands, hooks, and MCP server configurations for 6 major AI coding tools.
+**AI Development Workflow Governance CLI** — generates and maintains agents, skills, rules, commands, hooks, and MCP server configurations for 5 AI coding tools.
 
 ## What is BBG?
 
 BBG (BadBoy Genesis) is a CLI tool that scaffolds structured AI development workflows for your projects. Instead of manually configuring each AI coding assistant, BBG analyzes your project and generates a complete governance setup — agent definitions, skill workflows, coding rules, slash commands, hook automation, and MCP server configs — tailored to your tech stack.
 
-BBG solves the problem of **inconsistent AI-assisted development**. When multiple developers use different AI tools (Claude Code, Cursor, Copilot, etc.) on the same project, their AI assistants behave differently unless given the same rules. BBG generates tool-specific configurations from a single source of truth, ensuring every AI assistant follows the same standards.
+BBG solves the problem of **inconsistent AI-assisted development**. When multiple developers use different AI tools (Claude Code, Codex, Cursor, Gemini, OpenCode) on the same project, their AI assistants behave differently unless given the same rules. BBG generates tool-specific configurations from a single source of truth, ensuring every AI assistant follows the same standards.
 
 ### Key Benefits
 
 - **One command, full setup** — `bbg init` analyzes your project and generates everything
-- **Multi-tool consistency** — Same governance rules across 6 AI coding tools
+- **Multi-tool consistency** — Same governance rules across 5 AI coding tools
+- **Harness + Hermes loop** — Better current-task execution plus governed long-term learning
 - **Safe upgrades** — `bbg upgrade` uses three-way merge to preserve your customizations
 - **Health monitoring** — `bbg doctor` validates your governance setup and auto-fixes issues
 - **Extensible** — Plugin system lets you add custom agents, skills, and rules
@@ -49,10 +50,9 @@ your-project/
 ├── .opencode/                         # OpenCode configuration
 ├── .cursor/rules/                     # Cursor rule files
 ├── .codex/                            # Codex CLI configuration
-├── .github/copilot-instructions.md    # GitHub Copilot instructions
-├── .kiro/                             # Kiro agents + steering
+├── .gemini/                           # Gemini settings + command prompts
 ├── agents/                            # 25 agent definitions
-├── skills/                            # 63 skill workflows
+├── skills/                            # 76 skill workflows
 ├── rules/                             # 34 rule files (8 languages)
 ├── commands/                          # 40 slash commands
 ├── hooks/                             # Hook automation
@@ -63,14 +63,14 @@ your-project/
 
 ## Features
 
-- **Multi-tool support** — Generates configurations for Claude Code, OpenCode, Cursor, Codex CLI, GitHub Copilot, and Kiro
+- **Multi-tool support** — Generates configurations for Claude Code, OpenCode, Cursor, Codex CLI, and Gemini
 - **Project analysis** — Auto-detects language, framework, build tool, test framework, and package manager
 - **Two-tier templates** — Generic files (verbatim copy) and Handlebars templates (rendered with project variables)
 - **Three-way merge upgrades** — `bbg upgrade` preserves user customizations via intelligent three-way merge
 - **Auto-changelog** — `bbg release` generates conventional-commit-based changelogs
 - **Self-checks** — `bbg doctor --self` validates governance content integrity (7 checks)
 - **Plugin architecture** _(experimental)_ — Extend with custom agents, skills, rules, and commands
-- **Comprehensive scaffold** — 25 agents, 63 skills, 34 rules, 40 commands
+- **Comprehensive scaffold** — 25 agents, 76 skills, 34 rules, 66 commands
 
 ## Supported AI Tools
 
@@ -80,8 +80,6 @@ your-project/
 | OpenCode       | `.opencode/`                      | Config, instructions, commands            |
 | Cursor         | `.cursor/rules/`                  | Rule files (standards, security, testing) |
 | Codex CLI      | `.codex/`                         | Config, AGENTS.md reference               |
-| GitHub Copilot | `.github/copilot-instructions.md` | Full project instructions                 |
-| Kiro           | `.kiro/`                          | Agents, steering files, hooks             |
 | Gemini         | `.gemini/`                        | Settings and reusable command prompts     |
 
 All tools also share `AGENTS.md` and `RULES.md` at the project root.
@@ -155,6 +153,78 @@ bbg upgrade                # Standard upgrade
 bbg upgrade --dry-run      # Preview changes
 bbg upgrade --force        # Overwrite without merging
 bbg upgrade --interactive  # Step through conflicts
+```
+
+### `bbg repair-adapters`
+
+Repair generated AI tool adapter files while preserving managed sections where possible.
+
+```bash
+bbg repair-adapters
+```
+
+### `bbg workflow`
+
+Show canonical repo workflow guidance that all supported AI tools can share.
+
+```bash
+bbg workflow plan "add adapter integrity checks"
+bbg workflow review "review pending changes"
+bbg workflow tdd "implement repo workflow command"
+bbg workflow security "audit generated adapters"
+```
+
+Workflow guidance may recommend explicit Hermes follow-up commands such as `bbg hermes query`, `bbg hermes distill`, `bbg hermes draft-skill`, or `bbg hermes draft-rule` when reusable patterns are detected. Hermes should complement the default workflow path, not replace it or run automatically for every task.
+
+### `bbg hermes`
+
+Show canonical Hermes learning guidance for local query, distillation, drafting, verification, and promotion flows.
+
+```bash
+bbg hermes query "current rollout process"
+bbg hermes candidates
+bbg hermes distill
+bbg hermes draft-skill
+bbg hermes draft-rule
+bbg hermes verify
+bbg hermes promote
+```
+
+### `bbg task-env`
+
+Create and manage task-scoped git worktrees with dedicated verification artifact directories.
+
+```bash
+bbg task-env start "fix checkout timeout"
+bbg task-env status
+bbg task-env finish fix-checkout-timeout
+```
+
+### `bbg observe`
+
+Create or summarize UI, log, metric, and trace observation sessions.
+
+```bash
+bbg observe start "checkout latency"
+bbg observe report checkout-latency
+```
+
+### `bbg doc-garden`
+
+Scan repo docs for stale or missing local references.
+
+```bash
+bbg doc-garden
+bbg doc-garden --status
+```
+
+### `bbg loop-start` / `bbg loop-status`
+
+Run and inspect runtime-backed verification loops that wait for workspace changes between check passes.
+
+```bash
+bbg loop-start --id main-loop --checks build,tests,typecheck
+bbg loop-status --id main-loop
 ```
 
 ### `bbg release`
@@ -259,7 +329,7 @@ Plugin content merges with built-in governance content during generation. Plugin
 | Language        | 6     | typescript-reviewer, python-reviewer, go-reviewer               |
 | Build Resolvers | 6     | typescript-build-resolver, go-build-resolver                    |
 
-### Skills (63)
+### Skills (76)
 
 | Category   | Count | Examples                                                     |
 | ---------- | ----- | ------------------------------------------------------------ |
@@ -280,7 +350,7 @@ Plugin content merges with built-in governance content during generation. Plugin
 | kotlin/     | 3     | coding-style, testing, security                            |
 | php/        | 3     | coding-style, testing, security                            |
 
-### Commands (40)
+### Commands (66)
 
 | Category           | Count | Examples                                         |
 | ------------------ | ----- | ------------------------------------------------ |

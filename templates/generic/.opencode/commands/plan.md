@@ -1,13 +1,16 @@
 ---
-description: Create implementation plan for features and refactoring
+description: Enter the repo-level planning workflow
 ---
 
-# /plan -- Implementation Planning
+# /plan -- Repo Workflow Entry
 
-Follow `agents/planner.md` and `skills/tdd-workflow/SKILL.md`.
+<!-- BBG:BEGIN MANAGED -->
+Run `bbg workflow plan`.
 
-1. Analyze the codebase and understand existing patterns
-2. Identify the scope of changes
-3. Break down into small, testable steps
-4. Consider edge cases, error handling, and security
-5. Create implementation plan with clear milestones
+If the CLI workflow is unavailable:
+
+1. Read `AGENTS.md`
+2. Read `RULES.md`
+3. Follow `commands/plan.md`
+4. Use `skills/tdd-workflow/SKILL.md`
+<!-- BBG:END MANAGED -->

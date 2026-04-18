@@ -1,16 +1,16 @@
 ---
-description: Scan for security vulnerabilities and compliance issues
+description: Enter the repo-level security workflow
 ---
 
-# /security -- Security Scan
+# /security -- Repo Workflow Entry
 
-Follow `agents/security-reviewer.md` and `skills/security-review/SKILL.md`.
+<!-- BBG:BEGIN MANAGED -->
+Run `bbg workflow security`.
 
-Scan for:
-1. Hardcoded secrets (API keys, passwords, tokens)
-2. Missing input validation
-3. Path traversal vulnerabilities
-4. Injection risks (SQL, command, template)
-5. Error message information leakage
-6. Dependency vulnerabilities
-7. Auth/authz issues
+If the CLI workflow is unavailable:
+
+1. Read `AGENTS.md`
+2. Read `RULES.md`
+3. Follow `commands/security-scan.md`
+4. Use `skills/security-review/SKILL.md`
+<!-- BBG:END MANAGED -->

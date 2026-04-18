@@ -1,5 +1,6 @@
 import { basename, join } from "node:path";
 import { parseConfig } from "../config/read-write.js";
+import { slugifyValue } from "../utils/slug.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 
 export interface RunTaskStartCommandInput {
@@ -23,16 +24,6 @@ interface TaskIndexEntry {
   slug: string;
   specPath: string;
   createdAt: string;
-}
-
-function slugify(value: string): string {
-  return (
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 80) || "task"
-  );
 }
 
 function datedPath(prefix: string, slug: string, suffix = ""): string {
@@ -63,7 +54,7 @@ export async function runTaskStartCommand(input: RunTaskStartCommandInput): Prom
     throw new Error("task-start requires requirement text or --file.");
   }
 
-  const slug = slugify(requirementRaw.split(/\r?\n/)[0] ?? "task");
+  const slug = slugifyValue(requirementRaw.split(/\r?\n/)[0] ?? "task");
   const now = new Date().toISOString();
   const taskId = `TASK-${now.slice(0, 10).replaceAll("-", "")}-${now.slice(11, 19).replaceAll(":", "")}`;
   const specPath = datedPath("docs/specs", slug, ".md");

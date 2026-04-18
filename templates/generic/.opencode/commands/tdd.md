@@ -1,12 +1,16 @@
 ---
-description: Implement features using RED-GREEN-IMPROVE TDD workflow
+description: Enter the repo-level TDD workflow
 ---
 
-# /tdd -- Test-Driven Development
+# /tdd -- Repo Workflow Entry
 
-Follow `agents/tdd-guide.md` and `skills/tdd-workflow/SKILL.md`.
+<!-- BBG:BEGIN MANAGED -->
+Run `bbg workflow tdd`.
 
-1. **RED**: Write a failing test for desired behavior
-2. **GREEN**: Write minimum code to make it pass
-3. **IMPROVE**: Refactor while keeping tests green
-4. Run tests after each step to verify
+If the CLI workflow is unavailable:
+
+1. Read `AGENTS.md`
+2. Read `RULES.md`
+3. Follow `commands/tdd.md`
+4. Use `skills/tdd-workflow/SKILL.md`
+<!-- BBG:END MANAGED -->

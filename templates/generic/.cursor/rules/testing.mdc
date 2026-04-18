@@ -1,29 +1,17 @@
 ---
-description: Testing requirements and TDD workflow
+description: Canonical repo TDD guidance entrypoint for Cursor
 globs: "**/*.{test,spec}.{ts,tsx,js,jsx,py,go,java,rs,kt}"
 alwaysApply: false
 ---
 
-# Testing Rules
+<!-- BBG:BEGIN MANAGED -->
+# Cursor Testing Adapter
 
-Follow the testing rules in `rules/common/testing.md`.
+Use the repo-level canonical TDD workflow:
 
-## TDD Workflow
-
-1. **RED**: Write a failing test
-2. **GREEN**: Write minimum code to pass
-3. **IMPROVE**: Refactor while green
-
-## Requirements
-
-- Write tests before implementation
-- Coverage target: 80%+
-- Test edge cases and error conditions
-- Unit tests for business logic
-- Integration tests for workflows
-
-## References
-
-- Rules: `rules/common/testing.md`
-- Agent: `agents/tdd-guide.md`
-- Skill: `skills/tdd-workflow/SKILL.md`
+- Read `AGENTS.md`
+- Read `RULES.md`
+- Follow `commands/tdd.md`
+- Use `skills/tdd-workflow/SKILL.md`
+- Prefer `bbg workflow tdd`
+<!-- BBG:END MANAGED -->

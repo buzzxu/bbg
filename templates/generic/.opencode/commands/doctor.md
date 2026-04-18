@@ -1,14 +1,15 @@
 ---
-description: Run project health check and governance template verification
+description: Audit repo governance and adapter health
 ---
 
-# /doctor -- Health Check
+# /doctor -- Canonical Doctor Entry
 
-Run project health checks to verify governance template integrity.
+<!-- BBG:BEGIN MANAGED -->
+Prefer the repo CLI for governance checks:
 
-1. Verify all required governance directories exist (agents/, skills/, rules/, commands/, hooks/, contexts/)
-2. Check that key configuration files are present
-3. Verify build passes
-4. Verify tests pass
-5. Check for security issues
-6. Report any missing or misconfigured files
+- Read `AGENTS.md`
+- Read `RULES.md`
+- `bbg doctor`
+- `bbg doctor --tool-matrix`
+- `bbg repair-adapters`
+<!-- BBG:END MANAGED -->

@@ -26,6 +26,11 @@ describe("runtime schema", () => {
         repoMapFile: ".bbg/context/repo-map.json",
         sessionHistoryFile: ".bbg/sessions/history.json",
       },
+      autonomy: {
+        maxAttempts: 5,
+        maxVerifyFailures: 3,
+        maxDurationMs: 3600000,
+      },
     });
   });
 

@@ -2,6 +2,8 @@
   "instructions": [
     "AGENTS.md",
     "RULES.md",
+    ".bbg/context/repo-map.json",
+    ".bbg/policy/decisions.json",
     ".opencode/instructions/coding-standards.md",
     ".opencode/instructions/security.md"
   ],

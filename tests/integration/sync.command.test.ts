@@ -478,6 +478,11 @@ describe("sync command", () => {
           repoMapFile: ".bbg/context/repo-map.json",
           sessionHistoryFile: ".bbg/sessions/history.json",
         },
+        autonomy: {
+          maxAttempts: 5,
+          maxVerifyFailures: 3,
+          maxDurationMs: 3600000,
+        },
       },
     };
 
@@ -541,6 +546,11 @@ describe("sync command", () => {
           enabled: true,
           repoMapFile: ".bbg/runtime/custom-repo-map.json",
           sessionHistoryFile: ".bbg/sessions/history.json",
+        },
+        autonomy: {
+          maxAttempts: 5,
+          maxVerifyFailures: 3,
+          maxDurationMs: 3600000,
         },
       },
     };

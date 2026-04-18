@@ -162,6 +162,9 @@ describe("init command", () => {
     expect(result.createdFiles).toContain(join(cwd, "AGENTS.md"));
     expect(result.createdFiles).toContain(join(cwd, "README.md"));
     expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "code-review-policy.md"));
+    expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "task-environment-playbook.md"));
+    expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "observability-playbook.md"));
+    expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "doc-gardening-playbook.md"));
     expect(result.createdFiles).toContain(join(cwd, "docs", "architecture", "order-lifecycle.md"));
     expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "development-standards.md"));
     expect(result.createdFiles).toContain(join(cwd, "scripts", "doctor.py"));
@@ -170,6 +173,24 @@ describe("init command", () => {
     expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "plan.md"));
     expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "code-review.md"));
     expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "tdd.md"));
+    expect(result.createdFiles).not.toContain(join(cwd, ".kiro", "steering", "coding-style.md"));
+    expect(result.createdFiles).not.toContain(join(cwd, ".github", "copilot-instructions.md"));
+
+    const claudeAdapter = await readFile(join(cwd, "CLAUDE.md"), "utf8");
+    expect(claudeAdapter).toContain("<!-- BBG:BEGIN MANAGED -->");
+    expect(claudeAdapter).toContain("bbg analyze");
+    expect(claudeAdapter).toContain('bbg start "<task>"');
+
+    const geminiSettings = await readFile(join(cwd, ".gemini", "settings.json"), "utf8");
+    expect(geminiSettings).toContain(".bbg/context/repo-map.json");
+    expect(geminiSettings).toContain(".bbg/policy/decisions.json");
+
+    const harnessPlaybook = await readFile(join(cwd, "docs", "workflows", "harness-engineering-playbook.md"), "utf8");
+    expect(harnessPlaybook).toContain("BBG uses a two-layer model");
+    expect(harnessPlaybook).toContain("`harness` manages execution quality");
+    expect(harnessPlaybook).toContain("`Hermes` manages learning quality");
+    expect(harnessPlaybook).toContain("`bbg workflow plan`");
+    expect(harnessPlaybook).toContain("`bbg hermes query`");
 
     const configText = await readFile(join(cwd, ".bbg", "config.json"), "utf8");
     const config = JSON.parse(configText) as {
@@ -190,6 +211,11 @@ describe("init command", () => {
           enabled: boolean;
           repoMapFile: string;
           sessionHistoryFile: string;
+        };
+        autonomy: {
+          maxAttempts: number;
+          maxVerifyFailures: number;
+          maxDurationMs: number;
         };
       };
     };
@@ -218,6 +244,11 @@ describe("init command", () => {
         enabled: true,
         repoMapFile: ".bbg/context/repo-map.json",
         sessionHistoryFile: ".bbg/sessions/history.json",
+      },
+      autonomy: {
+        maxAttempts: 5,
+        maxVerifyFailures: 3,
+        maxDurationMs: 3600000,
       },
     });
 
@@ -296,6 +327,9 @@ describe("init command", () => {
         join(cwd, "docs", "workflows", "code-review-policy.md"),
         join(cwd, "docs", "workflows", "cross-audit-policy.md"),
         join(cwd, "docs", "workflows", "harness-engineering-playbook.md"),
+        join(cwd, "docs", "workflows", "task-environment-playbook.md"),
+        join(cwd, "docs", "workflows", "observability-playbook.md"),
+        join(cwd, "docs", "workflows", "doc-gardening-playbook.md"),
         join(cwd, "docs", "workflows", "ai-task-prompt-template.md"),
         join(cwd, "docs", "workflows", "requirement-template.md"),
         join(cwd, "docs", "workflows", "regression-checklist.md"),

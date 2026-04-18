@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, symlink, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -316,5 +316,313 @@ describe("verify command", () => {
 
     expect(result.ok).toBe(true);
     expect(result.changedFiles).toEqual([]);
+  });
+
+  it("includes task-level observation readiness when an active task session exists", async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+    await runCheckpointCommand({ cwd, name: "baseline" });
+
+    await mkdir(join(cwd, ".bbg", "tasks", "fix-checkout-timeout"), { recursive: true });
+    await writeTextFile(
+      join(cwd, ".bbg", "tasks", "fix-checkout-timeout", "session.json"),
+      `${JSON.stringify({
+        version: 1,
+        taskId: "fix-checkout-timeout",
+        task: "Fix checkout timeout",
+        status: "ready",
+        entrypoint: "start",
+        tool: "claude",
+        startedAt: "2026-04-18T00:00:00.000Z",
+        updatedAt: "2026-04-18T00:00:00.000Z",
+        workflowKind: "plan",
+        currentStep: "implement",
+        attemptCount: 1,
+        taskEnvId: "fix-checkout-timeout",
+        observeSessionIds: ["fix-checkout-timeout"],
+        loopId: null,
+        nextActions: ["implement", "verify"],
+        lastError: null,
+        lastErrorAt: null,
+        blockedReason: null,
+        runner: {
+          mode: "current",
+          tool: "claude",
+          launched: true,
+          command: null,
+          args: [],
+          launchedAt: "2026-04-18T00:00:00.000Z",
+          lastAttemptAt: "2026-04-18T00:00:00.000Z",
+          lastLaunchError: null,
+        },
+        lastVerification: null,
+        lastRecoveryAction: null,
+        autonomy: {
+          maxAttempts: 5,
+          maxVerifyFailures: 3,
+          maxDurationMs: 86400000,
+          verifyFailureCount: 0,
+          escalated: false,
+          escalationReason: null,
+          escalatedAt: null,
+        },
+      }, null, 2)}\n`,
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "tasks", "fix-checkout-timeout", "decisions.json"),
+      `${JSON.stringify({
+        taskEnv: { decision: "required", reasons: ["debug-or-stabilization-task"] },
+        observe: { decision: "required", reasons: ["runtime-evidence-useful"] },
+        tdd: { decision: "required", reasons: ["testing-or-regression-signal"] },
+        security: { decision: "not-required", reasons: [] },
+        loop: { decision: "optional", reasons: ["runtime-checks-may-repeat"] },
+        hermesQuery: { decision: "recommended", reasons: ["plan-benefits-from-local-history"] },
+      }, null, 2)}\n`,
+    );
+
+    await mkdir(join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "artifacts", "ui"), { recursive: true });
+    await mkdir(join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "artifacts", "logs"), { recursive: true });
+    await mkdir(join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "observations", "fix-checkout-timeout"), {
+      recursive: true,
+    });
+    await writeTextFile(
+      join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "observations", "fix-checkout-timeout", "manifest.json"),
+      `${JSON.stringify({
+        version: 1,
+        id: "fix-checkout-timeout",
+        topic: "Fix checkout timeout",
+        createdAt: "2026-04-18T00:00:00.000Z",
+        updatedAt: "2026-04-18T00:00:00.000Z",
+        envId: "fix-checkout-timeout",
+        rootPath: ".bbg/task-envs/fix-checkout-timeout/artifacts",
+        uiArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/ui",
+        logArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/logs",
+        metricArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/metrics",
+        traceArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/traces",
+        notesPath: ".bbg/task-envs/fix-checkout-timeout/observations/fix-checkout-timeout/notes.md",
+      }, null, 2)}\n`,
+    );
+    await writeFile(join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "artifacts", "ui", "screen.png"), "");
+    await writeFile(join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "artifacts", "logs", "app.log"), "");
+
+    const result = await runVerifyCommand({ cwd, checkpoint: "baseline" });
+
+    expect(result.taskVerification).toEqual({
+      taskId: "fix-checkout-timeout",
+      status: "completed",
+      currentStep: "complete",
+      taskEnvId: "fix-checkout-timeout",
+      ok: true,
+      hermesQueryExecuted: false,
+      reasons: [],
+      missingEvidence: [],
+      observeRequired: true,
+      observationReadiness: "ready",
+      observations: [
+        {
+          id: "fix-checkout-timeout",
+          readiness: "ready",
+          totalArtifacts: 2,
+          evidenceKinds: ["ui", "logs"],
+        },
+      ],
+    });
+
+    const updatedSession = JSON.parse(
+      await readFile(join(cwd, ".bbg", "tasks", "fix-checkout-timeout", "session.json"), "utf8"),
+    ) as {
+      status: string;
+      currentStep: string;
+      nextActions: string[];
+      lastError: string | null;
+      lastVerification: {
+        ok: boolean;
+        observationReadiness: string;
+        missingEvidence: string[];
+      } | null;
+    };
+    expect(updatedSession.status).toBe("completed");
+    expect(updatedSession.currentStep).toBe("complete");
+    expect(updatedSession.nextActions).toEqual([]);
+    expect(updatedSession.lastError).toBeNull();
+    expect(updatedSession.lastVerification).toMatchObject({
+      ok: true,
+      observationReadiness: "ready",
+      missingEvidence: [],
+    });
+    const updatedContext = JSON.parse(
+      await readFile(join(cwd, ".bbg", "tasks", "fix-checkout-timeout", "context.json"), "utf8"),
+    ) as {
+      taskState: {
+        status: string;
+        currentStep: string;
+        lastVerification: {
+          ok: boolean;
+          observationReadiness: string;
+        } | null;
+      };
+      recovery: {
+        recoveryPlan: {
+          kind: string;
+        } | null;
+      };
+    };
+    expect(updatedContext.taskState).toMatchObject({
+      status: "completed",
+      currentStep: "complete",
+      lastVerification: {
+        ok: true,
+        observationReadiness: "ready",
+      },
+    });
+    expect(updatedContext.recovery.recoveryPlan).toMatchObject({
+      kind: "none",
+    });
+    await expect(readFile(join(cwd, "docs", "wiki", "reports", "workflow-stability-summary.md"), "utf8")).resolves.toContain(
+      "Latest task: fix-checkout-timeout",
+    );
+    await expect(readFile(join(cwd, "docs", "wiki", "reports", "regression-risk-summary.md"), "utf8")).resolves.toContain(
+      "Status: completed",
+    );
+  });
+
+  it("marks task verification as incomplete when required observation evidence is missing", async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+    await runCheckpointCommand({ cwd, name: "baseline" });
+
+    await mkdir(join(cwd, ".bbg", "tasks", "fix-checkout-timeout"), { recursive: true });
+    await writeTextFile(
+      join(cwd, ".bbg", "tasks", "fix-checkout-timeout", "session.json"),
+      `${JSON.stringify({
+        version: 1,
+        taskId: "fix-checkout-timeout",
+        task: "Fix checkout timeout",
+        status: "ready",
+        entrypoint: "start",
+        tool: "claude",
+        startedAt: "2026-04-18T00:00:00.000Z",
+        updatedAt: "2026-04-18T00:00:00.000Z",
+        workflowKind: "plan",
+        currentStep: "verify",
+        attemptCount: 1,
+        taskEnvId: "fix-checkout-timeout",
+        observeSessionIds: [],
+        loopId: null,
+        nextActions: ["verify"],
+        lastError: null,
+        lastErrorAt: null,
+        blockedReason: null,
+        runner: {
+          mode: "current",
+          tool: "claude",
+          launched: true,
+          command: null,
+          args: [],
+          launchedAt: "2026-04-18T00:00:00.000Z",
+          lastAttemptAt: "2026-04-18T00:00:00.000Z",
+          lastLaunchError: null,
+        },
+        lastVerification: null,
+        lastRecoveryAction: null,
+        autonomy: {
+          maxAttempts: 5,
+          maxVerifyFailures: 3,
+          maxDurationMs: 86400000,
+          verifyFailureCount: 0,
+          escalated: false,
+          escalationReason: null,
+          escalatedAt: null,
+        },
+      }, null, 2)}\n`,
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "tasks", "fix-checkout-timeout", "decisions.json"),
+      `${JSON.stringify({
+        taskEnv: { decision: "required", reasons: ["debug-or-stabilization-task"] },
+        observe: { decision: "required", reasons: ["runtime-evidence-useful"] },
+        tdd: { decision: "required", reasons: ["testing-or-regression-signal"] },
+        security: { decision: "not-required", reasons: [] },
+        loop: { decision: "optional", reasons: ["runtime-checks-may-repeat"] },
+        hermesQuery: { decision: "recommended", reasons: ["plan-benefits-from-local-history"] },
+      }, null, 2)}\n`,
+    );
+
+    const result = await runVerifyCommand({ cwd, checkpoint: "baseline" });
+
+    expect(result.taskVerification).toEqual({
+      taskId: "fix-checkout-timeout",
+      status: "retrying",
+      currentStep: "verify",
+      taskEnvId: "fix-checkout-timeout",
+      ok: false,
+      hermesQueryExecuted: false,
+      reasons: ["observation-empty"],
+      missingEvidence: ["observation-evidence"],
+      observeRequired: true,
+      observationReadiness: "empty",
+      observations: [],
+    });
+
+    const updatedSession = JSON.parse(
+      await readFile(join(cwd, ".bbg", "tasks", "fix-checkout-timeout", "session.json"), "utf8"),
+    ) as {
+      status: string;
+      currentStep: string;
+      lastError: string | null;
+      nextActions: string[];
+      lastVerification: {
+        ok: boolean;
+        observationReadiness: string;
+        missingEvidence: string[];
+      } | null;
+    };
+    expect(updatedSession.status).toBe("retrying");
+    expect(updatedSession.currentStep).toBe("verify");
+    expect(updatedSession.lastError).toContain("observation-empty");
+    expect(updatedSession.nextActions).toEqual(["collect-evidence", "verify"]);
+    expect(updatedSession.lastVerification).toMatchObject({
+      ok: false,
+      observationReadiness: "empty",
+      missingEvidence: ["observation-evidence"],
+    });
+    const updatedContext = JSON.parse(
+      await readFile(join(cwd, ".bbg", "tasks", "fix-checkout-timeout", "context.json"), "utf8"),
+    ) as {
+      taskState: {
+        status: string;
+        currentStep: string;
+        lastVerification: {
+          ok: boolean;
+          observationReadiness: string;
+          missingEvidence: string[];
+        } | null;
+      };
+      recovery: {
+        recoveryPlan: {
+          kind: string;
+          actions: string[];
+        } | null;
+      };
+    };
+    expect(updatedContext.taskState).toMatchObject({
+      status: "retrying",
+      currentStep: "verify",
+      lastVerification: {
+        ok: false,
+        observationReadiness: "empty",
+        missingEvidence: ["observation-evidence"],
+      },
+    });
+    expect(updatedContext.recovery.recoveryPlan).toMatchObject({
+      kind: "collect-evidence",
+      actions: ["collect-evidence", "verify"],
+    });
+    await expect(readFile(join(cwd, "docs", "wiki", "reports", "workflow-stability-summary.md"), "utf8")).resolves.toContain(
+      "Observation readiness: empty",
+    );
+    await expect(readFile(join(cwd, "docs", "wiki", "reports", "regression-risk-summary.md"), "utf8")).resolves.toContain(
+      "Recovery plan: retry-implement",
+    );
   });
 });

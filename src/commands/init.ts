@@ -28,7 +28,7 @@ import { ensureRootGitignore } from "./init-gitignore.js";
 /*  Re-exports for backward compatibility (upgrade.ts, tests, etc.)   */
 /* ------------------------------------------------------------------ */
 
-export { getRootTemplateManifest, getToolConfigTemplates, buildTemplatePlan } from "./init-manifest.js";
+export { getAdapterTemplates, getRootTemplateManifest, getToolConfigTemplates, buildTemplatePlan } from "./init-manifest.js";
 export type { InitCollectionResult } from "./init-prompts.js";
 export { collectInitConfig } from "./init-prompts.js";
 export { buildRepoIgnoreEntries, ensureRootGitignore } from "./init-gitignore.js";

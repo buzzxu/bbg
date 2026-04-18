@@ -1,14 +1,14 @@
 ---
-description: Fix build and compilation errors systematically
+description: Use canonical repo guidance for build fixes
 ---
 
-# /build-fix -- Build Error Resolution
+# /build-fix -- Canonical Build Fix Entry
 
-Follow `agents/build-error-resolver.md` and `skills/verification-loop/SKILL.md`.
+<!-- BBG:BEGIN MANAGED -->
+Read the repo-level canonical guidance before acting:
 
-1. Run the build and capture error output
-2. Analyze each error to identify root causes
-3. Fix errors one at a time (most fundamental first)
-4. Re-run build after each fix
-5. Run tests to verify no regressions
-6. Repeat until build succeeds
+1. Read `AGENTS.md`
+2. Read `RULES.md`
+3. Follow `commands/build-fix.md`
+4. Use `skills/verification-loop/SKILL.md`
+<!-- BBG:END MANAGED -->

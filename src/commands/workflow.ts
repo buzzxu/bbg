@@ -1,0 +1,92 @@
+import { join } from "node:path";
+import { exists, readTextFile } from "../utils/fs.js";
+import { buildWorkflowDecisions } from "../workflow/decisions.js";
+import type { WorkflowDecisionSet, WorkflowKind } from "../workflow/types.js";
+
+export interface RunWorkflowCommandInput {
+  cwd: string;
+  kind: WorkflowKind;
+  task?: string;
+}
+
+export interface RunWorkflowCommandResult {
+  kind: WorkflowKind;
+  task: string | null;
+  commandSpecPath: string;
+  summary: string;
+  references: string[];
+  hermesRecommendations: string[];
+  decisions: WorkflowDecisionSet;
+  nextActions: string[];
+}
+
+const WORKFLOW_SPECS: Record<
+  WorkflowKind,
+  { commandSpecPath: string; summary: string; references: string[]; hermesRecommendations: string[] }
+> = {
+  plan: {
+    commandSpecPath: "commands/plan.md",
+    summary: "Create an implementation plan from canonical repo guidance before making changes.",
+    references: ["AGENTS.md", "RULES.md", "skills/tdd-workflow/SKILL.md"],
+    hermesRecommendations: [
+      "If similar work may already exist, run `bbg hermes query` before planning from scratch.",
+    ],
+  },
+  review: {
+    commandSpecPath: "commands/code-review.md",
+    summary: "Run a structured review focused on correctness, tests, and security.",
+    references: ["AGENTS.md", "RULES.md", "skills/code-review-checklist/SKILL.md"],
+    hermesRecommendations: [
+      "If review findings reveal a reusable fix pattern, run `bbg hermes distill`.",
+      "If the pattern should become a reusable execution recipe, run `bbg hermes draft-skill`.",
+    ],
+  },
+  security: {
+    commandSpecPath: "commands/security-scan.md",
+    summary: "Follow the repo security workflow and verify sensitive surfaces before shipping.",
+    references: ["AGENTS.md", "RULES.md", "skills/security-review/SKILL.md"],
+    hermesRecommendations: [
+      "If repeated security findings imply a durable policy boundary, run `bbg hermes draft-rule`.",
+      "If the evidence needs consolidation before drafting, run `bbg hermes distill`.",
+    ],
+  },
+  tdd: {
+    commandSpecPath: "commands/tdd.md",
+    summary: "Follow RED -> GREEN -> IMPROVE using the repo test-driven workflow.",
+    references: ["AGENTS.md", "RULES.md", "skills/tdd-workflow/SKILL.md"],
+    hermesRecommendations: [
+      "If the test-and-fix loop becomes a reusable engineering pattern, run `bbg hermes draft-skill`.",
+      "If you need to inspect prior local learning before refining the loop, run `bbg hermes query`.",
+    ],
+  },
+};
+
+export async function runWorkflowCommand(input: RunWorkflowCommandInput): Promise<RunWorkflowCommandResult> {
+  const workflow = WORKFLOW_SPECS[input.kind];
+  const workspaceSpecPath = join(input.cwd, workflow.commandSpecPath);
+  if (!(await exists(workspaceSpecPath))) {
+    throw new Error(`${workflow.commandSpecPath} not found. Run \`bbg init\` first.`);
+  }
+
+  const commandSpec = await readTextFile(workspaceSpecPath);
+  const firstParagraph = commandSpec
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .find((block) => block.length > 0 && !block.startsWith("#"));
+
+  return {
+    kind: input.kind,
+    task: input.task?.trim().length ? input.task.trim() : null,
+    commandSpecPath: workflow.commandSpecPath,
+    summary: firstParagraph ?? workflow.summary,
+    references: workflow.references,
+    hermesRecommendations: workflow.hermesRecommendations,
+    decisions: buildWorkflowDecisions(input.kind, input.task),
+    nextActions: [
+      ...(input.kind === "plan" ? ["implement"] : []),
+      ...(input.kind === "review" ? ["address-findings", "verify"] : []),
+      ...(input.kind === "tdd" ? ["write-test", "implement", "refactor"] : []),
+      ...(input.kind === "security" ? ["audit-sensitive-surfaces", "verify"] : []),
+    ],
+  };
+}

@@ -1,6 +1,6 @@
 # BBG -- Agent Instructions
 
-This file provides instructions for AI coding agents (Claude Code, Codex, OpenCode, Cursor, Kiro, GitHub Copilot) when working with this repository.
+This file provides instructions for AI coding agents (Claude Code, Codex, OpenCode, Cursor, Gemini) when working with this repository.
 
 **Project:** bbg (BadBoy Genesis) -- AI Development Workflow Governance CLI  
 **Version:** 1.0.0
@@ -13,6 +13,14 @@ This file provides instructions for AI coding agents (Claude Code, Codex, OpenCo
 4. **DRY** -- Extract shared logic into `src/utils/`, never duplicate functions
 5. **Plan Before Execute** -- Understand the codebase before making changes
 6. **Verify Continuously** -- Use `skills/verification-loop/SKILL.md` after every change
+
+## Harness And Hermes
+
+- `harness` governs execution quality: adapters, rules, skills, hooks, workflow commands, context, and policy
+- `Hermes` governs learning quality: query, distill, draft, verify, and promote flows
+- Start with repo workflows such as `bbg workflow plan|review|tdd|security`
+- Use Hermes explicitly when you need prior local knowledge or when a reusable pattern should be distilled into candidate skills or rules
+- Do not treat Hermes drafts as canonical harness instructions until they have been reviewed and promoted
 
 ## Available Agents (25)
 
@@ -61,7 +69,7 @@ This file provides instructions for AI coding agents (Claude Code, Codex, OpenCo
 | rust-build-resolver       | `agents/rust-build-resolver.md`       | Rust/Cargo         |
 | cpp-build-resolver        | `agents/cpp-build-resolver.md`        | C++/CMake          |
 
-## Skills (63)
+## Skills (76)
 
 Skills are detailed workflow instructions in `skills/*/SKILL.md`. Key skills for this project:
 
@@ -76,7 +84,7 @@ Skills are detailed workflow instructions in `skills/*/SKILL.md`. Key skills for
 | Continuous Learning   | `skills/continuous-learning/SKILL.md`   | Learning from mistakes   |
 | Search First          | `skills/search-first/SKILL.md`          | Read before writing      |
 
-See `skills/` directory for all 63 skill workflows covering core patterns (21), language-specific (24), and operations (18).
+See `skills/` directory for all 76 skill workflows covering core patterns, language-specific patterns, operations, harness engineering, and Hermes governance.
 
 ## Rules (35)
 
@@ -95,7 +103,7 @@ Rules are organized by language in `rules/`:
 
 See `rules/README.md` for installation and usage guide.
 
-## Commands (40)
+## Commands (66)
 
 Slash commands are defined in `commands/*.md`:
 
