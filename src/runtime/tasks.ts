@@ -1,6 +1,8 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { runHermesCommand } from "../commands/hermes.js";
+import { runModelRouteCommand } from "../commands/model-route.js";
+import { getLanguageGuidePathsForLanguages } from "../analyze/language-docs.js";
 import { runObserveCommand } from "../commands/observe.js";
 import { runTaskEnvCommand } from "../commands/task-env.js";
 import { runWorkflowCommand } from "../commands/workflow.js";
@@ -19,6 +21,7 @@ import type {
   TaskContext,
   TaskObservationSummary,
   TaskRecoveryPlan,
+  TaskReviewResult,
   TaskRunnerState,
   TaskResumeStrategy,
   TaskSession,
@@ -28,6 +31,78 @@ import type {
 } from "./task-types.js";
 
 const TASK_STORE_VERSION = 1;
+const LANGUAGE_REVIEWERS: Record<string, string> = {
+  typescript: "typescript-reviewer",
+  javascript: "typescript-reviewer",
+  python: "python-reviewer",
+  go: "go-reviewer",
+  golang: "go-reviewer",
+  java: "java-reviewer",
+  rust: "rust-reviewer",
+  kotlin: "kotlin-reviewer",
+};
+
+const LANGUAGE_REVIEW_PACKS: Record<string, string[]> = {
+  typescript: ["type-boundaries", "runtime-validation", "module-ownership", "testing-boundaries"],
+  javascript: ["type-boundaries", "runtime-validation", "module-ownership", "testing-boundaries"],
+  python: ["service-boundaries", "typing-precision", "io-model-separation", "test-isolation"],
+  go: ["package-boundaries", "error-semantics", "context-propagation", "concurrency-safety"],
+  golang: ["package-boundaries", "error-semantics", "context-propagation", "concurrency-safety"],
+  java: ["layering", "domain-modeling", "transaction-boundaries", "exception-semantics", "test-slices"],
+  rust: ["module-boundaries", "api-design", "error-model", "async-concurrency"],
+  kotlin: ["layering", "immutability", "coroutine-boundaries", "test-slices"],
+};
+
+const LANGUAGE_STOP_CONDITIONS: Record<string, string[]> = {
+  typescript: [
+    "public-api-contract-change",
+    "shared-type-boundary-change",
+    "runtime-validation-gap",
+    "auth-or-permission-boundary-change",
+  ],
+  javascript: [
+    "public-api-contract-change",
+    "shared-type-boundary-change",
+    "runtime-validation-gap",
+    "auth-or-permission-boundary-change",
+  ],
+  python: [
+    "service-boundary-change",
+    "domain-io-model-leak",
+    "acceptance-unreachable-with-current-design",
+    "security-boundary-change",
+  ],
+  go: [
+    "package-boundary-change",
+    "interface-expansion-required",
+    "context-or-concurrency-model-change",
+    "acceptance-unreachable-with-current-design",
+  ],
+  golang: [
+    "package-boundary-change",
+    "interface-expansion-required",
+    "context-or-concurrency-model-change",
+    "acceptance-unreachable-with-current-design",
+  ],
+  java: [
+    "domain-interface-change",
+    "unknown-invariant-conflict",
+    "acceptance-unreachable-with-current-design",
+    "transaction-or-security-boundary-change",
+  ],
+  rust: [
+    "public-api-contract-change",
+    "ownership-or-error-model-conflict",
+    "async-concurrency-boundary-change",
+    "acceptance-unreachable-with-current-design",
+  ],
+  kotlin: [
+    "public-api-contract-change",
+    "coroutine-boundary-change",
+    "unknown-invariant-conflict",
+    "acceptance-unreachable-with-current-design",
+  ],
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -77,6 +152,14 @@ function isTaskSession(value: unknown): value is TaskSession {
       && typeof value.lastRecoveryAction.at === "string"
       && typeof value.lastRecoveryAction.detail === "string"
     ))
+    && (value.lastReviewResult === null || (
+      isRecord(value.lastReviewResult)
+      && typeof value.lastReviewResult.reviewer === "string"
+      && typeof value.lastReviewResult.status === "string"
+      && typeof value.lastReviewResult.recordedAt === "string"
+      && typeof value.lastReviewResult.summary === "string"
+      && Array.isArray(value.lastReviewResult.findings)
+    ))
     && isRecord(value.autonomy)
     && typeof value.autonomy.maxAttempts === "number"
     && typeof value.autonomy.maxVerifyFailures === "number"
@@ -93,6 +176,33 @@ function isTaskContext(value: unknown): value is TaskContext {
     && typeof value.taskId === "string"
     && (value.analyzeRunId === null || typeof value.analyzeRunId === "string")
     && Array.isArray(value.references)
+    && (value.modelRoute === null || (
+      isRecord(value.modelRoute)
+      && isRecord(value.modelRoute.classification)
+      && typeof value.modelRoute.classification.domain === "string"
+      && typeof value.modelRoute.classification.complexity === "string"
+      && typeof value.modelRoute.classification.context === "string"
+      && (value.modelRoute.classification.targetCommand === null || typeof value.modelRoute.classification.targetCommand === "string")
+      && Array.isArray(value.modelRoute.classification.languages)
+      && isRecord(value.modelRoute.recommendation)
+      && typeof value.modelRoute.recommendation.modelClass === "string"
+      && typeof value.modelRoute.recommendation.reason === "string"
+      && typeof value.modelRoute.recommendation.telemetryNote === "string"
+      && Array.isArray(value.modelRoute.recommendation.reviewerAgents)
+      && Array.isArray(value.modelRoute.recommendation.guideReferences)
+    ))
+    && isRecord(value.languageGuidance)
+    && Array.isArray(value.languageGuidance.languages)
+    && Array.isArray(value.languageGuidance.guideReferences)
+    && Array.isArray(value.languageGuidance.reviewerAgents)
+    && (value.languageGuidance.reviewHint === null || typeof value.languageGuidance.reviewHint === "string")
+    && isRecord(value.reviewGate)
+    && typeof value.reviewGate.level === "string"
+    && Array.isArray(value.reviewGate.reviewers)
+    && Array.isArray(value.reviewGate.guideReferences)
+    && Array.isArray(value.reviewGate.reviewPack)
+    && Array.isArray(value.reviewGate.stopConditions)
+    && typeof value.reviewGate.reason === "string"
     && typeof value.commandSpecPath === "string"
     && typeof value.summary === "string"
     && Array.isArray(value.hermesRecommendations)
@@ -144,6 +254,14 @@ function isTaskContext(value: unknown): value is TaskContext {
       && typeof value.taskState.lastRecoveryAction.kind === "string"
       && typeof value.taskState.lastRecoveryAction.at === "string"
       && typeof value.taskState.lastRecoveryAction.detail === "string"
+    ))
+    && (value.taskState.lastReviewResult === null || (
+      isRecord(value.taskState.lastReviewResult)
+      && typeof value.taskState.lastReviewResult.reviewer === "string"
+      && typeof value.taskState.lastReviewResult.status === "string"
+      && typeof value.taskState.lastReviewResult.recordedAt === "string"
+      && typeof value.taskState.lastReviewResult.summary === "string"
+      && Array.isArray(value.taskState.lastReviewResult.findings)
     ))
     && isRecord(value.taskState.autonomy)
     && typeof value.taskState.autonomy.maxAttempts === "number"
@@ -217,6 +335,10 @@ function buildTaskContext(base: Omit<TaskContext, "taskState" | "recovery">, inp
         missingEvidence: [...input.session.lastVerification.missingEvidence],
       } : null,
       lastRecoveryAction: input.session.lastRecoveryAction ? { ...input.session.lastRecoveryAction } : null,
+      lastReviewResult: input.session.lastReviewResult ? {
+        ...input.session.lastReviewResult,
+        findings: [...input.session.lastReviewResult.findings],
+      } : null,
       autonomy: {
         ...input.session.autonomy,
       },
@@ -272,6 +394,64 @@ async function writeTaskContextStore(cwd: string, taskId: string, context: TaskC
   await writeJsonStore(getContextPath(cwd, taskId), context);
 }
 
+export async function readTaskContext(cwd: string, taskId: string): Promise<TaskContext> {
+  return readJsonStore(getContextPath(cwd, taskId), {
+    version: TASK_STORE_VERSION,
+    taskId: "",
+    analyzeRunId: null,
+    references: [],
+    modelRoute: null,
+    languageGuidance: {
+      languages: [],
+      guideReferences: [],
+      reviewerAgents: [],
+      reviewHint: null,
+    },
+    reviewGate: {
+      level: "none",
+      reviewers: [],
+      guideReferences: [],
+      reviewPack: [],
+      stopConditions: [],
+      reason: "No explicit language-specific review gate configured.",
+    },
+    commandSpecPath: "",
+    summary: "",
+    hermesRecommendations: [],
+    hermesQuery: {
+      executed: false,
+      strategy: "default",
+      topic: null,
+      summary: null,
+      commandSpecPath: null,
+      references: [],
+      influencedWorkflow: false,
+      influencedRecovery: false,
+      influencedVerification: false,
+    },
+    taskState: {
+      status: "prepared",
+      currentStep: null,
+      taskEnvId: null,
+      observeSessionIds: [],
+      loopId: null,
+      loop: null,
+      nextActions: [],
+      runner: {
+        ...createRunnerState(),
+      },
+      lastVerification: null,
+      lastRecoveryAction: null,
+      lastReviewResult: null,
+      autonomy: createAutonomyState(),
+    },
+    recovery: {
+      resumeStrategy: null,
+      recoveryPlan: null,
+    },
+  } satisfies TaskContext, isTaskContext);
+}
+
 function detectCurrentTool(): string | null {
   const rawValue = process.env.BBG_CURRENT_TOOL?.trim().toLowerCase();
   return rawValue?.length ? rawValue : null;
@@ -279,6 +459,10 @@ function detectCurrentTool(): string | null {
 
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)];
+}
+
+function collectLanguageRuleSet(languages: string[], source: Record<string, string[]>): string[] {
+  return unique(languages.flatMap((language) => source[language] ?? []));
 }
 
 function detectHermesStrategy(): TaskContext["hermesQuery"]["strategy"] {
@@ -310,6 +494,119 @@ async function assertInitialized(cwd: string): Promise<void> {
 async function readConfig(cwd: string) {
   const configPath = join(cwd, ".bbg", "config.json");
   return parseConfig(await readTextFile(configPath));
+}
+
+async function collectExistingLanguageGuideReferences(cwd: string): Promise<string[]> {
+  const config = await readConfig(cwd);
+  const candidates = getLanguageGuidePathsForLanguages(config.repos.map((repo) => repo.stack.language));
+  const existing = await Promise.all(
+    candidates.map(async (pathValue) => ((await exists(join(cwd, pathValue))) ? pathValue : undefined)),
+  );
+  return existing.filter((value): value is string => Boolean(value));
+}
+
+async function collectLanguageGuidance(cwd: string): Promise<TaskContext["languageGuidance"]> {
+  const config = await readConfig(cwd);
+  const languages = unique(
+    config.repos
+      .map((repo) => repo.stack.language)
+      .filter((language) => language !== "unknown"),
+  );
+  const guideReferences = await collectExistingLanguageGuideReferences(cwd);
+  const reviewerAgents = unique(
+    languages
+      .map((language) => LANGUAGE_REVIEWERS[language])
+      .filter((value): value is string => Boolean(value)),
+  );
+
+  return {
+    languages,
+    guideReferences,
+    reviewerAgents,
+    reviewHint: reviewerAgents.length > 0
+      ? `Prefer ${reviewerAgents.join(", ")} for language-specific design and implementation review.`
+      : null,
+  };
+}
+
+function buildReviewGate(input: {
+  modelRoute: TaskContext["modelRoute"];
+  languageGuidance: TaskContext["languageGuidance"];
+}): TaskContext["reviewGate"] {
+  const languages = input.modelRoute?.classification.languages ?? input.languageGuidance.languages;
+  const reviewers = unique(
+    input.modelRoute?.recommendation.reviewerAgents.length
+      ? input.modelRoute.recommendation.reviewerAgents
+      : input.languageGuidance.reviewerAgents,
+  );
+  const guideReferences = unique(
+    input.modelRoute?.recommendation.guideReferences.length
+      ? input.modelRoute.recommendation.guideReferences
+      : input.languageGuidance.guideReferences,
+  );
+
+  if (reviewers.length === 0) {
+    return {
+      level: "none",
+      reviewers: [],
+      guideReferences,
+      reviewPack: [],
+      stopConditions: [],
+      reason: "No language-specific reviewer agents were inferred for this task.",
+    };
+  }
+
+  const requiresStrictGate = languages.some((language) => ["java", "rust"].includes(language))
+    || input.modelRoute?.recommendation.modelClass === "premium";
+  const recommendsGate = requiresStrictGate
+    || input.modelRoute?.classification.complexity !== "simple"
+    || languages.some((language) => ["typescript", "python", "go", "golang", "kotlin"].includes(language));
+  const level: TaskContext["reviewGate"]["level"] = requiresStrictGate
+    ? "required"
+    : recommendsGate
+      ? "recommended"
+      : "none";
+
+  return {
+    level,
+    reviewers,
+    guideReferences,
+    reviewPack: collectLanguageRuleSet(languages, LANGUAGE_REVIEW_PACKS),
+    stopConditions: collectLanguageRuleSet(languages, LANGUAGE_STOP_CONDITIONS),
+    reason: level === "required"
+      ? "Language and route risk require a dedicated reviewer gate before considering the task complete."
+      : level === "recommended"
+        ? "Language-specific review is recommended to preserve architecture and implementation quality."
+        : "No explicit language-specific review gate configured.",
+  };
+}
+
+async function collectModelRoute(cwd: string, task: string): Promise<TaskContext["modelRoute"]> {
+  try {
+    const result = await runModelRouteCommand({ cwd, task });
+    if (result.mode !== "recommendation" || !result.classification || !result.recommendation) {
+      return null;
+    }
+
+    return {
+      classification: {
+        domain: result.classification.domain,
+        complexity: result.classification.complexity,
+        context: result.classification.context,
+        targetCommand: result.classification.targetCommand,
+        languages: [...result.classification.languages],
+      },
+      recommendation: {
+        modelClass: result.recommendation.modelClass,
+        reason: result.recommendation.reason,
+        telemetryNote: result.recommendation.telemetryNote,
+        reviewerAgents: [...result.recommendation.reviewerAgents],
+        guideReferences: [...result.recommendation.guideReferences],
+      },
+    };
+  } catch {
+    return null;
+  }
 }
 
 function detectRunnerMode(currentTool: string | null): TaskRunnerState["mode"] {
@@ -607,6 +904,9 @@ async function writeHandoff(cwd: string, taskId: string, input: {
   summary: string;
   commandSpecPath: string;
   references: string[];
+  modelRoute: TaskContext["modelRoute"];
+  languageGuidance: TaskContext["languageGuidance"];
+  reviewGate: TaskContext["reviewGate"];
   decisions: Record<string, { decision: string; reasons: string[] }>;
   taskEnvId: string | null;
   observeSessionIds: string[];
@@ -619,6 +919,7 @@ async function writeHandoff(cwd: string, taskId: string, input: {
   loop: TaskContext["taskState"]["loop"];
   lastVerification: TaskSession["lastVerification"];
   lastRecoveryAction: TaskSession["lastRecoveryAction"];
+  lastReviewResult: TaskSession["lastReviewResult"];
   autonomy: TaskSession["autonomy"];
   resumeStrategy?: TaskResumeStrategy;
   recoveryPlan?: TaskRecoveryPlan;
@@ -651,10 +952,62 @@ async function writeHandoff(cwd: string, taskId: string, input: {
     ...(input.runner.command
       ? [`- Runner Command: ${[input.runner.command, ...input.runner.args].join(" ")}`]
       : ["- Runner Command: (none)"]),
+    ...(input.lastReviewResult
+      ? [
+          `- Last Review: ${input.lastReviewResult.reviewer} (${input.lastReviewResult.status})`,
+          `- Review Summary: ${input.lastReviewResult.summary}`,
+          ...(input.lastReviewResult.findings.length > 0
+            ? [`- Review Findings: ${input.lastReviewResult.findings.join(", ")}`]
+            : ["- Review Findings: (none)"]),
+        ]
+      : ["- Last Review: (none)", "- Review Summary: (none)", "- Review Findings: (none)"]),
     "",
     "## References",
     "",
     ...input.references.map((reference) => `- ${reference}`),
+    "",
+    "## Language Guidance",
+    "",
+    `- Languages: ${input.languageGuidance.languages.length > 0 ? input.languageGuidance.languages.join(", ") : "(none)"}`,
+    `- Reviewers: ${input.languageGuidance.reviewerAgents.length > 0 ? input.languageGuidance.reviewerAgents.join(", ") : "(none)"}`,
+    `- Review Hint: ${input.languageGuidance.reviewHint ?? "(none)"}`,
+    ...(input.languageGuidance.guideReferences.length > 0
+      ? ["- Guides:", ...input.languageGuidance.guideReferences.map((reference) => `  - ${reference}`)]
+      : ["- Guides: (none)"]),
+    "",
+    "## Model Route",
+    "",
+    ...(input.modelRoute
+      ? [
+          `- Model Class: ${input.modelRoute.recommendation.modelClass}`,
+          `- Domain: ${input.modelRoute.classification.domain}`,
+          `- Complexity: ${input.modelRoute.classification.complexity}`,
+          `- Context: ${input.modelRoute.classification.context}`,
+          `- Target Command: ${input.modelRoute.classification.targetCommand ?? "(none)"}`,
+          `- Languages: ${input.modelRoute.classification.languages.length > 0 ? input.modelRoute.classification.languages.join(", ") : "(none)"}`,
+          `- Reason: ${input.modelRoute.recommendation.reason}`,
+          `- Telemetry Note: ${input.modelRoute.recommendation.telemetryNote}`,
+          `- Route Reviewers: ${input.modelRoute.recommendation.reviewerAgents.length > 0 ? input.modelRoute.recommendation.reviewerAgents.join(", ") : "(none)"}`,
+          ...(input.modelRoute.recommendation.guideReferences.length > 0
+            ? ["- Route Guides:", ...input.modelRoute.recommendation.guideReferences.map((reference) => `  - ${reference}`)]
+            : ["- Route Guides: (none)"]),
+        ]
+      : ["- (none)"]),
+    "",
+    "## Review Gate",
+    "",
+    `- Level: ${input.reviewGate.level}`,
+    `- Reason: ${input.reviewGate.reason}`,
+    `- Reviewers: ${input.reviewGate.reviewers.length > 0 ? input.reviewGate.reviewers.join(", ") : "(none)"}`,
+    ...(input.reviewGate.reviewPack.length > 0
+      ? ["- Review Pack:", ...input.reviewGate.reviewPack.map((entry) => `  - ${entry}`)]
+      : ["- Review Pack: (none)"]),
+    ...(input.reviewGate.stopConditions.length > 0
+      ? ["- Stop Conditions:", ...input.reviewGate.stopConditions.map((entry) => `  - ${entry}`)]
+      : ["- Stop Conditions: (none)"]),
+    ...(input.reviewGate.guideReferences.length > 0
+      ? ["- Review Guides:", ...input.reviewGate.guideReferences.map((reference) => `  - ${reference}`)]
+      : ["- Review Guides: (none)"]),
     "",
     "## Decisions",
     "",
@@ -789,6 +1142,7 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
     },
     lastVerification: null,
     lastRecoveryAction: null,
+    lastReviewResult: null,
     autonomy: createAutonomyState(config.runtime?.autonomy),
   };
   await writeJsonStore(sessionPath, session);
@@ -873,11 +1227,20 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
   session.nextActions = hermesQuery.executed ? prependHermesReviewAction(workflow.nextActions) : workflow.nextActions;
   session.status = tool ? "implementing" : "prepared";
   clearTaskError(session);
+  const [languageGuideReferences, languageGuidance, modelRoute] = await Promise.all([
+    collectExistingLanguageGuideReferences(cwd),
+    collectLanguageGuidance(cwd),
+    collectModelRoute(cwd, taskText),
+  ]);
+  const reviewGate = buildReviewGate({ modelRoute, languageGuidance });
   let context: TaskContext = await buildTaskContextWithRuntime(cwd, {
     version: TASK_STORE_VERSION,
     taskId,
     analyzeRunId: (await readLatestAnalyzeSummary(cwd)).runId,
-    references: workflow.references,
+    references: unique([...workflow.references, ...languageGuideReferences]),
+    modelRoute,
+    languageGuidance,
+    reviewGate,
     commandSpecPath: workflow.commandSpecPath,
     summary: workflow.summary,
     hermesRecommendations,
@@ -912,6 +1275,9 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
       summary: workflow.summary,
       commandSpecPath: workflow.commandSpecPath,
       references: context.references,
+      modelRoute: context.modelRoute,
+      languageGuidance: context.languageGuidance,
+      reviewGate: context.reviewGate,
       decisions: workflow.decisions,
       taskEnvId,
       observeSessionIds,
@@ -924,6 +1290,7 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
       loop: context.taskState.loop,
       lastVerification: session.lastVerification,
       lastRecoveryAction: session.lastRecoveryAction,
+      lastReviewResult: session.lastReviewResult,
       autonomy: session.autonomy,
       nextActions: workflow.nextActions,
     }),
@@ -941,6 +1308,10 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
         decisionsPath: ".bbg/tasks/" + taskId + "/decisions.json",
         taskStatus: session.status,
         currentStep: session.currentStep,
+        reviewGateLevel: context.reviewGate.level,
+        reviewGateReviewers: context.reviewGate.reviewers,
+        reviewGatePack: context.reviewGate.reviewPack,
+        reviewGateStopConditions: context.reviewGate.stopConditions,
         attemptCount: session.attemptCount,
         verifyFailureCount: session.autonomy.verifyFailureCount,
         autonomyEscalated: session.autonomy.escalated,
@@ -1003,6 +1374,9 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
     summary: workflow.summary,
     commandSpecPath: workflow.commandSpecPath,
     references: context.references,
+    modelRoute: context.modelRoute,
+    languageGuidance: context.languageGuidance,
+    reviewGate: context.reviewGate,
     decisions: workflow.decisions,
     taskEnvId: session.taskEnvId,
     observeSessionIds: session.observeSessionIds,
@@ -1015,6 +1389,7 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
     loop: context.taskState.loop,
     lastVerification: session.lastVerification,
     lastRecoveryAction: session.lastRecoveryAction,
+    lastReviewResult: session.lastReviewResult,
     autonomy: session.autonomy,
     nextActions: session.nextActions,
   });
@@ -1054,6 +1429,7 @@ export async function readTaskSession(cwd: string, taskId: string): Promise<Task
     },
     lastVerification: null,
     lastRecoveryAction: null,
+    lastReviewResult: null,
     autonomy: createAutonomyState(),
   } satisfies TaskSession, isTaskSession);
   if (session.taskId.length === 0) {
@@ -1107,6 +1483,36 @@ export async function updateTaskSessionAfterVerify(input: {
   return finalSession;
 }
 
+export async function recordTaskReviewResult(input: {
+  cwd: string;
+  taskId: string;
+  reviewer: string;
+  status: "passed" | "failed";
+  summary: string;
+  findings?: string[];
+}): Promise<TaskSession> {
+  const session = await readTaskSession(input.cwd, input.taskId);
+  const updatedAt = new Date().toISOString();
+  const updatedSession: TaskSession = {
+    ...session,
+    updatedAt,
+    lastReviewResult: {
+      reviewer: input.reviewer,
+      status: input.status,
+      recordedAt: updatedAt,
+      summary: input.summary,
+      findings: [...(input.findings ?? [])],
+    },
+    lastError: input.status === "failed" ? `review-gate-failed: ${input.reviewer}` : session.lastError,
+    lastErrorAt: input.status === "failed" ? updatedAt : session.lastErrorAt,
+    nextActions: input.status === "failed"
+      ? unique(["address-review-findings", "implement", "verify", ...session.nextActions])
+      : session.nextActions.filter((action) => action !== "address-review-findings"),
+  };
+  await writeJsonStore(getSessionPath(input.cwd, input.taskId), updatedSession);
+  return updatedSession;
+}
+
 export async function syncTaskContextFromSession(input: {
   cwd: string;
   taskId: string;
@@ -1119,6 +1525,21 @@ export async function syncTaskContextFromSession(input: {
     taskId: "",
     analyzeRunId: null,
     references: [],
+    modelRoute: null,
+    languageGuidance: {
+      languages: [],
+      guideReferences: [],
+      reviewerAgents: [],
+      reviewHint: null,
+    },
+    reviewGate: {
+      level: "none",
+      reviewers: [],
+      guideReferences: [],
+      reviewPack: [],
+      stopConditions: [],
+      reason: "No explicit language-specific review gate configured.",
+    },
     commandSpecPath: "",
     summary: "",
     hermesRecommendations: [],
@@ -1146,6 +1567,7 @@ export async function syncTaskContextFromSession(input: {
       },
       lastVerification: null,
       lastRecoveryAction: null,
+      lastReviewResult: null,
       autonomy: createAutonomyState(),
     },
     recovery: {
@@ -1197,6 +1619,21 @@ export async function assignLoopToTask(input: {
     taskId: "",
     analyzeRunId: null,
     references: [],
+    modelRoute: null,
+    languageGuidance: {
+      languages: [],
+      guideReferences: [],
+      reviewerAgents: [],
+      reviewHint: null,
+    },
+    reviewGate: {
+      level: "none",
+      reviewers: [],
+      guideReferences: [],
+      reviewPack: [],
+      stopConditions: [],
+      reason: "No explicit language-specific review gate configured.",
+    },
     commandSpecPath: "",
     summary: "",
     hermesRecommendations: [],
@@ -1224,6 +1661,7 @@ export async function assignLoopToTask(input: {
       },
       lastVerification: null,
       lastRecoveryAction: null,
+      lastReviewResult: null,
       autonomy: createAutonomyState(),
     },
     recovery: {
@@ -1253,6 +1691,9 @@ export async function assignLoopToTask(input: {
       summary: current.summary,
       commandSpecPath: current.commandSpecPath,
       references: current.references,
+      modelRoute: current.modelRoute,
+      languageGuidance: current.languageGuidance,
+      reviewGate: current.reviewGate,
       decisions,
       taskEnvId: updatedSession.taskEnvId,
       observeSessionIds: updatedSession.observeSessionIds,
@@ -1265,6 +1706,7 @@ export async function assignLoopToTask(input: {
       loop: updatedContext.taskState.loop,
       lastVerification: updatedSession.lastVerification,
       lastRecoveryAction: updatedSession.lastRecoveryAction,
+      lastReviewResult: updatedSession.lastReviewResult,
       autonomy: updatedSession.autonomy,
       resumeStrategy,
       recoveryPlan,
@@ -1311,6 +1753,21 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
     taskId: "",
     analyzeRunId: null,
     references: [],
+    modelRoute: null,
+    languageGuidance: {
+      languages: [],
+      guideReferences: [],
+      reviewerAgents: [],
+      reviewHint: null,
+    },
+    reviewGate: {
+      level: "none",
+      reviewers: [],
+      guideReferences: [],
+      reviewPack: [],
+      stopConditions: [],
+      reason: "No explicit language-specific review gate configured.",
+    },
     commandSpecPath: "",
     summary: "",
     hermesRecommendations: [],
@@ -1338,6 +1795,7 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
       },
       lastVerification: null,
       lastRecoveryAction: null,
+      lastReviewResult: null,
       autonomy: createAutonomyState(),
     },
     recovery: {
@@ -1371,6 +1829,9 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
         summary: context.summary,
         commandSpecPath: context.commandSpecPath,
         references: context.references,
+        modelRoute: context.modelRoute,
+        languageGuidance: context.languageGuidance,
+        reviewGate: context.reviewGate,
         decisions,
         taskEnvId: escalatedSession.taskEnvId,
         observeSessionIds: escalatedSession.observeSessionIds,
@@ -1383,6 +1844,7 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
         loop: updatedContext.taskState.loop,
         lastVerification: escalatedSession.lastVerification,
         lastRecoveryAction: escalatedSession.lastRecoveryAction,
+        lastReviewResult: escalatedSession.lastReviewResult,
         autonomy: escalatedSession.autonomy,
         resumeStrategy,
         recoveryPlan,
@@ -1443,6 +1905,10 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
         resumeStrategyKind: deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null).kind,
         recoveryPlanKind: deriveRecoveryPlan(session, deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null)).kind,
         recoveryActions: deriveRecoveryPlan(session, deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null)).actions,
+        reviewGateLevel: context.reviewGate.level,
+        reviewGateReviewers: context.reviewGate.reviewers,
+        reviewGatePack: context.reviewGate.reviewPack,
+        reviewGateStopConditions: context.reviewGate.stopConditions,
         attemptCount: session.attemptCount,
         verifyFailureCount: session.autonomy.verifyFailureCount,
         autonomyEscalated: session.autonomy.escalated,
@@ -1485,6 +1951,10 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
             resumeStrategyKind: deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null).kind,
             recoveryPlanKind: deriveRecoveryPlan(session, deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null)).kind,
             recoveryActions: deriveRecoveryPlan(session, deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null)).actions,
+            reviewGateLevel: context.reviewGate.level,
+            reviewGateReviewers: context.reviewGate.reviewers,
+            reviewGatePack: context.reviewGate.reviewPack,
+            reviewGateStopConditions: context.reviewGate.stopConditions,
             attemptCount: session.attemptCount,
             verifyFailureCount: session.autonomy.verifyFailureCount,
             autonomyEscalated: session.autonomy.escalated,
@@ -1618,6 +2088,9 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
       summary: context.summary,
       commandSpecPath: context.commandSpecPath,
       references: context.references,
+      modelRoute: context.modelRoute,
+      languageGuidance: context.languageGuidance,
+      reviewGate: context.reviewGate,
       decisions,
       taskEnvId: finalResumedSession.taskEnvId,
       observeSessionIds: finalResumedSession.observeSessionIds,
@@ -1630,6 +2103,7 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
       loop: updatedContext.taskState.loop,
       lastVerification: finalResumedSession.lastVerification,
       lastRecoveryAction: finalResumedSession.lastRecoveryAction,
+      lastReviewResult: finalResumedSession.lastReviewResult,
       autonomy: finalResumedSession.autonomy,
       resumeStrategy,
       recoveryPlan,
@@ -1682,6 +2156,7 @@ export async function listTaskSessions(cwd: string): Promise<TaskSession[]> {
           },
           lastVerification: null,
           lastRecoveryAction: null,
+          lastReviewResult: null,
           autonomy: createAutonomyState(),
         } satisfies TaskSession, isTaskSession),
       ),
@@ -1696,14 +2171,18 @@ export async function readTaskStatusSummary(cwd: string): Promise<TaskStatusSumm
   await assertInitialized(cwd);
   const [config, taskSessions, loopStates] = await Promise.all([readConfig(cwd), listTaskSessions(cwd), listLoopStates(cwd)]);
   const defaultTool = config.agentRunner?.defaultTool?.trim() || null;
-  const tasks: TaskStatusEntry[] = taskSessions.map((task) => {
+  const tasks: TaskStatusEntry[] = await Promise.all(taskSessions.map(async (task) => {
     const resumeStrategy = deriveResumeStrategy(task, defaultTool);
+    const context = await readTaskContext(cwd, task.taskId);
     return {
       ...task,
       resumeStrategy,
       recoveryPlan: deriveRecoveryPlan(task, resumeStrategy),
+      modelRoute: context.modelRoute,
+      languageGuidance: context.languageGuidance,
+      reviewGate: context.reviewGate,
     };
-  });
+  }));
   const observationIds = [...new Set(tasks.flatMap((task) => task.observeSessionIds))];
   const observations = (
     await Promise.all(

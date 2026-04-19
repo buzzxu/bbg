@@ -2,6 +2,7 @@ import { constants as fsConstants } from "node:fs";
 import { access, readdir } from "node:fs/promises";
 import { extname, isAbsolute, join } from "node:path";
 import fg from "fast-glob";
+import { getAllManagedLanguageGuidePaths, getLanguageGuidePathsForLanguages } from "../analyze/language-docs.js";
 import { parseConfig } from "../config/read-write.js";
 import { sha256Hex, type FileHashRecord } from "../config/hash.js";
 import type { BbgConfig } from "../config/schema.js";
@@ -212,6 +213,7 @@ async function runAnalyzeArtifactChecks(cwd: string, config: BbgConfig | null): 
     return [
       buildCheck("analyze-artifacts", "info", false, "analyze has not been run yet"),
       buildCheck("knowledge-artifacts", "info", false, "workspace knowledge has not been generated yet"),
+      buildCheck("language-pattern-guides", "info", false, "language pattern guides have not been generated yet"),
       canonicalWikiCheck,
       buildCheck("wiki-generated-artifacts", "info", false, "wiki generated artifacts have not been created yet"),
     ];
@@ -228,6 +230,7 @@ async function runAnalyzeArtifactChecks(cwd: string, config: BbgConfig | null): 
     "docs/architecture/technical-architecture.md",
     "docs/architecture/business-architecture.md",
     "docs/architecture/repo-dependency-graph.md",
+    "docs/architecture/languages/README.md",
     "docs/architecture/workspace-topology.md",
     "docs/architecture/integration-map.md",
     "docs/business/module-map.md",
@@ -236,8 +239,25 @@ async function runAnalyzeArtifactChecks(cwd: string, config: BbgConfig | null): 
     ".bbg/knowledge/workspace/integration-map.json",
     ".bbg/knowledge/workspace/business-modules.json",
   ];
+  const requiredLanguageDocs = getLanguageGuidePathsForLanguages(
+    reposToCheck.map((repoName) => config?.repos.find((repo) => repo.name === repoName)?.stack.language ?? "unknown"),
+  );
+  const existingManagedLanguageDocs = (await fg("docs/architecture/languages/**/*.md", { cwd, onlyFiles: true, dot: false }))
+    .filter((pathValue) => getAllManagedLanguageGuidePaths().includes(pathValue));
+  const staleLanguageDocs = existingManagedLanguageDocs
+    .filter((pathValue) => pathValue !== "docs/architecture/languages/README.md")
+    .filter((pathValue) => !requiredLanguageDocs.includes(pathValue))
+    .sort();
   const requiredPaths = state.scope === "workspace" ? [...requiredDocs, ...workspaceDocs] : requiredDocs;
   const missing = (await checkManyExist(cwd, requiredPaths)).missing;
+  const missingLanguageDocs = (await checkManyExist(cwd, requiredLanguageDocs)).missing;
+  const languageMetadataMissing: string[] = [];
+  for (const pathValue of requiredLanguageDocs.filter((candidate) => !missingLanguageDocs.includes(candidate))) {
+    const content = await readTextFile(join(cwd, pathValue));
+    if (!content.includes("minimum_supported_version:") || !content.includes("last_reviewed:") || !content.includes("sources:")) {
+      languageMetadataMissing.push(pathValue);
+    }
+  }
 
   return [
     buildCheck(
@@ -255,6 +275,24 @@ async function runAnalyzeArtifactChecks(cwd: string, config: BbgConfig | null): 
       missing.filter((entry) => entry.startsWith(".bbg/knowledge/")).length === 0
         ? "repo/workspace knowledge artifacts exist"
         : `missing knowledge artifacts: ${missing.filter((entry) => entry.startsWith(".bbg/knowledge/")).slice(0, 8).join(", ")}`,
+    ),
+    buildCheck(
+      "language-pattern-guides",
+      "warning",
+      missingLanguageDocs.length === 0 && languageMetadataMissing.length === 0 && staleLanguageDocs.length === 0,
+      missingLanguageDocs.length === 0 && languageMetadataMissing.length === 0 && staleLanguageDocs.length === 0
+        ? "language pattern guides exist with version metadata"
+        : [
+            missingLanguageDocs.length > 0
+              ? `missing language guides: ${missingLanguageDocs.slice(0, 8).join(", ")}`
+              : null,
+            languageMetadataMissing.length > 0
+              ? `language guide metadata incomplete: ${languageMetadataMissing.slice(0, 8).join(", ")}`
+              : null,
+            staleLanguageDocs.length > 0
+              ? `stale language guides are still present: ${staleLanguageDocs.slice(0, 8).join(", ")}`
+              : null,
+          ].filter((value): value is string => Boolean(value)).join("; "),
     ),
     canonicalWikiCheck,
     buildCheck(

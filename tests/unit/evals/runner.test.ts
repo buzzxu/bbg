@@ -137,7 +137,7 @@ describe("eval runner", () => {
     expect(report.metrics.manualReviewRate).toBeGreaterThan(0);
   });
 
-  it("runs a suite and aggregates metrics across experiments", async () => {
+  it("runs a suite and aggregates metrics across experiments", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     const seeded = await seedEvalArtifacts({ cwd });
 

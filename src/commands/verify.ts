@@ -5,7 +5,7 @@ import { assertPolicyAllowsCommand } from "../policy/engine.js";
 import { verifyCheckpoint, type VerifyResult } from "../runtime/checkpoints.js";
 import { summarizeObserveSession } from "../runtime/observe.js";
 import { buildDefaultRuntimeConfig } from "../runtime/schema.js";
-import { getTaskRoot, listTaskSessions, readTaskSession, syncTaskContextFromSession, updateTaskSessionAfterVerify } from "../runtime/tasks.js";
+import { getTaskRoot, listTaskSessions, readTaskContext, readTaskSession, syncTaskContextFromSession, updateTaskSessionAfterVerify } from "../runtime/tasks.js";
 import { writeVerifyWikiArtifacts } from "../runtime/wiki.js";
 import { exists, readTextFile } from "../utils/fs.js";
 import type { WorkflowDecisionSet } from "../workflow/types.js";
@@ -32,6 +32,21 @@ export interface RunVerifyCommandResult extends VerifyResult {
       totalArtifacts: number;
       evidenceKinds: string[];
     }>;
+    reviewGate: {
+      level: "none" | "recommended" | "required";
+      reason: string;
+      reviewPack: string[];
+      stopConditions: string[];
+    };
+    lastReviewResult: {
+      reviewer: string;
+      status: "passed" | "failed";
+      summary: string;
+      findings: string[];
+    } | null;
+    reviewersRecommended: string[];
+    guideReferences: string[];
+    languageReviewHint: string | null;
     hermesQueryExecuted: boolean;
   } | null;
 }
@@ -75,9 +90,10 @@ async function buildTaskVerificationContext(cwd: string): Promise<RunVerifyComma
     return null;
   }
 
-  const [session, decisions] = await Promise.all([
+  const [session, decisions, context] = await Promise.all([
     readTaskSession(cwd, taskId),
     readTaskDecisions(cwd, taskId),
+    readTaskContext(cwd, taskId),
   ]);
   const hermesQueryExecuted = process.env.BBG_DISABLE_HERMES?.trim() === "1"
     ? false
@@ -123,6 +139,15 @@ async function buildTaskVerificationContext(cwd: string): Promise<RunVerifyComma
     missingEvidence.push("observation-evidence");
   }
 
+  const reviewGateRequired = context.reviewGate.level === "required";
+  if (reviewGateRequired && !session.lastReviewResult) {
+    reasons.push("review-gate-pending");
+    missingEvidence.push("language-review");
+  } else if (reviewGateRequired && session.lastReviewResult?.status === "failed") {
+    reasons.push("review-gate-failed");
+    missingEvidence.push("review-findings");
+  }
+
   const ok = reasons.length === 0;
 
   return {
@@ -136,6 +161,21 @@ async function buildTaskVerificationContext(cwd: string): Promise<RunVerifyComma
     observeRequired,
     observationReadiness,
     observations,
+    reviewGate: {
+      level: context.reviewGate.level,
+      reason: context.reviewGate.reason,
+      reviewPack: [...context.reviewGate.reviewPack],
+      stopConditions: [...context.reviewGate.stopConditions],
+    },
+    lastReviewResult: session.lastReviewResult ? {
+      reviewer: session.lastReviewResult.reviewer,
+      status: session.lastReviewResult.status,
+      summary: session.lastReviewResult.summary,
+      findings: [...session.lastReviewResult.findings],
+    } : null,
+    reviewersRecommended: context.modelRoute?.recommendation.reviewerAgents ?? context.languageGuidance.reviewerAgents,
+    guideReferences: context.modelRoute?.recommendation.guideReferences ?? context.languageGuidance.guideReferences,
+    languageReviewHint: context.languageGuidance.reviewHint,
     hermesQueryExecuted,
   };
 }

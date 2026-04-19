@@ -13,6 +13,7 @@ import { runSessionsCommand } from "./commands/sessions.js";
 import { runSync } from "./commands/sync.js";
 import { runUpgrade } from "./commands/upgrade.js";
 import { runVerifyCommand } from "./commands/verify.js";
+import { runReviewRecordCommand } from "./commands/review-record.js";
 import { runEvalCommand } from "./commands/eval.js";
 import { runHarnessAuditCommand } from "./commands/harness-audit.js";
 import { runModelRouteCommand } from "./commands/model-route.js";
@@ -192,6 +193,21 @@ const printTaskSessionResult = (label: "Start" | "Resume", result: Awaited<Retur
   if (result.session.observeSessionIds.length > 0) {
     process.stdout.write(`Observations: ${result.session.observeSessionIds.join(", ")}\n`);
   }
+  if (result.context.modelRoute) {
+    process.stdout.write(
+      `Route: ${result.context.modelRoute.recommendation.modelClass} (${result.context.modelRoute.classification.domain}/${result.context.modelRoute.classification.complexity})\n`,
+    );
+    if (result.context.modelRoute.recommendation.reviewerAgents.length > 0) {
+      process.stdout.write(`Route reviewers: ${result.context.modelRoute.recommendation.reviewerAgents.join(", ")}\n`);
+    }
+  }
+  if (result.context.reviewGate.level !== "none") {
+    process.stdout.write(`Review gate: ${result.context.reviewGate.level}\n`);
+    process.stdout.write(`Review gate reason: ${result.context.reviewGate.reason}\n`);
+  }
+  if (result.context.languageGuidance?.reviewHint) {
+    process.stdout.write(`Language review: ${result.context.languageGuidance.reviewHint}\n`);
+  }
   process.stdout.write(`Handoff: ${result.handoffPath}\n`);
   if (result.session.lastError) {
     process.stdout.write(`Last error: ${result.session.lastError}\n`);
@@ -234,6 +250,21 @@ const printStatusResult = (result: Awaited<ReturnType<typeof runStatusCommand>>)
       `  recovery: ${task.recoveryPlan.kind} (${task.recoveryPlan.actions.length > 0 ? task.recoveryPlan.actions.join(", ") : "none"})\n`,
     );
     process.stdout.write(`  recovery reason: ${task.recoveryPlan.reason}\n`);
+    if (task.modelRoute) {
+      process.stdout.write(
+        `  route: ${task.modelRoute.recommendation.modelClass} (${task.modelRoute.classification.domain}/${task.modelRoute.classification.complexity})\n`,
+      );
+      if (task.modelRoute.recommendation.reviewerAgents.length > 0) {
+        process.stdout.write(`  route reviewers: ${task.modelRoute.recommendation.reviewerAgents.join(", ")}\n`);
+      }
+    }
+    if (task.reviewGate.level !== "none") {
+      process.stdout.write(`  review gate: ${task.reviewGate.level}\n`);
+      process.stdout.write(`  review gate reason: ${task.reviewGate.reason}\n`);
+    }
+    if (task.languageGuidance?.reviewHint) {
+      process.stdout.write(`  language review: ${task.languageGuidance.reviewHint}\n`);
+    }
     process.stdout.write(`  next: ${task.nextActions.length > 0 ? task.nextActions.join(", ") : "(none)"}\n`);
     if (task.lastVerification) {
       process.stdout.write(
@@ -793,6 +824,31 @@ export const buildProgram = (): Command => {
         process.stdout.write(`Task step: ${result.taskVerification.currentStep ?? "none"}\n`);
         process.stdout.write(`Observation readiness: ${result.taskVerification.observationReadiness}\n`);
         process.stdout.write(`Observations: ${result.taskVerification.observations.length}\n`);
+        if (result.taskVerification.reviewersRecommended.length > 0) {
+          process.stdout.write(`Recommended reviewers: ${result.taskVerification.reviewersRecommended.join(", ")}\n`);
+        }
+        if (result.taskVerification.languageReviewHint) {
+          process.stdout.write(`Language review hint: ${result.taskVerification.languageReviewHint}\n`);
+        }
+        if (result.taskVerification.guideReferences.length > 0) {
+          process.stdout.write(`Guide references: ${result.taskVerification.guideReferences.join(", ")}\n`);
+        }
+        if (result.taskVerification.reviewGate.level !== "none") {
+          process.stdout.write(`Review gate: ${result.taskVerification.reviewGate.level}\n`);
+          process.stdout.write(`Review gate reason: ${result.taskVerification.reviewGate.reason}\n`);
+          if (result.taskVerification.reviewGate.reviewPack.length > 0) {
+            process.stdout.write(`Review pack: ${result.taskVerification.reviewGate.reviewPack.join(", ")}\n`);
+          }
+          if (result.taskVerification.reviewGate.stopConditions.length > 0) {
+            process.stdout.write(`Stop conditions: ${result.taskVerification.reviewGate.stopConditions.join(", ")}\n`);
+          }
+        }
+        if (result.taskVerification.lastReviewResult) {
+          process.stdout.write(
+            `Last review result: ${result.taskVerification.lastReviewResult.reviewer} (${result.taskVerification.lastReviewResult.status})\n`,
+          );
+          process.stdout.write(`Last review summary: ${result.taskVerification.lastReviewResult.summary}\n`);
+        }
         if (result.taskVerification.reasons.length > 0) {
           process.stdout.write(`Task verification reasons: ${result.taskVerification.reasons.join(", ")}\n`);
         }
@@ -804,6 +860,32 @@ export const buildProgram = (): Command => {
       if (!result.ok) {
         process.exitCode = 1;
       }
+    });
+
+  program
+    .command("review-record <taskId>")
+    .description("Record a reviewer gate result for a task session")
+    .requiredOption("--reviewer <name>", "Reviewer agent name")
+    .requiredOption("--status <status>", "Review result: passed or failed")
+    .requiredOption("--summary <text>", "Short review summary")
+    .option("--finding <text...>", "Optional review findings")
+    .action(async (taskId: string, options: {
+      reviewer: string;
+      status: "passed" | "failed";
+      summary: string;
+      finding?: string[];
+    }) => {
+      const result = await runReviewRecordCommand({
+        cwd: process.cwd(),
+        taskId,
+        reviewer: options.reviewer,
+        status: options.status,
+        summary: options.summary,
+        findings: options.finding,
+      });
+      process.stdout.write(`Review record: ${result.session.taskId}\n`);
+      process.stdout.write(`Reviewer: ${result.session.lastReviewResult?.reviewer ?? "none"}\n`);
+      process.stdout.write(`Review status: ${result.session.lastReviewResult?.status ?? "none"}\n`);
     });
 
   program
@@ -1059,6 +1141,18 @@ export const buildProgram = (): Command => {
       process.stdout.write(
         `Telemetry: ${result.recommendation?.telemetryNote ?? "No local telemetry feedback available."}\n`,
       );
+      if ((result.classification?.languages.length ?? 0) > 0) {
+        process.stdout.write(`Languages: ${result.classification?.languages.join(", ")}\n`);
+      }
+      if ((result.recommendation?.reviewerAgents.length ?? 0) > 0) {
+        process.stdout.write(`Reviewers: ${result.recommendation?.reviewerAgents.join(", ")}\n`);
+      }
+      if ((result.recommendation?.guideReferences.length ?? 0) > 0) {
+        process.stdout.write("Guides:\n");
+        for (const guide of result.recommendation?.guideReferences ?? []) {
+          process.stdout.write(`- ${guide}\n`);
+        }
+      }
     });
 
   program

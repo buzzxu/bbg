@@ -39,6 +39,8 @@ export interface RepoTechnicalAnalysis {
     buildTool: string;
     testFramework: string;
     packageManager: string;
+    languageVersion?: string;
+    frameworkVersion?: string;
   };
   structure: string[];
   deps: string[];

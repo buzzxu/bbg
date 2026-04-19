@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, symlink, utimes, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { runReviewRecordCommand } from "../../src/commands/review-record.js";
 import { serializeConfig } from "../../src/config/read-write.js";
 import { buildDefaultRuntimeConfig } from "../../src/runtime/schema.js";
 import { writeTextFile } from "../../src/utils/fs.js";
@@ -357,10 +358,11 @@ describe("verify command", () => {
         },
         lastVerification: null,
         lastRecoveryAction: null,
+        lastReviewResult: null,
         autonomy: {
           maxAttempts: 5,
           maxVerifyFailures: 3,
-          maxDurationMs: 86400000,
+          maxDurationMs: 604800000,
           verifyFailureCount: 0,
           escalated: false,
           escalationReason: null,
@@ -426,6 +428,16 @@ describe("verify command", () => {
           evidenceKinds: ["ui", "logs"],
         },
       ],
+      reviewGate: {
+        level: "none",
+        reason: "No explicit language-specific review gate configured.",
+        reviewPack: [],
+        stopConditions: [],
+      },
+      lastReviewResult: null,
+      reviewersRecommended: [],
+      guideReferences: [],
+      languageReviewHint: null,
     });
 
     const updatedSession = JSON.parse(
@@ -525,10 +537,11 @@ describe("verify command", () => {
         },
         lastVerification: null,
         lastRecoveryAction: null,
+        lastReviewResult: null,
         autonomy: {
           maxAttempts: 5,
           maxVerifyFailures: 3,
-          maxDurationMs: 86400000,
+          maxDurationMs: 604800000,
           verifyFailureCount: 0,
           escalated: false,
           escalationReason: null,
@@ -562,6 +575,16 @@ describe("verify command", () => {
       observeRequired: true,
       observationReadiness: "empty",
       observations: [],
+      reviewGate: {
+        level: "none",
+        reason: "No explicit language-specific review gate configured.",
+        reviewPack: [],
+        stopConditions: [],
+      },
+      lastReviewResult: null,
+      reviewersRecommended: [],
+      guideReferences: [],
+      languageReviewHint: null,
     });
 
     const updatedSession = JSON.parse(
@@ -624,5 +647,202 @@ describe("verify command", () => {
     await expect(readFile(join(cwd, "docs", "wiki", "reports", "regression-risk-summary.md"), "utf8")).resolves.toContain(
       "Recovery plan: retry-implement",
     );
+  });
+
+  it("blocks completion until a required language review passes", async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+    await runCheckpointCommand({ cwd, name: "baseline" });
+
+    await mkdir(join(cwd, ".bbg", "tasks", "fix-java-boundary"), { recursive: true });
+    await writeTextFile(
+      join(cwd, ".bbg", "tasks", "fix-java-boundary", "session.json"),
+      `${JSON.stringify({
+        version: 1,
+        taskId: "fix-java-boundary",
+        task: "Fix Java boundary handling",
+        status: "ready",
+        entrypoint: "start",
+        tool: "codex",
+        startedAt: "2026-04-18T00:00:00.000Z",
+        updatedAt: "2026-04-18T00:00:00.000Z",
+        workflowKind: "plan",
+        currentStep: "verify",
+        attemptCount: 1,
+        taskEnvId: "fix-java-boundary",
+        observeSessionIds: [],
+        loopId: null,
+        nextActions: ["verify"],
+        lastError: null,
+        lastErrorAt: null,
+        blockedReason: null,
+        runner: {
+          mode: "current",
+          tool: "codex",
+          launched: true,
+          command: null,
+          args: [],
+          launchedAt: "2026-04-18T00:00:00.000Z",
+          lastAttemptAt: "2026-04-18T00:00:00.000Z",
+          lastLaunchError: null,
+        },
+        lastVerification: null,
+        lastRecoveryAction: null,
+        lastReviewResult: null,
+        autonomy: {
+          maxAttempts: 5,
+          maxVerifyFailures: 3,
+          maxDurationMs: 604800000,
+          verifyFailureCount: 0,
+          escalated: false,
+          escalationReason: null,
+          escalatedAt: null,
+        },
+      }, null, 2)}\n`,
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "tasks", "fix-java-boundary", "decisions.json"),
+      `${JSON.stringify({
+        taskEnv: { decision: "required", reasons: ["debug-or-stabilization-task"] },
+        observe: { decision: "not-required", reasons: [] },
+        tdd: { decision: "required", reasons: ["testing-or-regression-signal"] },
+        security: { decision: "not-required", reasons: [] },
+        loop: { decision: "optional", reasons: ["runtime-checks-may-repeat"] },
+        hermesQuery: { decision: "not-required", reasons: [] },
+      }, null, 2)}\n`,
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "tasks", "fix-java-boundary", "context.json"),
+      `${JSON.stringify({
+        version: 1,
+        taskId: "fix-java-boundary",
+        analyzeRunId: null,
+        references: ["docs/architecture/languages/java/application-patterns.md"],
+        modelRoute: {
+          classification: {
+            domain: "implementation",
+            complexity: "moderate",
+            context: "medium",
+            targetCommand: null,
+            languages: ["java"],
+          },
+          recommendation: {
+            modelClass: "premium",
+            reason: "java boundary work benefits from stronger review before completion.",
+            telemetryNote: "No local telemetry feedback available.",
+            reviewerAgents: ["java-reviewer"],
+            guideReferences: ["docs/architecture/languages/java/application-patterns.md"],
+          },
+        },
+        languageGuidance: {
+          languages: ["java"],
+          guideReferences: ["docs/architecture/languages/java/application-patterns.md"],
+          reviewerAgents: ["java-reviewer"],
+          reviewHint: "Prefer java-reviewer for boundary and transaction-sensitive changes.",
+        },
+        reviewGate: {
+          level: "required",
+          reviewers: ["java-reviewer"],
+          guideReferences: ["docs/architecture/languages/java/application-patterns.md"],
+          reviewPack: ["layering", "domain-modeling", "transaction-boundaries"],
+          stopConditions: [
+            "domain-interface-change",
+            "unknown-invariant-conflict",
+            "transaction-or-security-boundary-change",
+          ],
+          reason: "Java boundary changes require explicit language review.",
+        },
+        commandSpecPath: "commands/plan.md",
+        summary: "Validate Java boundary handling before delivery.",
+        hermesRecommendations: [],
+        hermesQuery: {
+          executed: false,
+          strategy: "default",
+          topic: null,
+          summary: null,
+          commandSpecPath: null,
+          references: [],
+          influencedWorkflow: false,
+          influencedRecovery: false,
+          influencedVerification: false,
+        },
+        taskState: {
+          status: "ready",
+          currentStep: "verify",
+          taskEnvId: "fix-java-boundary",
+          observeSessionIds: [],
+          loopId: null,
+          loop: null,
+          nextActions: ["verify"],
+          runner: {
+            mode: "current",
+            tool: "codex",
+            launched: true,
+            command: null,
+            args: [],
+            launchedAt: "2026-04-18T00:00:00.000Z",
+            lastAttemptAt: "2026-04-18T00:00:00.000Z",
+            lastLaunchError: null,
+          },
+          lastVerification: null,
+          lastRecoveryAction: null,
+          lastReviewResult: null,
+          autonomy: {
+            maxAttempts: 5,
+            maxVerifyFailures: 3,
+            maxDurationMs: 604800000,
+            verifyFailureCount: 0,
+            escalated: false,
+            escalationReason: null,
+            escalatedAt: null,
+          },
+        },
+        recovery: {
+          resumeStrategy: null,
+          recoveryPlan: null,
+        },
+      }, null, 2)}\n`,
+    );
+
+    const pending = await runVerifyCommand({ cwd, checkpoint: "baseline" });
+
+    expect(pending.taskVerification).toMatchObject({
+      taskId: "fix-java-boundary",
+      ok: false,
+      reasons: ["review-gate-pending"],
+      missingEvidence: ["language-review"],
+      reviewGate: {
+        level: "required",
+        reason: "Java boundary changes require explicit language review.",
+      },
+      lastReviewResult: null,
+    });
+
+    await runReviewRecordCommand({
+      cwd,
+      taskId: "fix-java-boundary",
+      reviewer: "java-reviewer",
+      status: "passed",
+      summary: "Layering and transaction boundaries look correct.",
+      findings: [],
+    });
+
+    const passed = await runVerifyCommand({ cwd, checkpoint: "baseline" });
+
+    expect(passed.taskVerification).toMatchObject({
+      taskId: "fix-java-boundary",
+      ok: true,
+      reasons: [],
+      missingEvidence: [],
+      reviewGate: {
+        level: "required",
+      },
+      lastReviewResult: {
+        reviewer: "java-reviewer",
+        status: "passed",
+        summary: "Layering and transaction boundaries look correct.",
+        findings: [],
+      },
+    });
   });
 });

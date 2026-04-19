@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { getLanguageGuidePathsForLanguages } from "../analyze/language-docs.js";
 import { parseConfig } from "../config/read-write.js";
 import { buildDefaultRuntimeConfig } from "../runtime/schema.js";
 import { appendTelemetryEvent, readTelemetryDocument } from "../runtime/telemetry.js";
@@ -17,6 +18,16 @@ const MODEL_CLASSES: Array<{ modelClass: ModelClass; summary: string }> = [
 ];
 
 const TARGET_COMMANDS = ["quality-gate", "checkpoint", "verify", "sessions", "eval", "harness-audit", "model-route", "doctor", "sync"];
+const LANGUAGE_REVIEWERS: Record<string, string> = {
+  typescript: "typescript-reviewer",
+  javascript: "typescript-reviewer",
+  python: "python-reviewer",
+  go: "go-reviewer",
+  golang: "go-reviewer",
+  java: "java-reviewer",
+  rust: "rust-reviewer",
+  kotlin: "kotlin-reviewer",
+};
 
 export interface ModelRouteCommandResult {
   mode: "recommendation" | "list";
@@ -27,11 +38,14 @@ export interface ModelRouteCommandResult {
     complexity: ModelRouteComplexity;
     context: ModelRouteContext;
     targetCommand: string | null;
+    languages: string[];
   };
   recommendation?: {
     modelClass: ModelClass;
     reason: string;
     telemetryNote: string;
+    reviewerAgents: string[];
+    guideReferences: string[];
   };
 }
 
@@ -43,6 +57,16 @@ async function loadRuntimeConfig(cwd: string) {
 
   const config = parseConfig(await readTextFile(configPath));
   return config.runtime ?? buildDefaultRuntimeConfig();
+}
+
+async function loadWorkspaceLanguages(cwd: string): Promise<string[]> {
+  const configPath = join(cwd, ".bbg", "config.json");
+  if (!(await exists(configPath))) {
+    return [];
+  }
+
+  const config = parseConfig(await readTextFile(configPath));
+  return [...new Set(config.repos.map((repo) => repo.stack.language).filter((language) => language !== "unknown"))];
 }
 
 function normalizeTask(task: string): string {
@@ -103,6 +127,23 @@ function detectTargetCommand(task: string): string | null {
   }) ?? null;
 }
 
+function detectTaskLanguages(task: string, workspaceLanguages: string[]): string[] {
+  const languageAliases: Record<string, string[]> = {
+    java: ["java", "spring", "spring boot", "gradle", "maven"],
+    typescript: ["typescript", "ts", "node", "react", "next", "nextjs", "frontend"],
+    python: ["python", "django", "fastapi", "flask"],
+    golang: ["go", "golang", "gin", "fiber", "echo"],
+    rust: ["rust", "cargo", "axum", "actix", "rocket"],
+    kotlin: ["kotlin"],
+  };
+
+  const matches = workspaceLanguages.filter((language) =>
+    (languageAliases[language] ?? [language]).some((alias) => task.includes(alias)),
+  );
+
+  return matches.length > 0 ? matches : workspaceLanguages;
+}
+
 function bumpClass(current: ModelClass, direction: "up" | "down"): ModelClass {
   const order: ModelClass[] = ["fast", "balanced", "premium"];
   const index = order.indexOf(current);
@@ -117,8 +158,15 @@ function chooseBaseModelClass(input: {
   domain: ModelRouteDomain;
   complexity: ModelRouteComplexity;
   context: ModelRouteContext;
+  languages: string[];
 }): ModelClass {
   if (input.domain === "security" || input.domain === "architecture" || input.complexity === "complex") {
+    return "premium";
+  }
+  if (input.languages.includes("java") && (input.domain === "implementation" || input.domain === "review") && input.complexity !== "simple") {
+    return "premium";
+  }
+  if (input.languages.includes("rust") && input.complexity !== "simple") {
     return "premium";
   }
   if (input.domain === "docs" && input.context === "small") {
@@ -186,10 +234,12 @@ function buildReason(input: {
   domain: ModelRouteDomain;
   complexity: ModelRouteComplexity;
   context: ModelRouteContext;
+  languages: string[];
   prefer?: ModelRoutePreference;
 }): string {
   const preferenceNote = input.prefer ? ` Preference bias: ${input.prefer}.` : "";
-  return `${input.domain} work with ${input.complexity} complexity and ${input.context} context fits the ${input.modelClass} class.${preferenceNote}`;
+  const languageNote = input.languages.length > 0 ? ` Language focus: ${input.languages.join(", ")}.` : "";
+  return `${input.domain} work with ${input.complexity} complexity and ${input.context} context fits the ${input.modelClass} class.${languageNote}${preferenceNote}`;
 }
 
 export async function runModelRouteCommand(input: {
@@ -206,17 +256,20 @@ export async function runModelRouteCommand(input: {
   }
 
   const runtime = await loadRuntimeConfig(input.cwd);
+  const workspaceLanguages = await loadWorkspaceLanguages(input.cwd);
 
   if (!input.task || input.task.trim().length === 0) {
     throw new Error("model-route requires a task description unless --list is used.");
   }
 
   const task = normalizeTask(input.task);
+  const languages = detectTaskLanguages(task, workspaceLanguages);
   const classification = {
     domain: classifyDomain(task),
     complexity: classifyComplexity(task),
     context: classifyContext(task),
     targetCommand: detectTargetCommand(task),
+    languages,
   };
   const stickyPremium = classification.domain === "security" || classification.domain === "architecture";
   let modelClass = chooseBaseModelClass(classification);
@@ -236,6 +289,15 @@ export async function runModelRouteCommand(input: {
     stickyPremium,
   });
   modelClass = telemetryAdjustment.modelClass;
+  const guideReferences = (await Promise.all(
+    getLanguageGuidePathsForLanguages(languages).map(async (pathValue) =>
+      (await exists(join(input.cwd, pathValue))) ? pathValue : null),
+  )).filter((pathValue): pathValue is string => pathValue !== null);
+  const reviewerAgents = [...new Set(
+    languages
+      .map((language) => LANGUAGE_REVIEWERS[language])
+      .filter((value): value is string => Boolean(value)),
+  )];
 
   try {
     await appendTelemetryEvent(input.cwd, runtime, {
@@ -246,8 +308,10 @@ export async function runModelRouteCommand(input: {
         complexity: classification.complexity,
         context: classification.context,
         targetCommand: classification.targetCommand,
+        languages,
         prefer: input.prefer ?? null,
         modelClass,
+        reviewerAgents,
       },
     });
   } catch {
@@ -262,6 +326,8 @@ export async function runModelRouteCommand(input: {
       modelClass,
       reason: buildReason({ ...classification, modelClass, prefer: input.prefer }),
       telemetryNote: telemetryAdjustment.telemetryNote,
+      reviewerAgents,
+      guideReferences,
     },
   };
 }

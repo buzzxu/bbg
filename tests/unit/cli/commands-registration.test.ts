@@ -17,6 +17,7 @@ const commanderState = vi.hoisted(() => {
     const builder = {
       description: vi.fn(() => builder),
       option: vi.fn(() => builder),
+      requiredOption: vi.fn(() => builder),
       command: vi.fn(() => createCommandBuilder()),
       action: vi.fn(() => builder),
     };
@@ -79,6 +80,7 @@ vi.mock("../../../src/commands/upgrade.js", () => ({ runUpgrade: vi.fn() }));
 vi.mock("../../../src/commands/quality-gate.js", () => ({ runQualityGateCommand: vi.fn() }));
 vi.mock("../../../src/commands/checkpoint.js", () => ({ runCheckpointCommand: vi.fn() }));
 vi.mock("../../../src/commands/verify.js", () => ({ runVerifyCommand: vi.fn() }));
+vi.mock("../../../src/commands/review-record.js", () => ({ runReviewRecordCommand: vi.fn() }));
 vi.mock("../../../src/commands/sessions.js", () => ({ runSessionsCommand: vi.fn() }));
 vi.mock("../../../src/commands/eval.js", () => ({ runEvalCommand: vi.fn() }));
 vi.mock("../../../src/commands/harness-audit.js", () => ({ runHarnessAuditCommand: vi.fn() }));
@@ -136,6 +138,7 @@ describe("cli command registration", () => {
       "quality-gate",
       "checkpoint",
       "verify",
+      "review-record <taskId>",
       "sessions",
       "eval",
       "harness-audit",

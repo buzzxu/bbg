@@ -69,6 +69,19 @@ async function initializeWorkspace(cwd: string): Promise<void> {
       context: {},
     }),
   );
+  await writeTextFile(join(cwd, "docs", "architecture", "languages", "README.md"), "# Language Guides\n");
+  await writeTextFile(
+    join(cwd, "docs", "architecture", "languages", "typescript", "application-patterns.md"),
+    "# TypeScript Application Patterns\n",
+  );
+  await writeTextFile(
+    join(cwd, "docs", "architecture", "languages", "typescript", "type-boundaries.md"),
+    "# TypeScript Type Boundaries\n",
+  );
+  await writeTextFile(
+    join(cwd, "docs", "architecture", "languages", "typescript", "testing-and-runtime-boundaries.md"),
+    "# TypeScript Testing and Runtime Boundaries\n",
+  );
 }
 
 describe("tasks runtime", () => {
@@ -205,9 +218,61 @@ describe("tasks runtime", () => {
     expect(result.context.references).toEqual(expect.arrayContaining([
       "AGENTS.md",
       "RULES.md",
+      "docs/architecture/languages/README.md",
+      "docs/architecture/languages/typescript/application-patterns.md",
       "docs/wiki/index.md",
       "docs/wiki/concepts/fix-checkout-timeout.md",
     ]));
+    expect(result.context.languageGuidance).toEqual({
+      languages: ["typescript"],
+      guideReferences: [
+        "docs/architecture/languages/README.md",
+        "docs/architecture/languages/typescript/application-patterns.md",
+        "docs/architecture/languages/typescript/type-boundaries.md",
+        "docs/architecture/languages/typescript/testing-and-runtime-boundaries.md",
+      ],
+      reviewerAgents: ["typescript-reviewer"],
+      reviewHint: "Prefer typescript-reviewer for language-specific design and implementation review.",
+    });
+    expect(result.context.modelRoute).toEqual({
+      classification: {
+        domain: "debugging",
+        complexity: "simple",
+        context: "medium",
+        targetCommand: null,
+        languages: ["typescript"],
+      },
+      recommendation: {
+        modelClass: "balanced",
+        reason: "debugging work with simple complexity and medium context fits the balanced class. Language focus: typescript.",
+        telemetryNote: "No local telemetry feedback available.",
+        reviewerAgents: ["typescript-reviewer"],
+        guideReferences: [
+          "docs/architecture/languages/README.md",
+          "docs/architecture/languages/typescript/application-patterns.md",
+          "docs/architecture/languages/typescript/type-boundaries.md",
+          "docs/architecture/languages/typescript/testing-and-runtime-boundaries.md",
+        ],
+      },
+    });
+    expect(result.context.reviewGate).toEqual({
+      level: "recommended",
+      reviewers: ["typescript-reviewer"],
+      guideReferences: [
+        "docs/architecture/languages/README.md",
+        "docs/architecture/languages/typescript/application-patterns.md",
+        "docs/architecture/languages/typescript/type-boundaries.md",
+        "docs/architecture/languages/typescript/testing-and-runtime-boundaries.md",
+      ],
+      reviewPack: ["type-boundaries", "runtime-validation", "module-ownership", "testing-boundaries"],
+      stopConditions: [
+        "public-api-contract-change",
+        "shared-type-boundary-change",
+        "runtime-validation-gap",
+        "auth-or-permission-boundary-change",
+      ],
+      reason: "Language-specific review is recommended to preserve architecture and implementation quality.",
+    });
     expect(result.context.taskState).toMatchObject({
       status: "implementing",
       currentStep: "implement",
@@ -231,6 +296,17 @@ describe("tasks runtime", () => {
     expect(handoff).toContain("## Hermes Query");
     expect(handoff).toContain("- Executed: yes");
     expect(handoff).toContain("- Summary: Check similar incidents in Hermes.");
+    expect(handoff).toContain("## Language Guidance");
+    expect(handoff).toContain("- Languages: typescript");
+    expect(handoff).toContain("- Reviewers: typescript-reviewer");
+    expect(handoff).toContain("docs/architecture/languages/typescript/application-patterns.md");
+    expect(handoff).toContain("## Model Route");
+    expect(handoff).toContain("- Model Class: balanced");
+    expect(handoff).toContain("- Route Reviewers: typescript-reviewer");
+    expect(handoff).toContain("## Review Gate");
+    expect(handoff).toContain("- Level: recommended");
+    expect(handoff).toContain("- Reviewers: typescript-reviewer");
+    expect(handoff).toContain("shared-type-boundary-change");
     const wikiConcept = await readTextFile(join(cwd, "docs", "wiki", "concepts", "fix-checkout-timeout.md"));
     expect(wikiConcept).toContain("# fix-checkout-timeout Task Knowledge");
     expect(wikiConcept).toContain("- Hermes Summary: Check similar incidents in Hermes.");
@@ -288,6 +364,15 @@ describe("tasks runtime", () => {
         task: "Fix checkout timeout",
         taskStatus: "prepared",
         currentStep: "handoff",
+        reviewGateLevel: "recommended",
+        reviewGateReviewers: ["typescript-reviewer"],
+        reviewGatePack: ["type-boundaries", "runtime-validation", "module-ownership", "testing-boundaries"],
+        reviewGateStopConditions: [
+          "public-api-contract-change",
+          "shared-type-boundary-change",
+          "runtime-validation-gap",
+          "auth-or-permission-boundary-change",
+        ],
       }),
     );
   });
@@ -545,6 +630,8 @@ describe("tasks runtime", () => {
         resumeStrategyKind: "last-runner",
         recoveryPlanKind: "resume-runner",
         recoveryActions: ["resume"],
+        reviewGateLevel: "recommended",
+        reviewGateReviewers: ["typescript-reviewer"],
       }),
     );
     expect(runnerState.launchConfiguredAgentRunner).toHaveBeenNthCalledWith(
@@ -556,6 +643,8 @@ describe("tasks runtime", () => {
         resumeStrategyKind: "last-runner",
         recoveryPlanKind: "resume-runner",
         recoveryActions: ["resume"],
+        reviewGateLevel: "recommended",
+        reviewGateReviewers: ["typescript-reviewer"],
       }),
     );
     expect(resumed.session.status).toBe("implementing");
@@ -570,6 +659,57 @@ describe("tasks runtime", () => {
       lastAttemptAt: expect.any(String),
       lastLaunchError: null,
     });
+  });
+
+  it("records reviewer results and keeps review findings in task state", async () => {
+    const cwd = await makeTempDir();
+    await initializeWorkspace(cwd);
+    process.env.BBG_CURRENT_TOOL = "claude";
+
+    const { startTask, recordTaskReviewResult, readTaskSession } = await import("../../../src/runtime/tasks.js");
+    const created = await startTask(cwd, "Fix checkout timeout");
+
+    const failed = await recordTaskReviewResult({
+      cwd,
+      taskId: created.session.taskId,
+      reviewer: "typescript-reviewer",
+      status: "failed",
+      summary: "Type boundaries leak across module seams.",
+      findings: ["shared-type-boundary-change", "runtime-validation-gap"],
+    });
+
+    expect(failed.lastReviewResult).toEqual({
+      reviewer: "typescript-reviewer",
+      status: "failed",
+      recordedAt: expect.any(String),
+      summary: "Type boundaries leak across module seams.",
+      findings: ["shared-type-boundary-change", "runtime-validation-gap"],
+    });
+    expect(failed.lastError).toBe("review-gate-failed: typescript-reviewer");
+    expect(failed.nextActions).toEqual(
+      expect.arrayContaining(["address-review-findings", "implement", "verify"]),
+    );
+
+    const passed = await recordTaskReviewResult({
+      cwd,
+      taskId: created.session.taskId,
+      reviewer: "typescript-reviewer",
+      status: "passed",
+      summary: "Review findings addressed.",
+      findings: [],
+    });
+
+    expect(passed.lastReviewResult).toEqual({
+      reviewer: "typescript-reviewer",
+      status: "passed",
+      recordedAt: expect.any(String),
+      summary: "Review findings addressed.",
+      findings: [],
+    });
+    expect(passed.nextActions).not.toContain("address-review-findings");
+
+    const persisted = await readTaskSession(cwd, created.session.taskId);
+    expect(persisted.lastReviewResult?.status).toBe("passed");
   });
 
   it("includes task environment health and observation summaries in status", async () => {

@@ -23,7 +23,40 @@ async function seedWorkspace(cwd: string): Promise<void> {
     projectDescription: "model route command test",
     createdAt: "2026-04-01T00:00:00.000Z",
     updatedAt: "2026-04-01T00:00:00.000Z",
-    repos: [],
+    repos: [
+      {
+        name: "service-java",
+        gitUrl: "https://example.com/service-java.git",
+        branch: "main",
+        type: "backend",
+        description: "java service",
+        stack: {
+          language: "java",
+          framework: "spring",
+          buildTool: "gradle",
+          testFramework: "junit",
+          packageManager: "gradle",
+          languageVersion: "21",
+          frameworkVersion: "3.5.0",
+        },
+      },
+      {
+        name: "web-ts",
+        gitUrl: "https://example.com/web-ts.git",
+        branch: "main",
+        type: "frontend-web",
+        description: "typescript frontend",
+        stack: {
+          language: "typescript",
+          framework: "nextjs",
+          buildTool: "npm",
+          testFramework: "vitest",
+          packageManager: "npm",
+          languageVersion: "5.8.2",
+          frameworkVersion: "15.2.0",
+        },
+      },
+    ],
     governance: {
       riskThresholds: {
         high: { grade: "A+", minScore: 99 },
@@ -42,6 +75,14 @@ async function seedWorkspace(cwd: string): Promise<void> {
       },
     },
   }));
+  await writeTextFile(
+    join(cwd, "docs", "architecture", "languages", "java", "application-patterns.md"),
+    "# Java Application Patterns\n",
+  );
+  await writeTextFile(
+    join(cwd, "docs", "architecture", "languages", "typescript", "application-patterns.md"),
+    "# TypeScript Application Patterns\n",
+  );
 }
 
 afterEach(async () => {
@@ -196,6 +237,30 @@ describe("model-route command", () => {
     expect(result.classification).toEqual(expect.objectContaining({
       targetCommand: "quality-gate",
       domain: "review",
+    }));
+  });
+
+  it("surfaces language-aware reviewers and guides for language-specific tasks", async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+
+    const result = await runModelRouteCommand({
+      cwd,
+      task: "Review the Java transaction boundary change before implementation",
+    });
+
+    expect(result.mode).toBe("recommendation");
+    if (result.mode !== "recommendation") {
+      throw new Error("Expected recommendation mode result.");
+    }
+    expect(result.classification).toEqual(expect.objectContaining({
+      languages: ["java"],
+      domain: "review",
+    }));
+    expect(result.recommendation).toEqual(expect.objectContaining({
+      modelClass: "premium",
+      reviewerAgents: ["java-reviewer"],
+      guideReferences: ["docs/architecture/languages/java/application-patterns.md"],
     }));
   });
 

@@ -19,6 +19,8 @@ export const DEFAULT_STACK: Readonly<StackInfo> = {
   buildTool: "unknown",
   testFramework: "unknown",
   packageManager: "unknown",
+  languageVersion: undefined,
+  frameworkVersion: undefined,
 };
 
 export const MANAGED_GITIGNORE_BLOCK_START = "# >>> bbg managed repos >>>";

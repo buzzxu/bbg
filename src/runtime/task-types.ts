@@ -57,6 +57,14 @@ export interface TaskRecoveryAction {
   detail: string;
 }
 
+export interface TaskReviewResult {
+  reviewer: string;
+  status: "passed" | "failed";
+  recordedAt: string;
+  summary: string;
+  findings: string[];
+}
+
 export interface TaskAutonomyState {
   maxAttempts: number;
   maxVerifyFailures: number;
@@ -89,6 +97,7 @@ export interface TaskSession {
   runner: TaskRunnerState;
   lastVerification: TaskVerificationSummary | null;
   lastRecoveryAction: TaskRecoveryAction | null;
+  lastReviewResult: TaskReviewResult | null;
   autonomy: TaskAutonomyState;
 }
 
@@ -97,6 +106,36 @@ export interface TaskContext {
   taskId: string;
   analyzeRunId: string | null;
   references: string[];
+  modelRoute: {
+    classification: {
+      domain: string;
+      complexity: string;
+      context: string;
+      targetCommand: string | null;
+      languages: string[];
+    };
+    recommendation: {
+      modelClass: string;
+      reason: string;
+      telemetryNote: string;
+      reviewerAgents: string[];
+      guideReferences: string[];
+    };
+  } | null;
+  languageGuidance: {
+    languages: string[];
+    guideReferences: string[];
+    reviewerAgents: string[];
+    reviewHint: string | null;
+  };
+  reviewGate: {
+    level: "none" | "recommended" | "required";
+    reviewers: string[];
+    guideReferences: string[];
+    reviewPack: string[];
+    stopConditions: string[];
+    reason: string;
+  };
   commandSpecPath: string;
   summary: string;
   hermesRecommendations: string[];
@@ -122,6 +161,7 @@ export interface TaskContext {
     runner: TaskRunnerState;
     lastVerification: TaskVerificationSummary | null;
     lastRecoveryAction: TaskRecoveryAction | null;
+    lastReviewResult: TaskReviewResult | null;
     autonomy: TaskAutonomyState;
   };
   recovery: {
@@ -160,6 +200,9 @@ export interface TaskRecoveryPlan {
 export interface TaskStatusEntry extends TaskSession {
   resumeStrategy: TaskResumeStrategy;
   recoveryPlan: TaskRecoveryPlan;
+  modelRoute: TaskContext["modelRoute"];
+  languageGuidance: TaskContext["languageGuidance"];
+  reviewGate: TaskContext["reviewGate"];
 }
 
 export interface TaskLoopSummary {

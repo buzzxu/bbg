@@ -113,6 +113,10 @@ export function createStarterDatasetDocument(): EvalDatasetDocument {
             "docs/architecture/repos/api.md",
             "docs/repositories/api.md",
             "docs/architecture/index.md",
+            "docs/architecture/languages/README.md",
+            "docs/architecture/languages/typescript/application-patterns.md",
+            "docs/architecture/languages/typescript/type-boundaries.md",
+            "docs/architecture/languages/typescript/testing-and-runtime-boundaries.md",
             "docs/wiki/index.md",
             "docs/wiki/log.md",
             "docs/wiki/reports/workspace-analysis-summary.md",
@@ -1094,6 +1098,12 @@ async function seedWorkspaceFixture(cwd: string, fixtureDirectory: string): Prom
     name: "workspace-web",
     private: true,
     type: "module",
+    dependencies: {
+      next: "^15.2.0",
+    },
+    devDependencies: {
+      typescript: "^5.8.2",
+    },
     scripts: {
       build: 'node -e "process.exit(0)"',
       typecheck: 'node -e "process.exit(0)"',
@@ -1101,18 +1111,39 @@ async function seedWorkspaceFixture(cwd: string, fixtureDirectory: string): Prom
       lint: 'node -e "process.exit(0)"',
     },
   }, null, 2)}\n`);
+  await writeTextFile(join(fixtureRoot, "web", "tsconfig.json"), `${JSON.stringify({
+    compilerOptions: {
+      target: "ES2022",
+      module: "ESNext",
+      moduleResolution: "Node",
+      strict: true,
+    },
+    include: ["src"],
+  }, null, 2)}\n`);
   await writeTextFile(join(fixtureRoot, "web", "src", "checkout.ts"), "export const checkout = true;\n");
 
   await writeTextFile(join(fixtureRoot, "api", "package.json"), `${JSON.stringify({
     name: "workspace-api",
     private: true,
     type: "module",
+    devDependencies: {
+      typescript: "^5.8.2",
+    },
     scripts: {
       build: 'node -e "process.exit(0)"',
       typecheck: 'node -e "process.exit(0)"',
       test: 'node -e "process.exit(0)"',
       lint: 'node -e "process.exit(0)"',
     },
+  }, null, 2)}\n`);
+  await writeTextFile(join(fixtureRoot, "api", "tsconfig.json"), `${JSON.stringify({
+    compilerOptions: {
+      target: "ES2022",
+      module: "ESNext",
+      moduleResolution: "Node",
+      strict: true,
+    },
+    include: ["src"],
   }, null, 2)}\n`);
   await writeTextFile(join(fixtureRoot, "api", "src", "checkout-route.ts"), "export const checkoutRoute = true;\n");
 

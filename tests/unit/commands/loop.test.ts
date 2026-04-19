@@ -132,6 +132,7 @@ describe("loop commands", () => {
         },
         lastVerification: null,
         lastRecoveryAction: null,
+        lastReviewResult: null,
         autonomy: {
           maxAttempts: 5,
           maxVerifyFailures: 3,
@@ -150,6 +151,21 @@ describe("loop commands", () => {
         taskId: "fix-checkout-timeout",
         analyzeRunId: null,
         references: ["AGENTS.md"],
+        modelRoute: null,
+        languageGuidance: {
+          languages: [],
+          guideReferences: [],
+          reviewerAgents: [],
+          reviewHint: null,
+        },
+        reviewGate: {
+          level: "none",
+          reviewers: [],
+          guideReferences: [],
+          reviewPack: [],
+          stopConditions: [],
+          reason: "No explicit language-specific review gate configured.",
+        },
         commandSpecPath: "commands/start.md",
         summary: "Fix checkout timeout",
         hermesRecommendations: [],
@@ -184,6 +200,7 @@ describe("loop commands", () => {
           },
           lastVerification: null,
           lastRecoveryAction: null,
+          lastReviewResult: null,
           autonomy: {
             maxAttempts: 5,
             maxVerifyFailures: 3,

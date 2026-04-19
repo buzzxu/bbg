@@ -80,6 +80,14 @@ const runCrossAuditState = vi.hoisted(() => ({
   runCrossAuditCommand: vi.fn(),
 }));
 
+const runVerifyState = vi.hoisted(() => ({
+  runVerifyCommand: vi.fn(),
+}));
+
+const runReviewRecordState = vi.hoisted(() => ({
+  runReviewRecordCommand: vi.fn(),
+}));
+
 const commandState = vi.hoisted(() => {
   const name = vi.fn().mockReturnThis();
   const description = vi.fn().mockReturnThis();
@@ -90,6 +98,7 @@ const commandState = vi.hoisted(() => {
   type CommandMock = {
     description: ReturnType<typeof vi.fn>;
     option: ReturnType<typeof vi.fn>;
+    requiredOption: ReturnType<typeof vi.fn>;
     command: ReturnType<typeof vi.fn>;
     action: ReturnType<typeof vi.fn>;
     getActionHandler: () => CommandAction | undefined;
@@ -103,6 +112,7 @@ const commandState = vi.hoisted(() => {
     const commandBuilder = {
       description: vi.fn(() => commandBuilder),
       option: vi.fn(() => commandBuilder),
+      requiredOption: vi.fn(() => commandBuilder),
       command: vi.fn((subcommandName: string) => {
         const nestedCommandPath = `${commandPath} ${subcommandName}`;
         if (!commandMocks.has(nestedCommandPath)) {
@@ -124,6 +134,7 @@ const commandState = vi.hoisted(() => {
         actionHandler = undefined;
         commandBuilder.description.mockClear();
         commandBuilder.option.mockClear();
+        commandBuilder.requiredOption.mockClear();
         commandBuilder.command.mockClear();
         commandBuilder.action.mockClear();
       },
@@ -243,7 +254,8 @@ vi.mock("../../../src/commands/release.js", () => ({ runRelease: vi.fn() }));
 vi.mock("../../../src/commands/upgrade.js", () => ({ runUpgrade: vi.fn() }));
 vi.mock("../../../src/commands/quality-gate.js", () => ({ runQualityGateCommand: vi.fn() }));
 vi.mock("../../../src/commands/checkpoint.js", () => ({ runCheckpointCommand: vi.fn() }));
-vi.mock("../../../src/commands/verify.js", () => ({ runVerifyCommand: vi.fn() }));
+vi.mock("../../../src/commands/verify.js", () => ({ runVerifyCommand: runVerifyState.runVerifyCommand }));
+vi.mock("../../../src/commands/review-record.js", () => ({ runReviewRecordCommand: runReviewRecordState.runReviewRecordCommand }));
 vi.mock("../../../src/commands/sessions.js", () => ({ runSessionsCommand: vi.fn() }));
 vi.mock("../../../src/commands/eval.js", () => ({ runEvalCommand: vi.fn() }));
 vi.mock("../../../src/commands/model-route.js", () => ({ runModelRouteCommand: vi.fn() }));
@@ -465,6 +477,36 @@ describe("cli bootstrap", () => {
         taskId: "ship-feature",
         analyzeRunId: null,
         references: ["AGENTS.md", "RULES.md"],
+        modelRoute: {
+          classification: {
+            domain: "implementation",
+            complexity: "moderate",
+            context: "medium",
+            targetCommand: null,
+            languages: ["typescript"],
+          },
+          recommendation: {
+            modelClass: "balanced",
+            reason: "implementation work with moderate complexity and medium context fits the balanced class. Language focus: typescript.",
+            telemetryNote: "No local telemetry feedback available.",
+            reviewerAgents: ["typescript-reviewer"],
+            guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+          },
+        },
+        languageGuidance: {
+          languages: ["typescript"],
+          guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+          reviewerAgents: ["typescript-reviewer"],
+          reviewHint: "Prefer typescript-reviewer for language-specific design and implementation review.",
+        },
+        reviewGate: {
+          level: "recommended",
+          reviewers: ["typescript-reviewer"],
+          guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+          reviewPack: ["type-boundaries", "runtime-validation"],
+          stopConditions: ["public-api-contract-change", "runtime-validation-gap"],
+          reason: "Language-specific review is recommended to preserve architecture and implementation quality.",
+        },
         commandSpecPath: "commands/plan.md",
         summary: "Create an implementation plan from canonical repo guidance before making changes.",
         hermesRecommendations: ["If similar work may already exist, run `bbg hermes query` before planning from scratch."],
@@ -528,6 +570,36 @@ describe("cli bootstrap", () => {
         taskId: "ship-feature",
         analyzeRunId: null,
         references: ["AGENTS.md", "RULES.md"],
+        modelRoute: {
+          classification: {
+            domain: "implementation",
+            complexity: "moderate",
+            context: "medium",
+            targetCommand: null,
+            languages: ["typescript"],
+          },
+          recommendation: {
+            modelClass: "balanced",
+            reason: "implementation work with moderate complexity and medium context fits the balanced class. Language focus: typescript.",
+            telemetryNote: "No local telemetry feedback available.",
+            reviewerAgents: ["typescript-reviewer"],
+            guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+          },
+        },
+        languageGuidance: {
+          languages: ["typescript"],
+          guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+          reviewerAgents: ["typescript-reviewer"],
+          reviewHint: "Prefer typescript-reviewer for language-specific design and implementation review.",
+        },
+        reviewGate: {
+          level: "recommended",
+          reviewers: ["typescript-reviewer"],
+          guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+          reviewPack: ["type-boundaries", "runtime-validation"],
+          stopConditions: ["public-api-contract-change", "runtime-validation-gap"],
+          reason: "Language-specific review is recommended to preserve architecture and implementation quality.",
+        },
         commandSpecPath: "commands/plan.md",
         summary: "Create an implementation plan from canonical repo guidance before making changes.",
         hermesRecommendations: ["If similar work may already exist, run `bbg hermes query` before planning from scratch."],
@@ -600,6 +672,36 @@ describe("cli bootstrap", () => {
             kind: "retry-implement",
             actions: ["implement", "verify"],
             reason: "task should continue implementation and then re-run verification",
+          },
+          modelRoute: {
+            classification: {
+              domain: "implementation",
+              complexity: "moderate",
+              context: "medium",
+              targetCommand: null,
+              languages: ["typescript"],
+            },
+            recommendation: {
+              modelClass: "balanced",
+              reason: "implementation work with moderate complexity and medium context fits the balanced class. Language focus: typescript.",
+              telemetryNote: "No local telemetry feedback available.",
+              reviewerAgents: ["typescript-reviewer"],
+              guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+            },
+          },
+          languageGuidance: {
+            languages: ["typescript"],
+            guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+            reviewerAgents: ["typescript-reviewer"],
+            reviewHint: "Prefer typescript-reviewer for language-specific design and implementation review.",
+          },
+          reviewGate: {
+            level: "recommended",
+            reviewers: ["typescript-reviewer"],
+            guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+            reviewPack: ["type-boundaries", "runtime-validation"],
+            stopConditions: ["public-api-contract-change", "runtime-validation-gap"],
+            reason: "Language-specific review is recommended to preserve architecture and implementation quality.",
           },
         },
       ],
@@ -700,6 +802,60 @@ describe("cli bootstrap", () => {
       conflicts: 1,
       unresolvedCriticalOrHigh: 0,
     });
+    runVerifyState.runVerifyCommand.mockResolvedValue({
+      ok: true,
+      checkpointName: "baseline",
+      changedFiles: [],
+      checks: {
+        build: { name: "build", command: "npm run build", ok: true, exitCode: 0, stdout: "", stderr: "" },
+        tests: { name: "tests", command: "npm test", ok: true, exitCode: 0, stdout: "", stderr: "" },
+        typecheck: { name: "typecheck", command: "npm run typecheck", ok: true, exitCode: 0, stdout: "", stderr: "" },
+        lint: { name: "lint", command: "npm run lint", ok: true, exitCode: 0, stdout: "", stderr: "" },
+        security: { name: "security", command: "phase1-security-scan", ok: true, exitCode: 0, stdout: "", stderr: "" },
+      },
+      comparisons: {
+        build: { currentOk: true, checkpointOk: true, matchesCheckpoint: true },
+        tests: { currentOk: true, checkpointOk: true, matchesCheckpoint: true },
+        typecheck: { currentOk: true, checkpointOk: true, matchesCheckpoint: true },
+        lint: { currentOk: true, checkpointOk: true, matchesCheckpoint: true },
+        security: { currentOk: true, checkpointOk: true, matchesCheckpoint: true },
+      },
+        taskVerification: {
+          taskId: "ship-feature",
+          status: "completed",
+          currentStep: "complete",
+        taskEnvId: "ship-feature",
+        ok: true,
+        reasons: [],
+        missingEvidence: [],
+        observeRequired: false,
+        observationReadiness: "not-required",
+          observations: [],
+          reviewGate: {
+            level: "recommended",
+            reason: "Language-specific review is recommended to preserve architecture and implementation quality.",
+            reviewPack: ["type-boundaries", "runtime-validation"],
+            stopConditions: ["public-api-contract-change", "runtime-validation-gap"],
+          },
+          lastReviewResult: null,
+          reviewersRecommended: ["typescript-reviewer"],
+        guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
+        languageReviewHint: "Prefer typescript-reviewer for language-specific design and implementation review.",
+        hermesQueryExecuted: false,
+      },
+    });
+    runReviewRecordState.runReviewRecordCommand.mockResolvedValue({
+      session: {
+        taskId: "ship-feature",
+        lastReviewResult: {
+          reviewer: "typescript-reviewer",
+          status: "passed",
+          recordedAt: "2026-04-18T00:00:00.000Z",
+          summary: "Layering and type boundaries look good.",
+          findings: ["none"],
+        },
+      },
+    });
   });
 
   it("wires command metadata and parses argv", { timeout: 45000 }, async () => {
@@ -766,6 +922,10 @@ describe("cli bootstrap", () => {
       task: "ship feature",
     });
     expect(stdoutSpy).toHaveBeenCalledWith("Start: ship-feature\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Route: balanced (implementation/moderate)\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Route reviewers: typescript-reviewer\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Review gate: recommended\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Language review: Prefer typescript-reviewer for language-specific design and implementation review.\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Task environment: ship-feature\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Handoff: .bbg/tasks/ship-feature/handoff.md\n");
 
@@ -817,12 +977,80 @@ describe("cli bootstrap", () => {
     expect(stdoutSpy).toHaveBeenCalledWith("  resume reason: continue with the most recent successful runner\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  recovery: retry-implement (implement, verify)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  recovery reason: task should continue implementation and then re-run verification\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("  route: balanced (implementation/moderate)\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("  route reviewers: typescript-reviewer\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("  review gate: recommended\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("  language review: Prefer typescript-reviewer for language-specific design and implementation review.\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  next: implement, verify\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  verification: pass (readiness=not-required, missing=none)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Loops: 1\n");
     expect(stdoutSpy).toHaveBeenCalledWith(
       "- main-loop: waiting-for-change (iterations=1, task=ship-feature, env=ship-feature)\n",
     );
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
+  it("prints verify summary with language-specific review guidance", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const verifyCommand = commandState.getCommandMock("verify");
+    const handler = verifyCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.({ checkpoint: "baseline" });
+
+    expect(runVerifyState.runVerifyCommand).toHaveBeenCalledWith({
+      cwd: "/tmp/workspace",
+      checkpoint: "baseline",
+    });
+    expect(stdoutSpy).toHaveBeenCalledWith("Verify: PASS\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Task verification: PASS\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Recommended reviewers: typescript-reviewer\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Language review hint: Prefer typescript-reviewer for language-specific design and implementation review.\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Guide references: docs/architecture/languages/typescript/application-patterns.md\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Review gate: recommended\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Review pack: type-boundaries, runtime-validation\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Stop conditions: public-api-contract-change, runtime-validation-gap\n");
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
+  it("records reviewer gate results", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const reviewRecordCommand = commandState.getCommandMock("review-record <taskId>");
+    const handler = reviewRecordCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.("ship-feature", {
+      reviewer: "typescript-reviewer",
+      status: "passed",
+      summary: "Layering and type boundaries look good.",
+      finding: ["none"],
+    });
+
+    expect(runReviewRecordState.runReviewRecordCommand).toHaveBeenCalledWith({
+      cwd: "/tmp/workspace",
+      taskId: "ship-feature",
+      reviewer: "typescript-reviewer",
+      status: "passed",
+      summary: "Layering and type boundaries look good.",
+      findings: ["none"],
+    });
+    expect(stdoutSpy).toHaveBeenCalledWith("Review record: ship-feature\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Reviewer: typescript-reviewer\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Review status: passed\n");
 
     stdoutSpy.mockRestore();
     cwdSpy.mockRestore();

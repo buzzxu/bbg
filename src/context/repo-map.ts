@@ -59,7 +59,9 @@ function isStackInfo(value: unknown): value is StackInfo {
     isString(value.framework) &&
     isString(value.buildTool) &&
     isString(value.testFramework) &&
-    isString(value.packageManager)
+    isString(value.packageManager) &&
+    (value.languageVersion === undefined || isString(value.languageVersion)) &&
+    (value.frameworkVersion === undefined || isString(value.frameworkVersion))
   );
 }
 

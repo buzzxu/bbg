@@ -8,6 +8,8 @@ export interface StackInfo {
   buildTool: string;
   testFramework: string;
   packageManager: string;
+  languageVersion?: string;
+  frameworkVersion?: string;
 }
 
 export interface RepoEntry {

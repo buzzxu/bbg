@@ -41,13 +41,14 @@ async function seedWorkspace(cwd: string): Promise<void> {
           branch: "main",
           type: "backend",
           description: "repo a",
-          stack: {
-            language: "typescript",
-            framework: "node",
-            buildTool: "npm",
-            testFramework: "vitest",
-            packageManager: "npm",
-          },
+        stack: {
+          language: "typescript",
+          framework: "node",
+          buildTool: "npm",
+          testFramework: "vitest",
+          packageManager: "npm",
+          languageVersion: "5.8.2",
+        },
         },
       ],
       governance: {
@@ -67,14 +68,15 @@ async function seedWorkspace(cwd: string): Promise<void> {
 
 beforeEach(() => {
   analyzerState.analyzeRepo.mockReset();
-  analyzerState.analyzeRepo.mockResolvedValue({
-    stack: {
-      language: "typescript",
-      framework: "node",
-      buildTool: "npm",
-      testFramework: "vitest",
-      packageManager: "npm",
-    },
+    analyzerState.analyzeRepo.mockResolvedValue({
+      stack: {
+        language: "typescript",
+        framework: "node",
+        buildTool: "npm",
+        testFramework: "vitest",
+        packageManager: "npm",
+        languageVersion: "5.8.2",
+      },
     structure: ["has-src"],
     deps: ["zod"],
     testing: {
@@ -103,6 +105,8 @@ describe("analyze command", () => {
     expect(result.repositoryDocs).toContain("docs/repositories/repo-a.md");
     expect(result.docsUpdated).toContain("docs/business/module-map.md");
     expect(result.docsUpdated).toContain("docs/architecture/integration-map.md");
+    expect(result.docsUpdated).toContain("docs/architecture/languages/README.md");
+    expect(result.docsUpdated).toContain("docs/architecture/languages/typescript/application-patterns.md");
     expect(result.docsUpdated).toContain("docs/wiki/reports/workspace-analysis-summary.md");
     expect(result.docsUpdated).toContain("docs/wiki/concepts/repo-repo-a-overview.md");
     const latest = JSON.parse(await import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "analyze", "latest.json"), "utf8"))) as {
@@ -126,6 +130,11 @@ describe("analyze command", () => {
     );
     expect(wikiIndex).toContain("Workspace Analysis Summary");
     expect(wikiIndex).toContain("repo-a Overview");
+    const languageGuide = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(join(cwd, "docs", "architecture", "languages", "typescript", "application-patterns.md"), "utf8"),
+    );
+    expect(languageGuide).toContain("minimum_supported_version: 5.8.2");
+    expect(languageGuide).toContain("https://www.typescriptlang.org/docs/handbook/project-references");
     const businessModules = JSON.parse(
       await import("node:fs/promises").then(({ readFile }) =>
         readFile(join(cwd, ".bbg", "knowledge", "workspace", "business-modules.json"), "utf8"),

@@ -17,6 +17,10 @@ export interface LaunchAgentRunnerInput {
   resumeStrategyKind?: string | null;
   recoveryPlanKind?: string | null;
   recoveryActions?: string[];
+  reviewGateLevel?: string | null;
+  reviewGateReviewers?: string[];
+  reviewGatePack?: string[];
+  reviewGateStopConditions?: string[];
   attemptCount?: number | null;
   verifyFailureCount?: number | null;
   autonomyEscalated?: boolean | null;
@@ -46,6 +50,10 @@ function applyTemplate(value: string, input: LaunchAgentRunnerInput): string {
     .replaceAll("{resumeStrategyKind}", input.resumeStrategyKind ?? "")
     .replaceAll("{recoveryPlanKind}", input.recoveryPlanKind ?? "")
     .replaceAll("{recoveryActions}", (input.recoveryActions ?? []).join(","))
+    .replaceAll("{reviewGateLevel}", input.reviewGateLevel ?? "")
+    .replaceAll("{reviewGateReviewers}", (input.reviewGateReviewers ?? []).join(","))
+    .replaceAll("{reviewGatePack}", (input.reviewGatePack ?? []).join(","))
+    .replaceAll("{reviewGateStopConditions}", (input.reviewGateStopConditions ?? []).join(","))
     .replaceAll("{attemptCount}", input.attemptCount === null || input.attemptCount === undefined ? "" : String(input.attemptCount))
     .replaceAll("{verifyFailureCount}", input.verifyFailureCount === null || input.verifyFailureCount === undefined ? "" : String(input.verifyFailureCount))
     .replaceAll("{autonomyEscalated}", input.autonomyEscalated === null || input.autonomyEscalated === undefined ? "" : String(input.autonomyEscalated))
@@ -87,6 +95,10 @@ export async function launchConfiguredAgentRunner(
     BBG_RESUME_STRATEGY: input.resumeStrategyKind ?? "",
     BBG_RECOVERY_PLAN: input.recoveryPlanKind ?? "",
     BBG_RECOVERY_ACTIONS: (input.recoveryActions ?? []).join(","),
+    BBG_REVIEW_GATE_LEVEL: input.reviewGateLevel ?? "",
+    BBG_REVIEW_GATE_REVIEWERS: (input.reviewGateReviewers ?? []).join(","),
+    BBG_REVIEW_GATE_PACK: (input.reviewGatePack ?? []).join(","),
+    BBG_REVIEW_GATE_STOP_CONDITIONS: (input.reviewGateStopConditions ?? []).join(","),
     BBG_ATTEMPT_COUNT: input.attemptCount === null || input.attemptCount === undefined ? "" : String(input.attemptCount),
     BBG_VERIFY_FAILURE_COUNT: input.verifyFailureCount === null || input.verifyFailureCount === undefined ? "" : String(input.verifyFailureCount),
     BBG_AUTONOMY_ESCALATED: input.autonomyEscalated === null || input.autonomyEscalated === undefined ? "" : String(input.autonomyEscalated),

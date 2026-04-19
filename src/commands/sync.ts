@@ -53,7 +53,9 @@ function sameStack(a: StackInfo, b: StackInfo): boolean {
     a.framework === b.framework &&
     a.buildTool === b.buildTool &&
     a.testFramework === b.testFramework &&
-    a.packageManager === b.packageManager
+    a.packageManager === b.packageManager &&
+    (a.languageVersion ?? "") === (b.languageVersion ?? "") &&
+    (a.frameworkVersion ?? "") === (b.frameworkVersion ?? "")
   );
 }
 

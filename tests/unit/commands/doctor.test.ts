@@ -36,6 +36,7 @@ function buildConfig(): BbgConfig {
           buildTool: "npm",
           testFramework: "vitest",
           packageManager: "npm",
+          languageVersion: "5.8.2",
         },
         description: "repo a",
       },
@@ -262,7 +263,46 @@ describe("doctor command", () => {
         passed: false,
       }),
     );
+    expect(report.checks.find((entry) => entry.id === "language-pattern-guides")?.passed).toBe(false);
     expect(report.checks.find((entry) => entry.id === "knowledge-artifacts")?.message).toContain(".bbg/knowledge/");
+  });
+
+  it("reports stale language pattern guides that no longer match analyzed repo languages", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+    await seedAnalyzeState(cwd);
+    await writeTextFile(
+      join(cwd, "docs", "architecture", "languages", "README.md"),
+      "# Language Architecture Guides\n",
+    );
+    await writeTextFile(
+      join(cwd, "docs", "architecture", "languages", "typescript", "application-patterns.md"),
+      "---\nminimum_supported_version: 5.8.2\nlast_reviewed: 2026-04-18\nsources:\n  - https://www.typescriptlang.org/docs/handbook/intro.html\n---\n",
+    );
+    await writeTextFile(
+      join(cwd, "docs", "architecture", "languages", "typescript", "type-boundaries.md"),
+      "---\nminimum_supported_version: 5.8.2\nlast_reviewed: 2026-04-18\nsources:\n  - https://www.typescriptlang.org/docs/handbook/intro.html\n---\n",
+    );
+    await writeTextFile(
+      join(cwd, "docs", "architecture", "languages", "typescript", "testing-and-runtime-boundaries.md"),
+      "---\nminimum_supported_version: 5.8.2\nlast_reviewed: 2026-04-18\nsources:\n  - https://www.typescriptlang.org/docs/handbook/intro.html\n---\n",
+    );
+    await writeTextFile(
+      join(cwd, "docs", "architecture", "languages", "rust", "application-patterns.md"),
+      "---\nminimum_supported_version: 2021\nlast_reviewed: 2026-04-18\nsources:\n  - https://rust-lang.github.io/api-guidelines/checklist.html\n---\n",
+    );
+
+    const report = await runDoctor({ cwd, json: true, workspace: true });
+
+    expect(report.checks.find((entry) => entry.id === "language-pattern-guides")).toEqual(
+      expect.objectContaining({
+        passed: false,
+        message: expect.stringContaining("stale language guides are still present"),
+      }),
+    );
+    expect(report.checks.find((entry) => entry.id === "language-pattern-guides")?.message).toContain(
+      "docs/architecture/languages/rust/application-patterns.md",
+    );
   });
 
   it("reports stale task environments and observation note reuse", async () => {

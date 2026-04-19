@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type { AnalyzeDocArtifacts, RepoBusinessAnalysis, RepoTechnicalAnalysis, WorkspaceFusionResult } from "./types.js";
+import { writeLanguageGuideDocs } from "./language-docs.js";
 import { writeTextFile } from "../utils/fs.js";
 
 function toBulletList(values: string[]): string {
@@ -48,6 +49,8 @@ export async function writeAnalyzeDocs(input: {
         "",
         `- Type: ${repo.type}`,
         `- Stack: ${repo.stack.language} / ${repo.stack.framework}`,
+        `- Language Version: ${repo.stack.languageVersion ?? "unknown"}`,
+        `- Framework Version: ${repo.stack.frameworkVersion ?? "unknown"}`,
         `- Build: ${repo.stack.buildTool}`,
         `- Test: ${repo.testing.framework}`,
         "",
@@ -98,6 +101,8 @@ export async function writeAnalyzeDocs(input: {
         "",
         `- Type: ${repo.type}`,
         `- Stack: ${repo.stack.language} / ${repo.stack.framework}`,
+        `- Language Version: ${repo.stack.languageVersion ?? "unknown"}`,
+        `- Framework Version: ${repo.stack.frameworkVersion ?? "unknown"}`,
         `- Direct dependencies: ${repo.deps.length > 0 ? repo.deps.join(", ") : "(none)"}`,
         "",
       ].join("\n"),
@@ -170,6 +175,8 @@ export async function writeAnalyzeDocs(input: {
       "## Technical Summary",
       "",
       `- Stack: ${technical.stack.language} / ${technical.stack.framework}`,
+      `- Language Version: ${technical.stack.languageVersion ?? "unknown"}`,
+      `- Framework Version: ${technical.stack.frameworkVersion ?? "unknown"}`,
       `- Build: ${technical.stack.buildTool}`,
       `- Testing: ${technical.testing.framework}`,
       "",
@@ -192,6 +199,8 @@ export async function writeAnalyzeDocs(input: {
       `- Type: ${technical.repo.type}`,
       `- Description: ${technical.repo.description || "(not provided)"}`,
       `- Stack: ${technical.stack.language} / ${technical.stack.framework}`,
+      `- Language Version: ${technical.stack.languageVersion ?? "unknown"}`,
+      `- Framework Version: ${technical.stack.frameworkVersion ?? "unknown"}`,
       "",
       "## Signals",
       "",
@@ -213,6 +222,7 @@ export async function writeAnalyzeDocs(input: {
     "- [Technical Architecture](technical-architecture.md)",
     "- [Business Architecture](business-architecture.md)",
     "- [Repo Dependency Graph](repo-dependency-graph.md)",
+    "- [Language Guides](languages/README.md)",
     "",
     "## Repo Files",
     "",
@@ -223,6 +233,12 @@ export async function writeAnalyzeDocs(input: {
   ].join("\n");
   await writeTextFile(join(input.cwd, architectureIndexPath), architectureIndex);
   docsUpdated.push(architectureIndexPath);
+
+  const languageDocs = await writeLanguageGuideDocs({
+    cwd: input.cwd,
+    technical: input.technical,
+  });
+  docsUpdated.push(...languageDocs);
 
   return {
     technicalArchitecturePath,
