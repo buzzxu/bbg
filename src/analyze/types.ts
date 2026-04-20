@@ -165,7 +165,17 @@ export interface AnalyzeChangeImpactEntry {
   confidence: number;
 }
 
+export interface AnalyzeBusinessDimension {
+  name: string;
+  description: string;
+  rationale: string;
+  supportingRepos: string[];
+  evidence: AnalyzeEvidenceNote;
+  confidence: number;
+}
+
 export interface AnalyzeKnowledgeModel {
+  analysisDimensions: AnalyzeBusinessDimension[];
   capabilities: AnalyzeCapability[];
   criticalFlows: AnalyzeCriticalFlow[];
   contractSurfaces: AnalyzeContractSurface[];
@@ -244,6 +254,18 @@ export interface RepoTechnicalAnalysis {
     hasTestDir: boolean;
     testPattern: string;
   };
+  businessSignals: RepoBusinessSignals;
+}
+
+export interface RepoBusinessSignals {
+  routeEntrypoints: string[];
+  apiEntrypoints: string[];
+  domainTerms: string[];
+  entityTerms: string[];
+  capabilityTerms: string[];
+  workflowHints: string[];
+  externalIntegrations: string[];
+  riskMarkers: string[];
 }
 
 export interface RepoBusinessAnalysis {
@@ -251,6 +273,13 @@ export interface RepoBusinessAnalysis {
   description: string;
   responsibilities: string[];
   flowHints: string[];
+  capabilities: string[];
+  entrypoints: string[];
+  apiSignals: string[];
+  domainTerms: string[];
+  entityTerms: string[];
+  externalIntegrations: string[];
+  riskMarkers: string[];
 }
 
 export interface WorkspaceFusionResult {
@@ -267,6 +296,8 @@ export interface WorkspaceFusionResult {
   integrationEdges: Array<{
     from: string;
     to: string;
+    kind?: "http-api" | "ui-to-service" | "shared-domain";
+    signals?: string[];
   }>;
   businessModules: Array<{
     name: string;
@@ -281,6 +312,7 @@ export interface AnalyzeDocArtifacts {
   technicalArchitecturePath: string;
   businessArchitecturePath: string;
   dependencyGraphPath: string;
+  analysisDimensionsPath: string;
   capabilityMapPath: string;
   criticalFlowsPath: string;
   integrationContractsPath: string;

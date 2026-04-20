@@ -27,10 +27,12 @@ function repoSignals(technical: RepoTechnicalAnalysis, business: RepoBusinessAna
     technical.stack.framework,
     technical.stack.buildTool,
     technical.testing.framework,
-    ...technical.structure,
-    ...technical.deps,
     ...(business?.responsibilities ?? []),
     ...(business?.flowHints ?? []),
+    ...(business?.capabilities ?? []),
+    ...(business?.entrypoints ?? []),
+    ...(business?.apiSignals ?? []),
+    ...(business?.domainTerms ?? []),
   ]);
 }
 
@@ -83,7 +85,7 @@ export function deriveAnalyzeFocusSummary(input: {
   ).slice(0, 12);
 
   const repoMatchReason = matchedRepos.length > 0
-    ? `Matched focus tokens against repo descriptions, structure markers, dependencies, and inferred business responsibilities in ${matchedRepos.join(", ")}.`
+    ? `Matched focus tokens against repo descriptions, entrypoints, API signals, and inferred business capabilities in ${matchedRepos.join(", ")}.`
     : "No strong repo-level match found for the focus tokens in current workspace signals.";
 
   const integrationReason = input.fusion.integrationEdges.length > 0
@@ -119,6 +121,8 @@ export function enrichAnalyzeFocusSummary(input: {
       const business = businessByRepo.get(repo);
       return [
         technical?.repo.description ? `${repo}: ${technical.repo.description}` : "",
+        ...(business?.entrypoints ?? []).map((entry) => `${repo}: ${entry}`),
+        ...(business?.apiSignals ?? []).map((entry) => `${repo}: ${entry}`),
         ...(business?.responsibilities ?? []).map((entry) => `${repo}: ${entry}`),
         ...(business?.flowHints ?? []).map((entry) => `${repo}: ${entry}`),
       ];

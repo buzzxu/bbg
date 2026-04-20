@@ -58,10 +58,10 @@ function inferProjectContext(input: {
   fusion: WorkspaceFusionResult;
 }): AnalyzeProjectContext {
   const businessGoalCandidates = input.business
-    .map((entry) => entry.description.trim())
+    .flatMap((entry) => [entry.description.trim(), ...entry.capabilities])
     .filter((entry) => entry.length > 0);
   const criticalFlows = input.business
-    .flatMap((entry) => entry.flowHints)
+    .flatMap((entry) => [...entry.flowHints, ...entry.entrypoints, ...entry.apiSignals])
     .filter((hint) => hint.length > 0)
     .slice(0, 5);
   const systemBoundaries = input.fusion.repos.map((repo) => {
@@ -148,7 +148,7 @@ function inferAssumptions(input: {
   const multiRepo = input.fusion.repos.length > 1;
   const hasWeakTesting = input.technical.some((technical) => !technical.testing.hasTestDir);
   const flowCandidates = uniqueValues(
-    input.business.flatMap((entry) => [...entry.flowHints, ...entry.responsibilities]).slice(0, 5),
+    input.business.flatMap((entry) => [...entry.flowHints, ...entry.responsibilities, ...entry.entrypoints, ...entry.apiSignals]).slice(0, 8),
   );
   const boundaryCandidates = uniqueValues(
     input.fusion.repos.map((repo) => `${repo.name}: ${repo.description?.trim().length ? repo.description.trim() : `${repo.type} responsibility`}`),

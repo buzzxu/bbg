@@ -32,6 +32,16 @@ const technical: RepoTechnicalAnalysis[] = [
       hasTestDir: true,
       testPattern: "*.test.ts",
     },
+    businessSignals: {
+      routeEntrypoints: ["view:checkout/index"],
+      apiEntrypoints: ["/api/orders"],
+      domainTerms: ["checkout", "order"],
+      entityTerms: ["order"],
+      capabilityTerms: ["Checkout management"],
+      workflowHints: ["Admin configures and reviews checkout workflows."],
+      externalIntegrations: [],
+      riskMarkers: ["order"],
+    },
   },
   {
     repo: {
@@ -62,6 +72,16 @@ const technical: RepoTechnicalAnalysis[] = [
       hasTestDir: true,
       testPattern: "*.test.ts",
     },
+    businessSignals: {
+      routeEntrypoints: [],
+      apiEntrypoints: ["/api/orders", "/api/checkout"],
+      domainTerms: ["checkout", "order"],
+      entityTerms: ["order"],
+      capabilityTerms: ["Checkout service"],
+      workflowHints: ["Backend handles checkout APIs, validation, and persistence."],
+      externalIntegrations: ["payment"],
+      riskMarkers: ["order", "payment"],
+    },
   },
 ];
 
@@ -70,13 +90,27 @@ const business: RepoBusinessAnalysis[] = [
     repoName: "web",
     description: "customer web",
     responsibilities: ["serve customer checkout"],
-    flowHints: ["dependencies: api"],
+    flowHints: ["Admin configures and reviews checkout workflows."],
+    capabilities: ["Checkout management"],
+    entrypoints: ["view:checkout/index"],
+    apiSignals: ["/api/orders"],
+    domainTerms: ["checkout", "order"],
+    entityTerms: ["order"],
+    externalIntegrations: [],
+    riskMarkers: ["order"],
   },
   {
     repoName: "api",
     description: "order api",
     responsibilities: ["persist orders"],
-    flowHints: ["dependencies: postgres"],
+    flowHints: ["Backend handles checkout APIs, validation, and persistence."],
+    capabilities: ["Checkout service"],
+    entrypoints: [],
+    apiSignals: ["/api/orders", "/api/checkout"],
+    domainTerms: ["checkout", "order"],
+    entityTerms: ["order"],
+    externalIntegrations: ["payment"],
+    riskMarkers: ["order", "payment"],
   },
 ];
 
@@ -91,16 +125,15 @@ describe("fuseWorkspaceAnalysis", () => {
     expect(result.scope).toBe("workspace");
     expect(result.repos).toHaveLength(2);
     expect(result.integrationEdges).toEqual([
-      { from: "web", to: "api" },
-      { from: "api", to: "postgres" },
+      expect.objectContaining({ from: "web", to: "api", kind: "ui-to-service" }),
     ]);
     expect(result.businessModules).toEqual([
       expect.objectContaining({
-        name: "web",
+        name: "Checkout management",
         responsibilities: ["serve customer checkout"],
       }),
       expect.objectContaining({
-        name: "api",
+        name: "Checkout service",
         responsibilities: ["persist orders"],
       }),
     ]);

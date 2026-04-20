@@ -173,6 +173,7 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
       artifactsUpdated: [
         ".bbg/knowledge/workspace/business-context.json",
         ".bbg/knowledge/workspace/constraints.json",
+        ".bbg/knowledge/workspace/analysis-dimensions.json",
         ".bbg/knowledge/workspace/capabilities.json",
         ".bbg/knowledge/workspace/critical-flows.json",
         ".bbg/knowledge/workspace/contracts.json",
@@ -181,6 +182,7 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
         ".bbg/knowledge/workspace/decisions.json",
         ".bbg/knowledge/workspace/change-impact.json",
         "docs/business/project-context.md",
+        "docs/business/analysis-dimensions.md",
         "docs/business/capability-map.md",
         "docs/business/critical-flows.md",
         "docs/business/domain-model.md",
@@ -244,6 +246,7 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
       technicalArchitecturePath: docs.technicalArchitecturePath,
       businessArchitecturePath: docs.businessArchitecturePath,
       dependencyGraphPath: docs.dependencyGraphPath,
+      analysisDimensionsPath: docs.analysisDimensionsPath,
       capabilityMapPath: docs.capabilityMapPath,
       criticalFlowsPath: docs.criticalFlowsPath,
       integrationContractsPath: docs.integrationContractsPath,

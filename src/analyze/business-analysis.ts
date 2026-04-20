@@ -1,30 +1,67 @@
 import type { RepoBusinessAnalysis, RepoTechnicalAnalysis } from "./types.js";
 
-function deriveResponsibilities(technical: RepoTechnicalAnalysis): string[] {
-  const responsibilities = [
-    technical.repo.description || technical.repo.type,
-    technical.stack.framework !== "unknown" ? `${technical.stack.framework} application surface` : null,
-    technical.testing.hasTestDir ? `tested with ${technical.testing.framework}` : null,
-  ].filter((value): value is string => value !== null && value.trim().length > 0);
-
-  return responsibilities.length > 0 ? responsibilities : [technical.repo.type];
+function unique(values: string[]): string[] {
+  return [
+    ...new Set(
+      values
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0),
+    ),
+  ];
 }
 
-function deriveFlowHints(technical: RepoTechnicalAnalysis): string[] {
-  const hints = [
-    technical.structure.length > 0 ? `structure: ${technical.structure.join(", ")}` : null,
-    technical.deps.length > 0 ? `dependencies: ${technical.deps.join(", ")}` : null,
-    technical.stack.buildTool !== "unknown" ? `build: ${technical.stack.buildTool}` : null,
-  ].filter((value): value is string => value !== null && value.trim().length > 0);
+function frameworkResponsibility(technical: RepoTechnicalAnalysis): string | null {
+  const framework = technical.stack.framework;
+  if (framework === "unknown") {
+    return null;
+  }
 
-  return hints;
+  if (technical.repo.type === "frontend-web") {
+    return `${framework} admin experience`;
+  }
+
+  if (technical.repo.type === "frontend-h5" || technical.repo.type === "frontend") {
+    return `${framework} user journey`;
+  }
+
+  return `${framework} service layer`;
+}
+
+function routeSummary(signals: RepoTechnicalAnalysis["businessSignals"]): string[] {
+  return [
+    ...signals.routeEntrypoints.slice(0, 4).map((entry) => `entrypoint: ${entry}`),
+    ...signals.apiEntrypoints.slice(0, 4).map((entry) => `api: ${entry}`),
+  ];
 }
 
 export function deriveRepoBusinessAnalysis(technicalAnalyses: RepoTechnicalAnalysis[]): RepoBusinessAnalysis[] {
-  return technicalAnalyses.map((technical) => ({
-    repoName: technical.repo.name,
-    description: technical.repo.description,
-    responsibilities: deriveResponsibilities(technical),
-    flowHints: deriveFlowHints(technical),
-  }));
+  return technicalAnalyses.map((technical) => {
+    const signals = technical.businessSignals;
+    const responsibilities = unique([
+      technical.repo.description,
+      ...signals.capabilityTerms.slice(0, 5),
+      frameworkResponsibility(technical),
+      signals.externalIntegrations.length > 0 ? `integrates with ${signals.externalIntegrations.join(", ")}` : "",
+    ]);
+
+    const flowHints = unique([
+      ...signals.workflowHints,
+      ...routeSummary(signals),
+    ]);
+
+    return {
+      repoName: technical.repo.name,
+      description: technical.repo.description,
+      responsibilities: responsibilities.length > 0 ? responsibilities : [technical.repo.type],
+      flowHints,
+      capabilities: signals.capabilityTerms,
+      entrypoints: signals.routeEntrypoints,
+      apiSignals: signals.apiEntrypoints,
+      domainTerms: signals.domainTerms,
+      entityTerms: signals.entityTerms,
+      externalIntegrations: signals.externalIntegrations,
+      riskMarkers: signals.riskMarkers,
+    };
+  });
 }

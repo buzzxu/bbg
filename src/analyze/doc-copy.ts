@@ -4,6 +4,7 @@ export interface AnalyzeDocCopy {
   technicalArchitecture: string;
   businessArchitecture: string;
   repoDependencyGraph: string;
+  analysisDimensions: string;
   capabilityMap: string;
   criticalFlowAnalysis: string;
   integrationContracts: string;
@@ -44,6 +45,7 @@ export interface AnalyzeDocCopy {
   summary: string;
   overview: string;
   keyDocs: string;
+  dimensionDescription: string;
   ownershipHint: string;
   responsibility: string;
   currentResponsibility: string;
@@ -85,6 +87,7 @@ const ENGLISH_COPY: AnalyzeDocCopy = {
   technicalArchitecture: "Technical Architecture",
   businessArchitecture: "Business Architecture",
   repoDependencyGraph: "Repo Dependency Graph",
+  analysisDimensions: "Analysis Dimensions",
   capabilityMap: "Capability Map",
   criticalFlowAnalysis: "Critical Flow Analysis",
   integrationContracts: "Integration Contracts",
@@ -125,6 +128,7 @@ const ENGLISH_COPY: AnalyzeDocCopy = {
   summary: "Summary",
   overview: "Overview",
   keyDocs: "Key Analysis Documents",
+  dimensionDescription: "Dimension Description",
   ownershipHint: "Ownership hint",
   responsibility: "Responsibility",
   currentResponsibility: "Current responsibility",
@@ -166,6 +170,7 @@ const CHINESE_COPY: AnalyzeDocCopy = {
   technicalArchitecture: "技术架构",
   businessArchitecture: "业务架构",
   repoDependencyGraph: "仓库依赖图",
+  analysisDimensions: "分析维度",
   capabilityMap: "能力地图",
   criticalFlowAnalysis: "关键流程分析",
   integrationContracts: "集成契约面",
@@ -206,6 +211,7 @@ const CHINESE_COPY: AnalyzeDocCopy = {
   summary: "摘要",
   overview: "总览",
   keyDocs: "关键分析文档",
+  dimensionDescription: "维度说明",
   ownershipHint: "归属提示",
   responsibility: "职责",
   currentResponsibility: "当前职责",

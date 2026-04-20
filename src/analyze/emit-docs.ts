@@ -25,6 +25,26 @@ function toLinkedList(values: Array<{ label: string; path: string }>): string {
   return values.map((value) => `- [${value.label}](${value.path})`).join("\n");
 }
 
+function mermaidNodeId(value: string): string {
+  return value.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "node";
+}
+
+function toMermaidFlow(flow: AnalyzeKnowledgeModel["criticalFlows"][number]): string {
+  const repos = [...new Set(flow.steps.map((step) => step.repo))];
+  const lines = ["```mermaid", "flowchart LR"];
+  for (const repo of repos) {
+    lines.push(`  ${mermaidNodeId(repo)}[\"${repo}\"]`);
+  }
+  for (let index = 0; index < repos.length - 1; index += 1) {
+    lines.push(`  ${mermaidNodeId(repos[index])} --> ${mermaidNodeId(repos[index + 1])}`);
+  }
+  if (repos.length === 1) {
+    lines.push(`  ${mermaidNodeId(repos[0])}`);
+  }
+  lines.push("```");
+  return lines.join("\n");
+}
+
 export async function writeAnalyzeDocs(input: {
   cwd: string;
   technical: RepoTechnicalAnalysis[];
@@ -40,6 +60,7 @@ export async function writeAnalyzeDocs(input: {
   const technicalArchitecturePath = "docs/architecture/technical-architecture.md";
   const businessArchitecturePath = "docs/architecture/business-architecture.md";
   const dependencyGraphPath = "docs/architecture/repo-dependency-graph.md";
+  const analysisDimensionsPath = "docs/business/analysis-dimensions.md";
   const capabilityMapPath = "docs/business/capability-map.md";
   const criticalFlowsPath = "docs/business/critical-flows.md";
   const integrationContractsPath = "docs/architecture/integration-contracts.md";
@@ -60,6 +81,7 @@ export async function writeAnalyzeDocs(input: {
     technicalArchitecturePath,
     businessArchitecturePath,
     dependencyGraphPath,
+    analysisDimensionsPath,
     capabilityMapPath,
     criticalFlowsPath,
     integrationContractsPath,
@@ -157,6 +179,32 @@ export async function writeAnalyzeDocs(input: {
     ),
   ].join("\n");
 
+  const analysisDimensionsContent = [
+    `# ${copy.analysisDimensions}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...input.model.analysisDimensions.map((dimension) =>
+      [
+        `## ${dimension.name}`,
+        "",
+        `- ${copy.dimensionDescription}: ${dimension.description}`,
+        `- ${copy.repositories}: ${dimension.supportingRepos.join(", ") || copy.none}`,
+        `- ${copy.confidence}: ${dimension.confidence}`,
+        "",
+        `### ${copy.rationale}`,
+        "",
+        `- ${dimension.rationale}`,
+        "",
+        `### ${copy.evidence}`,
+        "",
+        `- ${dimension.evidence.summary}`,
+        ...(dimension.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${dimension.evidence.signals.join(", ")}`] : []),
+        "",
+      ].join("\n"),
+    ),
+  ].join("\n");
+
   const criticalFlowsContent = [
     `# ${copy.criticalFlowAnalysis}`,
     "",
@@ -174,6 +222,10 @@ export async function writeAnalyzeDocs(input: {
         `### ${copy.likelyFlowSequence}`,
         "",
         ...flow.steps.map((step) => `1. ${step.repo}: ${step.action} (${step.boundary})`),
+        "",
+        "### Mermaid",
+        "",
+        toMermaidFlow(flow),
         "",
         `### ${copy.failureHotspots}`,
         "",
@@ -365,6 +417,7 @@ export async function writeAnalyzeDocs(input: {
     `## ${copy.currentFlowHypotheses}`,
     "",
     toLinkedList([
+      { label: copy.analysisDimensions, path: "analysis-dimensions.md" },
       { label: copy.criticalFlowAnalysis, path: "critical-flows.md" },
       ...input.model.criticalFlows.slice(0, 5).map((flow) => ({ label: flow.summary, path: "critical-flows.md" })),
     ]),
@@ -381,6 +434,7 @@ export async function writeAnalyzeDocs(input: {
     `## ${copy.keyDocs}`,
     "",
     toLinkedList([
+      { label: copy.analysisDimensions, path: "analysis-dimensions.md" },
       { label: copy.capabilityMap, path: "capability-map.md" },
       { label: copy.criticalFlowAnalysis, path: "critical-flows.md" },
       { label: copy.domainModel, path: "domain-model.md" },
@@ -474,6 +528,16 @@ export async function writeAnalyzeDocs(input: {
       "",
       ...(input.focus.likelyEntrypoints.length > 0 ? input.focus.likelyEntrypoints.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
       "",
+      "## Mermaid",
+      "",
+      [
+        "```mermaid",
+        "flowchart LR",
+        ...input.focus.matchedRepos.map((repo) => `  ${mermaidNodeId(repo)}[\"${repo}\"]`),
+        ...input.focus.matchedRepos.slice(0, -1).map((repo, index) => `  ${mermaidNodeId(repo)} --> ${mermaidNodeId(input.focus!.matchedRepos[index + 1])}`),
+        "```",
+      ].join("\n"),
+      "",
       `## ${copy.contracts}`,
       "",
       ...(input.focus.matchedContracts.length > 0 ? input.focus.matchedContracts.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
@@ -504,6 +568,7 @@ export async function writeAnalyzeDocs(input: {
   await writeTextFile(join(input.cwd, technicalArchitecturePath), technicalContent);
   await writeTextFile(join(input.cwd, businessArchitecturePath), businessContent);
   await writeTextFile(join(input.cwd, dependencyGraphPath), dependencyContent);
+  await writeTextFile(join(input.cwd, analysisDimensionsPath), analysisDimensionsContent);
   await writeTextFile(join(input.cwd, capabilityMapPath), capabilityMapContent);
   await writeTextFile(join(input.cwd, criticalFlowsPath), criticalFlowsContent);
   await writeTextFile(join(input.cwd, integrationContractsPath), integrationContractsContent);
@@ -603,6 +668,7 @@ export async function writeAnalyzeDocs(input: {
     technicalArchitecturePath,
     businessArchitecturePath,
     dependencyGraphPath,
+    analysisDimensionsPath,
     capabilityMapPath,
     criticalFlowsPath,
     integrationContractsPath,

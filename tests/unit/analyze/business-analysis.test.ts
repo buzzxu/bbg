@@ -32,6 +32,16 @@ function makeTechnicalAnalysis(): RepoTechnicalAnalysis {
       hasTestDir: true,
       testPattern: "*.test.ts",
     },
+    businessSignals: {
+      routeEntrypoints: ["route:/orders"],
+      apiEntrypoints: ["/api/orders"],
+      domainTerms: ["order"],
+      entityTerms: ["order"],
+      capabilityTerms: ["Order service", "Checkout service"],
+      workflowHints: ["Backend handles order APIs, validation, and persistence."],
+      externalIntegrations: ["payment"],
+      riskMarkers: ["order", "payment"],
+    },
   };
 }
 
@@ -43,12 +53,15 @@ describe("deriveRepoBusinessAnalysis", () => {
       expect.objectContaining({
         repoName: "api",
         description: "order API",
-        responsibilities: expect.arrayContaining(["order API", "fastify application surface", "tested with vitest"]),
+        responsibilities: expect.arrayContaining(["order API", "Order service", "Checkout service", "fastify service layer", "integrates with payment"]),
         flowHints: expect.arrayContaining([
-          "structure: src, modules",
-          "dependencies: zod, pg",
-          "build: npm",
+          "Backend handles order APIs, validation, and persistence.",
+          "entrypoint: route:/orders",
+          "api: /api/orders",
         ]),
+        capabilities: expect.arrayContaining(["Order service", "Checkout service"]),
+        apiSignals: ["/api/orders"],
+        domainTerms: ["order"],
       }),
     ]);
   });

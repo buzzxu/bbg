@@ -1,4 +1,5 @@
 import type {
+  AnalyzeBusinessDimension,
   AnalyzeCapability,
   AnalyzeChangeImpactEntry,
   AnalyzeContractSurface,
@@ -32,6 +33,43 @@ function tokenize(value: string): string[] {
     .filter((token) => token.length > 2);
 }
 
+function repoSignals(technical: RepoTechnicalAnalysis, business: RepoBusinessAnalysis | undefined): string[] {
+  return unique([
+    technical.repo.name,
+    technical.repo.description,
+    technical.repo.type,
+    technical.stack.language,
+    technical.stack.framework,
+    technical.stack.buildTool,
+    technical.testing.framework,
+    ...technical.structure,
+    ...(business?.responsibilities ?? []),
+    ...(business?.capabilities ?? []),
+    ...(business?.entrypoints ?? []),
+    ...(business?.apiSignals ?? []),
+    ...(business?.domainTerms ?? []),
+    ...(business?.riskMarkers ?? []),
+  ]);
+}
+
+function makeEvidence(summary: string, signals: string[]): AnalyzeEvidenceNote {
+  return {
+    summary,
+    signals: unique(signals).slice(0, 10),
+  };
+}
+
+function inferRepoBoundary(technical: RepoTechnicalAnalysis): string {
+  const framework = technical.stack.framework.toLowerCase();
+  if (/(react|vue|next|taro)/.test(framework) || /frontend/.test(technical.repo.type)) {
+    return "client application boundary";
+  }
+  if (/(spring|express|fastify|fastapi|django|laravel|rails|node)/.test(framework) || technical.repo.type === "backend") {
+    return "service and API boundary";
+  }
+  return "repository ownership boundary";
+}
+
 function topConcepts(values: string[]): string[] {
   const stopWords = new Set([
     "application",
@@ -43,100 +81,182 @@ function topConcepts(values: string[]): string[] {
     "modules",
     "build",
     "test",
-    "tested",
-    "with",
-    "repo",
-    "backend",
-    "frontend",
-    "admin",
-    "node",
-    "spring",
-    "react",
-    "vue",
-    "java",
-    "typescript",
-    "framework",
-    "structure",
-    "dependencies",
+    "route",
+    "entrypoint",
+    "api",
+    "view",
+    "page",
   ]);
-  return unique(values.flatMap((value) => tokenize(value)).filter((token) => !stopWords.has(token))).slice(0, 6);
+
+  return unique(values.flatMap((value) => tokenize(value)).filter((token) => !stopWords.has(token))).slice(0, 8);
 }
 
-function repoSignals(technical: RepoTechnicalAnalysis, business: RepoBusinessAnalysis | undefined): string[] {
-  return unique([
-    technical.repo.name,
-    technical.repo.description,
-    technical.repo.type,
-    technical.stack.language,
-    technical.stack.framework,
-    technical.stack.buildTool,
-    technical.testing.framework,
-    ...technical.structure,
-    ...technical.deps,
-    ...(business?.responsibilities ?? []),
-    ...(business?.flowHints ?? []),
-  ]);
+function overlap(left: string[], right: string[]): string[] {
+  const rightSet = new Set(right.map((value) => value.toLowerCase()));
+  return left.filter((value) => rightSet.has(value.toLowerCase()));
 }
 
-function makeEvidence(summary: string, signals: string[]): AnalyzeEvidenceNote {
-  return {
-    summary,
-    signals: unique(signals).slice(0, 8),
-  };
-}
-
-function inferRepoBoundary(technical: RepoTechnicalAnalysis): string {
-  const framework = technical.stack.framework.toLowerCase();
-  if (/(react|vue|next|taro)/.test(framework) || technical.repo.type === "frontend") {
-    return "client application boundary";
-  }
-  if (/(spring|express|fastify|fastapi|django|laravel|rails|node)/.test(framework) || technical.repo.type === "backend") {
-    return "service and API boundary";
-  }
-  return "repository ownership boundary";
-}
-
-function inferContractTypes(technical: RepoTechnicalAnalysis): AnalyzeContractSurface["type"][] {
-  const framework = technical.stack.framework.toLowerCase();
-  const combined = [technical.repo.description, ...technical.structure, ...technical.deps].join(" ").toLowerCase();
-  const types: AnalyzeContractSurface["type"][] = [];
-  if (/(react|vue|next|taro)/.test(framework) || technical.repo.type === "frontend") {
-    types.push("ui");
-    types.push("shared-schema");
-  }
-  if (/(spring|express|fastify|fastapi|django|node)/.test(framework) || technical.repo.type === "backend") {
-    types.push("http-api");
-  }
-  if (/(queue|job|worker|schedule|cron|rabbit|kafka|mq)/.test(combined)) {
-    types.push("async-job");
-  }
-  if (/(payment|oauth|auth0|stripe|oss|s3|redis|mysql|postgres|webhook)/.test(combined)) {
-    types.push("integration");
-  }
-  return types.length > 0 ? unique(types) as AnalyzeContractSurface["type"][] : ["shared-schema"];
+function businessByRepoMap(entries: RepoBusinessAnalysis[]): Map<string, RepoBusinessAnalysis> {
+  return new Map(entries.map((entry) => [entry.repoName, entry] as const));
 }
 
 function deriveCapabilities(
   technical: RepoTechnicalAnalysis[],
   business: RepoBusinessAnalysis[],
-  fusion: WorkspaceFusionResult,
 ): AnalyzeCapability[] {
-  const businessByRepo = new Map(business.map((entry) => [entry.repoName, entry] as const));
-  return fusion.businessModules.map((module) => {
-    const technicalMatch = technical.find((entry) => entry.repo.name === module.name);
-    const signals = technicalMatch ? repoSignals(technicalMatch, businessByRepo.get(module.name)) : [module.name, module.description];
-    return {
-      name: module.name,
-      description: module.description || module.type,
-      owningRepos: [module.name],
-      responsibilities: module.responsibilities,
+  const grouped = new Map<string, AnalyzeCapability>();
+  const businessByRepo = businessByRepoMap(business);
+
+  for (const technicalRepo of technical) {
+    const businessRepo = businessByRepo.get(technicalRepo.repo.name);
+    for (const capability of businessRepo?.capabilities ?? []) {
+      const key = capability.toLowerCase();
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.owningRepos = unique([...existing.owningRepos, technicalRepo.repo.name]);
+        existing.responsibilities = unique([...existing.responsibilities, ...(businessRepo?.responsibilities ?? [])]).slice(0, 8);
+        existing.evidence.signals = unique([...existing.evidence.signals, ...repoSignals(technicalRepo, businessRepo)]).slice(0, 10);
+        existing.confidence = clampConfidence(existing.confidence + 0.05);
+        continue;
+      }
+
+      grouped.set(key, {
+        name: capability,
+        description: capability,
+        owningRepos: [technicalRepo.repo.name],
+        responsibilities: (businessRepo?.responsibilities ?? [technicalRepo.repo.description || technicalRepo.repo.type]).slice(0, 6),
+        evidence: makeEvidence(
+          "Derived from route, API, controller, DTO, and domain-term signals collected from the repository.",
+          repoSignals(technicalRepo, businessRepo),
+        ),
+        confidence: clampConfidence(0.72 + Math.min((businessRepo?.entrypoints.length ?? 0), 3) * 0.05),
+      });
+    }
+  }
+
+  if (grouped.size > 0) {
+    return [...grouped.values()].sort((left, right) => right.owningRepos.length - left.owningRepos.length || left.name.localeCompare(right.name));
+  }
+
+  return technical.map((technicalRepo) => ({
+    name: technicalRepo.repo.name,
+    description: technicalRepo.repo.description || technicalRepo.repo.type,
+    owningRepos: [technicalRepo.repo.name],
+    responsibilities: [technicalRepo.repo.description || technicalRepo.repo.type],
+    evidence: makeEvidence(
+      "Fallback capability derived from repository identity because no stronger business signals were found.",
+      repoSignals(technicalRepo, businessByRepo.get(technicalRepo.repo.name)),
+    ),
+    confidence: 0.46,
+  }));
+}
+
+function deriveAnalysisDimensions(input: {
+  technical: RepoTechnicalAnalysis[];
+  business: RepoBusinessAnalysis[];
+  capabilities: AnalyzeCapability[];
+  contracts: AnalyzeContractSurface[];
+  risks: AnalyzeRiskItem[];
+  flows: AnalyzeCriticalFlow[];
+}): AnalyzeBusinessDimension[] {
+  const businessByRepo = businessByRepoMap(input.business);
+  const dimensions: AnalyzeBusinessDimension[] = [];
+  const allSignals = unique(
+    input.technical.flatMap((repo) => repoSignals(repo, businessByRepo.get(repo.repo.name))),
+  );
+
+  const addDimension = (
+    name: string,
+    description: string,
+    rationale: string,
+    supportingRepos: string[],
+    evidenceSignals: string[],
+    confidence: number,
+  ) => {
+    dimensions.push({
+      name,
+      description,
+      rationale,
+      supportingRepos: unique(supportingRepos),
       evidence: makeEvidence(
-        "Derived from repository role, inferred responsibilities, and structure/dependency markers.",
-        signals,
+        "Planned from repository entrypoints, API signals, contracts, risks, and workspace structure.",
+        evidenceSignals,
       ),
-      confidence: clampConfidence(0.68 + Math.min(module.responsibilities.length, 3) * 0.07),
-    };
-  });
+      confidence: clampConfidence(confidence),
+    });
+  };
+
+  const clientRepos = input.technical.filter((repo) => /frontend/.test(repo.repo.type)).map((repo) => repo.repo.name);
+  const adminRepos = input.technical.filter((repo) => repo.repo.type === "frontend-web").map((repo) => repo.repo.name);
+  const userFacingRepos = input.technical.filter((repo) => repo.repo.type === "frontend-h5" || repo.repo.type === "frontend").map((repo) => repo.repo.name);
+  const backendRepos = input.technical.filter((repo) => repo.repo.type === "backend").map((repo) => repo.repo.name);
+  if (userFacingRepos.length > 0) {
+    addDimension(
+      "用户入口与交互场景",
+      "分析用户侧页面、路由、入口点以及这些入口背后的主要 API 交互。",
+      "检测到面向用户的前端仓库，并提取出了页面、路由和请求信号。",
+      userFacingRepos,
+      input.flows.flatMap((flow) => flow.evidence.signals).slice(0, 10),
+      0.84,
+    );
+  }
+  if (adminRepos.length > 0) {
+    addDimension(
+      "后台运营与配置面",
+      "分析后台页面、运营配置动作和管理端调用的接口面与影响范围。",
+      "检测到管理端仓库，并发现了后台路由、页面和配置类 API 调用。",
+      adminRepos,
+      input.capabilities
+        .filter((capability) => capability.owningRepos.some((repo) => adminRepos.includes(repo)))
+        .flatMap((capability) => capability.evidence.signals)
+        .slice(0, 10),
+      0.82,
+    );
+  }
+  if (clientRepos.length > 0 && backendRepos.length > 0) {
+    addDimension(
+      "服务契约与跨仓协同",
+      "分析前端、管理端与后端之间的 API 契约、消费关系和跨仓协作边界。",
+      "工作区同时包含客户端与后端服务，并已推断出跨仓集成边。",
+      [...clientRepos, ...backendRepos],
+      input.contracts.flatMap((contract) => contract.evidence.signals).slice(0, 10),
+      0.88,
+    );
+  }
+  if (input.capabilities.length > 0) {
+    addDimension(
+      "核心业务对象与状态",
+      "分析页面、接口、DTO、实体和命名信号中反复出现的核心业务对象与状态变化。",
+      "已提取出一批反复出现的能力、领域词和实体词，可作为业务对象建模入口。",
+      unique(input.capabilities.flatMap((capability) => capability.owningRepos)),
+      input.capabilities.flatMap((capability) => capability.evidence.signals).slice(0, 10),
+      0.8,
+    );
+  }
+
+  if (input.risks.length > 0) {
+    addDimension(
+      "风险与运行约束",
+      "分析测试薄弱区、敏感边界、外部集成和运行时约束，识别最需要谨慎变更的部分。",
+      "风险面已识别出高风险热点与运行时敏感区，需要单独作为分析维度。",
+      unique(input.risks.flatMap((risk) => risk.affectedRepos)),
+      input.risks.flatMap((risk) => risk.evidence.signals).slice(0, 10),
+      0.79,
+    );
+  }
+
+  if (dimensions.length === 0) {
+    addDimension(
+      "仓库角色与业务边界",
+      "分析各仓库承担的业务角色、入口点和跨仓协作方式。",
+      "当前未发现更强的领域维度，因此退回到仓库角色与入口点分析。",
+      input.technical.map((repo) => repo.repo.name),
+      allSignals.slice(0, 10),
+      0.62,
+    );
+  }
+
+  return dimensions;
 }
 
 function deriveContractSurfaces(
@@ -144,53 +264,81 @@ function deriveContractSurfaces(
   business: RepoBusinessAnalysis[],
   fusion: WorkspaceFusionResult,
 ): AnalyzeContractSurface[] {
-  const businessByRepo = new Map(business.map((entry) => [entry.repoName, entry] as const));
+  const businessByRepo = businessByRepoMap(business);
   const surfaces: AnalyzeContractSurface[] = [];
 
   for (const technicalRepo of technical) {
-    const signals = repoSignals(technicalRepo, businessByRepo.get(technicalRepo.repo.name));
-    for (const type of inferContractTypes(technicalRepo)) {
-      const label = {
-        ui: "UI interaction and browser boundary",
-        "http-api": "HTTP/API contract surface",
-        integration: "External integration surface",
-        "async-job": "Async job and worker boundary",
-        "shared-schema": "Shared schema and data-shape surface",
-      }[type];
+    const businessRepo = businessByRepo.get(technicalRepo.repo.name);
+    const consumers = fusion.integrationEdges.filter((edge) => edge.to === technicalRepo.repo.name).map((edge) => edge.from);
+
+    if ((businessRepo?.entrypoints.length ?? 0) > 0) {
       surfaces.push({
-        name: `${technicalRepo.repo.name} ${label}`,
-        type,
+        name: `${technicalRepo.repo.name} UI routes`,
+        type: "ui",
         owners: [technicalRepo.repo.name],
-        consumers: fusion.integrationEdges.filter((edge) => edge.to === technicalRepo.repo.name).map((edge) => edge.from),
+        consumers,
         boundary: inferRepoBoundary(technicalRepo),
         evidence: makeEvidence(
-          "Inferred from framework, structure markers, and dependency signals.",
-          signals,
+          "Derived from discovered pages, views, and router entrypoints.",
+          businessRepo?.entrypoints ?? [],
         ),
-        confidence: clampConfidence(type === "http-api" || type === "ui" ? 0.81 : 0.69),
+        confidence: clampConfidence(0.8),
+      });
+    }
+
+    if ((businessRepo?.apiSignals.length ?? 0) > 0) {
+      surfaces.push({
+        name: `${technicalRepo.repo.name} API surface`,
+        type: technicalRepo.repo.type === "backend" ? "http-api" : "shared-schema",
+        owners: [technicalRepo.repo.name],
+        consumers,
+        boundary: inferRepoBoundary(technicalRepo),
+        evidence: makeEvidence(
+          "Derived from controller mappings, request URLs, and client API calls.",
+          businessRepo?.apiSignals ?? [],
+        ),
+        confidence: clampConfidence(technicalRepo.repo.type === "backend" ? 0.86 : 0.76),
+      });
+    }
+
+    for (const integration of businessRepo?.externalIntegrations ?? []) {
+      surfaces.push({
+        name: `${technicalRepo.repo.name} ${integration} integration`,
+        type: "integration",
+        owners: [technicalRepo.repo.name],
+        consumers: [],
+        boundary: "external integration boundary",
+        evidence: makeEvidence(
+          "Derived from API routes, dependency names, and repository integration markers.",
+          [integration, ...(businessRepo?.apiSignals.slice(0, 2) ?? [])],
+        ),
+        confidence: clampConfidence(0.7),
       });
     }
   }
 
   for (const edge of fusion.integrationEdges) {
-    const source = technical.find((entry) => entry.repo.name === edge.from);
-    const target = technical.find((entry) => entry.repo.name === edge.to);
+    const sourceRepo = technical.find((entry) => entry.repo.name === edge.from);
+    const targetRepo = technical.find((entry) => entry.repo.name === edge.to);
+    const sourceBusiness = businessByRepo.get(edge.from);
+    const targetBusiness = businessByRepo.get(edge.to);
     surfaces.push({
-      name: `${edge.from} -> ${edge.to} integration contract`,
-      type: "integration",
+      name: `${edge.from} -> ${edge.to} API contract`,
+      type: edge.kind === "shared-domain" ? "shared-schema" : "http-api",
       owners: [edge.to],
       consumers: [edge.from],
       boundary: "cross-repository integration seam",
       evidence: makeEvidence(
-        "Derived from workspace integration edges and repository dependency markers.",
+        "Derived from matched domain terms, frontend API calls, backend endpoints, and inferred workspace integration edges.",
         unique([
-          `repo:${edge.from}`,
-          `repo:${edge.to}`,
-          ...(source ? source.deps.slice(0, 3).map((dep) => `dependency:${edge.from}:${dep}`) : []),
-          ...(target ? target.structure.slice(0, 3).map((structure) => `structure:${edge.to}:${structure}`) : []),
+          ...(edge.signals ?? []),
+          ...(sourceBusiness?.apiSignals.slice(0, 3) ?? []),
+          ...(targetBusiness?.apiSignals.slice(0, 3) ?? []),
+          ...(sourceRepo ? [`repo:${sourceRepo.repo.name}`] : []),
+          ...(targetRepo ? [`repo:${targetRepo.repo.name}`] : []),
         ]),
       ),
-      confidence: clampConfidence(0.72),
+      confidence: clampConfidence(0.78),
     });
   }
 
@@ -198,11 +346,12 @@ function deriveContractSurfaces(
 }
 
 function matchReposForFlow(query: string, technical: RepoTechnicalAnalysis[], business: RepoBusinessAnalysis[]): string[] {
-  const businessByRepo = new Map(business.map((entry) => [entry.repoName, entry] as const));
+  const businessByRepo = businessByRepoMap(business);
   const tokens = tokenize(query);
   if (tokens.length === 0) {
     return technical.map((entry) => entry.repo.name);
   }
+
   return technical
     .map((entry) => {
       const signals = repoSignals(entry, businessByRepo.get(entry.repo.name)).join(" ").toLowerCase();
@@ -210,8 +359,41 @@ function matchReposForFlow(query: string, technical: RepoTechnicalAnalysis[], bu
       return { repo: entry.repo.name, score };
     })
     .filter((entry) => entry.score > 0)
-    .sort((left, right) => right.score - left.score)
+    .sort((left, right) => right.score - left.score || left.repo.localeCompare(right.repo))
     .map((entry) => entry.repo);
+}
+
+function deriveInferredFlows(
+  technical: RepoTechnicalAnalysis[],
+  business: RepoBusinessAnalysis[],
+  fusion: WorkspaceFusionResult,
+): string[] {
+  const businessByRepo = businessByRepoMap(business);
+  const inferred: string[] = [];
+
+  for (const edge of fusion.integrationEdges) {
+    const source = technical.find((entry) => entry.repo.name === edge.from);
+    const target = technical.find((entry) => entry.repo.name === edge.to);
+    const sourceBusiness = businessByRepo.get(edge.from);
+    const targetBusiness = businessByRepo.get(edge.to);
+    const sharedTerms = unique(overlap(
+      [...(sourceBusiness?.domainTerms ?? []), ...(sourceBusiness?.capabilities ?? [])],
+      [...(targetBusiness?.domainTerms ?? []), ...(targetBusiness?.capabilities ?? [])],
+    ));
+    const label = sharedTerms.length > 0 ? sharedTerms.slice(0, 2).join(" and ") : "cross-repo business data";
+    const flowSummary = source?.repo.type === "frontend-web"
+      ? `Admin configures ${label} through ${edge.from} and ${edge.to} persists and validates the change.`
+      : source?.repo.type === "frontend-h5" || source?.repo.type === "frontend"
+        ? `User-facing ${label} flow moves through ${edge.from} UI and ${edge.to} APIs.`
+        : `${edge.from} collaborates with ${edge.to} around ${label}.`;
+    inferred.push(flowSummary);
+  }
+
+  for (const repo of business) {
+    inferred.push(...repo.flowHints);
+  }
+
+  return unique(inferred).slice(0, 8);
 }
 
 function deriveCriticalFlows(
@@ -222,11 +404,12 @@ function deriveCriticalFlows(
   focus: AnalyzeFocusSummary | null,
   riskSurface: AnalyzeRiskItem[],
 ): AnalyzeCriticalFlow[] {
+  const businessByRepo = businessByRepoMap(business);
   const candidates = interview?.context.criticalFlows.length
     ? interview.context.criticalFlows
-    : unique(business.flatMap((entry) => entry.flowHints).filter((hint) => hint.length > 0)).slice(0, 5);
+    : deriveInferredFlows(technical, business, fusion);
 
-  const flows = candidates.slice(0, 6).map((flow, index) => {
+  return candidates.slice(0, 6).map((flow, index) => {
     const matchedRepos = unique([
       ...(focus && tokenize(flow).some((token) => tokenize(focus.query).includes(token)) ? focus.matchedRepos : []),
       ...matchReposForFlow(flow, technical, business),
@@ -234,29 +417,38 @@ function deriveCriticalFlows(
     const repos = matchedRepos.length > 0 ? matchedRepos : technical.map((entry) => entry.repo.name);
     const steps = repos.map((repo, repoIndex) => {
       const technicalRepo = technical.find((entry) => entry.repo.name === repo);
-      const action = technicalRepo
-        ? `${repo} handles ${technicalRepo.repo.description || technicalRepo.repo.type} responsibilities for "${flow}".`
-        : `${repo} participates in "${flow}".`;
+      const businessRepo = businessByRepo.get(repo);
+      const entrypoint = businessRepo?.entrypoints[0];
+      const apiSignal = businessRepo?.apiSignals[0];
+      const actionParts = [
+        technicalRepo?.repo.type === "backend"
+          ? `${repo} serves ${businessRepo?.capabilities[0]?.toLowerCase() ?? technicalRepo?.repo.type} requests`
+          : `${repo} drives ${businessRepo?.capabilities[0]?.toLowerCase() ?? technicalRepo?.repo.type} user interactions`,
+        entrypoint ? `via ${entrypoint}` : "",
+        apiSignal ? `and ${apiSignal}` : "",
+      ].filter((value) => value.length > 0);
+
       return {
         order: repoIndex + 1,
         repo,
-        action,
+        action: `${actionParts.join(" ")}.`,
         boundary: technicalRepo ? inferRepoBoundary(technicalRepo) : "repository boundary",
         evidence: makeEvidence(
-          "Matched flow tokens against repository descriptions, structure markers, and inferred business responsibilities.",
-          technicalRepo ? repoSignals(technicalRepo, business.find((entry) => entry.repoName === repo)) : [`repo:${repo}`],
+          "Matched flow terms against entrypoints, API signals, capability labels, and domain terms.",
+          technicalRepo ? repoSignals(technicalRepo, businessRepo) : [`repo:${repo}`],
         ),
       };
     });
+
     return {
       name: `flow-${index + 1}`,
       summary: flow,
       participatingRepos: repos,
-      participatingModules: repos,
+      participatingModules: unique(repos.flatMap((repo) => businessByRepo.get(repo)?.capabilities.slice(0, 2) ?? [repo])),
       contracts: unique(
         fusion.integrationEdges
           .filter((edge) => repos.includes(edge.from) || repos.includes(edge.to))
-          .map((edge) => `${edge.from} -> ${edge.to} integration contract`),
+          .map((edge) => `${edge.from} -> ${edge.to} API contract`),
       ),
       failurePoints: riskSurface
         .filter((item) => item.affectedRepos.some((repo) => repos.includes(repo)))
@@ -264,19 +456,17 @@ function deriveCriticalFlows(
         .slice(0, 4),
       steps,
       evidence: makeEvidence(
-        "Built from interview-confirmed flows or inferred flow hints, then traced across matching repositories.",
+        "Built from interview-confirmed flows or inferred user/admin/API journeys, then traced across matching repos.",
         unique([
           ...repos.map((repo) => `repo:${repo}`),
           ...steps.flatMap((step) => step.evidence.signals),
         ]),
       ),
       confidence: clampConfidence(
-        (interview?.context.criticalFlows.includes(flow) ? 0.82 : 0.66) + Math.min(repos.length, 3) * 0.04,
+        (interview?.context.criticalFlows.includes(flow) ? 0.84 : 0.73) + Math.min(repos.length, 3) * 0.03,
       ),
     };
   });
-
-  return flows;
 }
 
 function deriveRuntimeConstraints(interview: AnalyzeInterviewSummary | null): AnalyzeRuntimeConstraint[] {
@@ -285,6 +475,7 @@ function deriveRuntimeConstraints(interview: AnalyzeInterviewSummary | null): An
     ...(interview?.context.nonNegotiableConstraints ?? []),
     ...(assumptions?.values ?? []),
   ]);
+
   return values.map((statement) => {
     const lowered = statement.toLowerCase();
     const category: AnalyzeRuntimeConstraint["category"] = lowered.includes("security")
@@ -300,6 +491,7 @@ function deriveRuntimeConstraints(interview: AnalyzeInterviewSummary | null): An
             : lowered.includes("transaction") || lowered.includes("consisten")
               ? "consistency"
               : "operational";
+
     return {
       statement,
       category,
@@ -314,10 +506,12 @@ function deriveRuntimeConstraints(interview: AnalyzeInterviewSummary | null): An
 
 function deriveRiskSurface(
   technical: RepoTechnicalAnalysis[],
+  business: RepoBusinessAnalysis[],
   interview: AnalyzeInterviewSummary | null,
 ): AnalyzeRiskItem[] {
   const items: AnalyzeRiskItem[] = [];
   const assumption = interview?.assumptionsApplied.find((entry) => entry.key === "failureHotspots");
+  const businessByRepo = businessByRepoMap(business);
 
   for (const hotspot of unique([
     ...(interview?.context.failureHotspots ?? []),
@@ -328,11 +522,9 @@ function deriveRiskSurface(
       .map((entry) => entry.repo.name);
     items.push({
       title: hotspot,
-      severity: /(auth|payment|tenant|security|checkout)/i.test(hotspot) ? "high" : "medium",
+      severity: /(auth|payment|tenant|security|checkout|share|template|poster|permission)/i.test(hotspot) ? "high" : "medium",
       affectedRepos: affectedRepos.length > 0 ? affectedRepos : technical.slice(0, 1).map((entry) => entry.repo.name),
-      reasons: [
-        "Flagged by analyze interview as a failure-prone or sensitive area.",
-      ],
+      reasons: ["Flagged by analyze interview as a failure-prone or sensitive area."],
       evidence: makeEvidence(
         assumption?.rationale ?? "Derived from interview context and technical sensitivity markers.",
         assumption?.evidence ?? [],
@@ -342,20 +534,33 @@ function deriveRiskSurface(
   }
 
   for (const technicalRepo of technical) {
-    if (technicalRepo.testing.hasTestDir) {
-      continue;
+    const businessRepo = businessByRepo.get(technicalRepo.repo.name);
+    if (!technicalRepo.testing.hasTestDir) {
+      items.push({
+        title: `${technicalRepo.repo.name}: limited dedicated test coverage`,
+        severity: "medium",
+        affectedRepos: [technicalRepo.repo.name],
+        reasons: ["Repository lacks a dedicated test directory, increasing change risk."],
+        evidence: makeEvidence(
+          "Derived from testing markers gathered during repository analysis.",
+          [`repo:${technicalRepo.repo.name}`, `testing:${technicalRepo.testing.framework}`, "testing:missing-test-dir"],
+        ),
+        confidence: 0.79,
+      });
     }
-    items.push({
-      title: `${technicalRepo.repo.name}: limited dedicated test coverage`,
-      severity: "medium",
-      affectedRepos: [technicalRepo.repo.name],
-      reasons: ["Repository lacks a dedicated test directory, increasing change risk."],
-      evidence: makeEvidence(
-        "Derived from testing markers gathered during repository analysis.",
-        [`repo:${technicalRepo.repo.name}`, `testing:${technicalRepo.testing.framework}`, "testing:missing-test-dir"],
-      ),
-      confidence: 0.79,
-    });
+    if ((businessRepo?.riskMarkers.length ?? 0) > 0) {
+      items.push({
+        title: `${technicalRepo.repo.name}: sensitive ${businessRepo?.riskMarkers.slice(0, 3).join(", ")} boundary`,
+        severity: "high",
+        affectedRepos: [technicalRepo.repo.name],
+        reasons: ["Domain terms and API markers indicate a sensitive business or permission boundary."],
+        evidence: makeEvidence(
+          "Derived from route, API, and domain signals containing sensitive workflow markers.",
+          repoSignals(technicalRepo, businessRepo),
+        ),
+        confidence: 0.82,
+      });
+    }
   }
 
   return unique(items.map((item) => item.title))
@@ -386,24 +591,56 @@ function deriveDomainContexts(
   technical: RepoTechnicalAnalysis[],
   business: RepoBusinessAnalysis[],
 ): AnalyzeDomainContext[] {
-  const businessByRepo = new Map(business.map((entry) => [entry.repoName, entry] as const));
-  return technical.map((entry) => {
-    const businessRepo = businessByRepo.get(entry.repo.name);
+  const grouped = new Map<string, AnalyzeDomainContext>();
+  const businessByRepo = businessByRepoMap(business);
+
+  for (const technicalRepo of technical) {
+    const businessRepo = businessByRepo.get(technicalRepo.repo.name);
+    for (const concept of unique([...(businessRepo?.domainTerms ?? []), ...(businessRepo?.entityTerms ?? [])])) {
+      const existing = grouped.get(concept);
+      if (existing) {
+        existing.coreConcepts = unique([...existing.coreConcepts, ...(businessRepo?.entityTerms ?? [])]).slice(0, 8);
+        existing.evidence.signals = unique([...existing.evidence.signals, ...repoSignals(technicalRepo, businessRepo)]).slice(0, 10);
+        existing.confidence = clampConfidence(existing.confidence + 0.04);
+        continue;
+      }
+      grouped.set(concept, {
+        name: concept,
+        ownerRepo: technicalRepo.repo.name,
+        summary: businessRepo?.capabilities.find((capability) => capability.toLowerCase().includes(concept.toLowerCase()))
+          ?? technicalRepo.repo.description
+          ?? technicalRepo.repo.type,
+        coreConcepts: unique([concept, ...(businessRepo?.entityTerms ?? []), ...(businessRepo?.capabilities ?? [])]).slice(0, 8),
+        evidence: makeEvidence(
+          "Inferred from controller, DTO, entity, page, and route naming signals.",
+          repoSignals(technicalRepo, businessRepo),
+        ),
+        confidence: 0.72,
+      });
+    }
+  }
+
+  if (grouped.size > 0) {
+    return [...grouped.values()].sort((left, right) => right.confidence - left.confidence || left.name.localeCompare(right.name));
+  }
+
+  return technical.map((technicalRepo) => {
+    const businessRepo = businessByRepo.get(technicalRepo.repo.name);
     const sourceTexts = [
-      entry.repo.description,
+      technicalRepo.repo.description,
       ...(businessRepo?.responsibilities ?? []),
       ...(businessRepo?.flowHints ?? []),
     ];
     return {
-      name: entry.repo.name,
-      ownerRepo: entry.repo.name,
-      summary: entry.repo.description || entry.repo.type,
+      name: technicalRepo.repo.name,
+      ownerRepo: technicalRepo.repo.name,
+      summary: technicalRepo.repo.description || technicalRepo.repo.type,
       coreConcepts: topConcepts(sourceTexts),
       evidence: makeEvidence(
-        "Inferred from repository description, responsibilities, and flow hints.",
-        repoSignals(entry, businessRepo),
+        "Fallback domain context derived from repository description and business responsibilities.",
+        repoSignals(technicalRepo, businessRepo),
       ),
-      confidence: clampConfidence(0.63 + Math.min(sourceTexts.length, 4) * 0.05),
+      confidence: 0.48,
     };
   });
 }
@@ -437,12 +674,12 @@ function deriveChangeImpact(
   contracts: AnalyzeContractSurface[],
   technical: RepoTechnicalAnalysis[],
 ): AnalyzeChangeImpactEntry[] {
-  const entries: AnalyzeChangeImpactEntry[] = [];
-
-  for (const capability of capabilities) {
+  return capabilities.map((capability) => {
     const impactedRepos = unique([
       ...capability.owningRepos,
-      ...flows.filter((flow) => flow.participatingRepos.some((repo) => capability.owningRepos.includes(repo))).flatMap((flow) => flow.participatingRepos),
+      ...flows
+        .filter((flow) => flow.participatingRepos.some((repo) => capability.owningRepos.includes(repo)) || flow.summary.toLowerCase().includes(capability.name.toLowerCase()))
+        .flatMap((flow) => flow.participatingRepos),
     ]);
     const impactedContracts = unique(
       contracts
@@ -459,24 +696,24 @@ function deriveChangeImpact(
         return reviewerHint(technicalRepo?.stack.language ?? "unknown");
       }),
     );
-    entries.push({
+
+    return {
       target: capability.name,
       impactedRepos,
       impactedContracts,
       impactedTests,
       reviewerHints,
       evidence: makeEvidence(
-        "Computed from capability ownership, critical flows, contract surfaces, and repository test signals.",
+        "Computed from capability ownership, traced flows, inferred contracts, and repository test signals.",
         unique([
           ...capability.evidence.signals,
           ...impactedRepos.map((repo) => `repo:${repo}`),
+          ...impactedContracts.slice(0, 3).map((contract) => `contract:${contract}`),
         ]),
       ),
-      confidence: clampConfidence(0.73 + Math.min(impactedRepos.length, 3) * 0.04),
-    });
-  }
-
-  return entries;
+      confidence: clampConfidence(0.76 + Math.min(impactedRepos.length, 3) * 0.03),
+    };
+  });
 }
 
 export function buildAnalyzeKnowledgeModel(input: {
@@ -486,9 +723,9 @@ export function buildAnalyzeKnowledgeModel(input: {
   interview: AnalyzeInterviewSummary | null;
   focus: AnalyzeFocusSummary | null;
 }): AnalyzeKnowledgeModel {
-  const capabilities = deriveCapabilities(input.technical, input.business, input.fusion);
+  const capabilities = deriveCapabilities(input.technical, input.business);
   const runtimeConstraints = deriveRuntimeConstraints(input.interview);
-  const riskSurface = deriveRiskSurface(input.technical, input.interview);
+  const riskSurface = deriveRiskSurface(input.technical, input.business, input.interview);
   const contractSurfaces = deriveContractSurfaces(input.technical, input.business, input.fusion);
   const criticalFlows = deriveCriticalFlows(
     input.technical,
@@ -501,8 +738,17 @@ export function buildAnalyzeKnowledgeModel(input: {
   const domainContexts = deriveDomainContexts(input.technical, input.business);
   const decisionRecords = deriveDecisionRecords(input.interview);
   const changeImpact = deriveChangeImpact(capabilities, criticalFlows, contractSurfaces, input.technical);
+  const analysisDimensions = deriveAnalysisDimensions({
+    technical: input.technical,
+    business: input.business,
+    capabilities,
+    contracts: contractSurfaces,
+    risks: riskSurface,
+    flows: criticalFlows,
+  });
 
   return {
+    analysisDimensions,
     capabilities,
     criticalFlows,
     contractSurfaces,

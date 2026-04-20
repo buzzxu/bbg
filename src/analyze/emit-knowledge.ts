@@ -117,6 +117,18 @@ export async function writeAnalyzeKnowledge(input: {
   );
   knowledgeUpdated.push(workspaceCapabilitiesPath);
 
+  const workspaceAnalysisDimensionsPath = ".bbg/knowledge/workspace/analysis-dimensions.json";
+  await writeTextFile(
+    join(input.cwd, workspaceAnalysisDimensionsPath),
+    `${JSON.stringify({
+      version: 1,
+      updatedAt,
+      source: "analyze",
+      dimensions: input.model.analysisDimensions,
+    }, null, 2)}\n`,
+  );
+  knowledgeUpdated.push(workspaceAnalysisDimensionsPath);
+
   const workspaceCriticalFlowsPath = ".bbg/knowledge/workspace/critical-flows.json";
   await writeTextFile(
     join(input.cwd, workspaceCriticalFlowsPath),
