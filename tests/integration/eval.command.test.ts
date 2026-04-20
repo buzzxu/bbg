@@ -22,11 +22,24 @@ async function makeTempDir(): Promise<string> {
 
 describe("eval command", () => {
   beforeEach(() => {
+    delete process.env.BBG_CURRENT_TOOL;
+    delete process.env.CODEX_THREAD_ID;
+    delete process.env.CODEX_CI;
+    delete process.env.CODEX_MANAGED_BY_NPM;
+    delete process.env.CODEX_SANDBOX;
+    delete process.env.CODEX_SANDBOX_NETWORK_DISABLED;
+
     execaState.execa.mockReset();
     execaState.execa.mockResolvedValue({ stdout: "ok", stderr: "", exitCode: 0 });
   });
 
   afterEach(async () => {
+    delete process.env.BBG_CURRENT_TOOL;
+    delete process.env.CODEX_THREAD_ID;
+    delete process.env.CODEX_CI;
+    delete process.env.CODEX_MANAGED_BY_NPM;
+    delete process.env.CODEX_SANDBOX;
+    delete process.env.CODEX_SANDBOX_NETWORK_DISABLED;
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 

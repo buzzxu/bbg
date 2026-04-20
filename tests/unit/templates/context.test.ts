@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { BbgConfig } from "../../../src/config/schema.js";
+import { CLI_VERSION } from "../../../src/constants.js";
 import { buildTemplateContext } from "../../../src/templates/context.js";
 
 function createConfig(): BbgConfig {
@@ -100,7 +101,7 @@ describe("buildTemplateContext", () => {
     expect(context.hasPython).toBe(false);
     expect(context.hasGo).toBe(false);
 
-    expect(context.bbgVersion).toBe("0.1.0");
+    expect(context.bbgVersion).toBe(CLI_VERSION);
     expect(context.generatedAt).toBe("2026-03-29T10:11:12.000Z");
 
     vi.useRealTimers();

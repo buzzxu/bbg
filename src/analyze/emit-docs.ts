@@ -1,13 +1,28 @@
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
-import type { AnalyzeDocArtifacts, RepoBusinessAnalysis, RepoTechnicalAnalysis, WorkspaceFusionResult } from "./types.js";
+import type { DocumentationLanguage } from "../config/documentation-language.js";
+import { getAnalyzeDocCopy } from "./doc-copy.js";
+import type {
+  AnalyzeDocArtifacts,
+  AnalyzeFocusSummary,
+  AnalyzeKnowledgeModel,
+  AnalyzeInterviewSummary,
+  RepoBusinessAnalysis,
+  RepoTechnicalAnalysis,
+  WorkspaceFusionResult,
+} from "./types.js";
 import { writeLanguageGuideDocs } from "./language-docs.js";
-import { writeTextFile } from "../utils/fs.js";
+import { exists, writeTextFile } from "../utils/fs.js";
 
-function toBulletList(values: string[]): string {
+function toBulletList(values: string[], emptyLabel = "(none)"): string {
   if (values.length === 0) {
-    return "- (none)";
+    return `- ${emptyLabel}`;
   }
   return values.map((value) => `- ${value}`).join("\n");
+}
+
+function toLinkedList(values: Array<{ label: string; path: string }>): string {
+  return values.map((value) => `- [${value.label}](${value.path})`).join("\n");
 }
 
 export async function writeAnalyzeDocs(input: {
@@ -15,197 +30,536 @@ export async function writeAnalyzeDocs(input: {
   technical: RepoTechnicalAnalysis[];
   business: RepoBusinessAnalysis[];
   fusion: WorkspaceFusionResult;
+  interview: AnalyzeInterviewSummary | null;
+  model: AnalyzeKnowledgeModel;
+  focus: AnalyzeFocusSummary | null;
+  documentationLanguage: DocumentationLanguage;
 }): Promise<AnalyzeDocArtifacts> {
+  const copy = getAnalyzeDocCopy(input.documentationLanguage);
   const updatedAt = new Date().toISOString();
   const technicalArchitecturePath = "docs/architecture/technical-architecture.md";
   const businessArchitecturePath = "docs/architecture/business-architecture.md";
   const dependencyGraphPath = "docs/architecture/repo-dependency-graph.md";
+  const capabilityMapPath = "docs/business/capability-map.md";
+  const criticalFlowsPath = "docs/business/critical-flows.md";
+  const integrationContractsPath = "docs/architecture/integration-contracts.md";
+  const runtimeConstraintsPath = "docs/architecture/runtime-constraints.md";
+  const riskSurfacePath = "docs/architecture/risk-surface.md";
+  const decisionHistoryPath = "docs/architecture/decision-history.md";
+  const changeImpactMapPath = "docs/architecture/change-impact-map.md";
   const workspaceTopologyPath = "docs/architecture/workspace-topology.md";
   const integrationMapPath = "docs/architecture/integration-map.md";
   const moduleMapPath = "docs/business/module-map.md";
   const coreFlowsPath = "docs/business/core-flows.md";
+  const projectContextPath = "docs/business/project-context.md";
+  const domainModelPath = "docs/business/domain-model.md";
+  const focusedAnalysisPath = "docs/workflows/focused-analysis.md";
   const repoDocs: string[] = [];
   const repositoryDocs: string[] = [];
   const docsUpdated: string[] = [
     technicalArchitecturePath,
     businessArchitecturePath,
     dependencyGraphPath,
+    capabilityMapPath,
+    criticalFlowsPath,
+    integrationContractsPath,
+    runtimeConstraintsPath,
+    riskSurfacePath,
+    decisionHistoryPath,
+    changeImpactMapPath,
     workspaceTopologyPath,
     integrationMapPath,
     moduleMapPath,
     coreFlowsPath,
+    projectContextPath,
+    domainModelPath,
   ];
 
   const technicalContent = [
-    "# Technical Architecture",
+    `# ${copy.technicalArchitecture}`,
     "",
-    `Updated at: ${updatedAt}`,
+    `${copy.updatedAt}: ${updatedAt}`,
     "",
-    "## Repositories",
+    `## ${copy.repositories}`,
     "",
     ...input.fusion.repos.map((repo) =>
       [
         `### ${repo.name}`,
         "",
-        `- Type: ${repo.type}`,
-        `- Stack: ${repo.stack.language} / ${repo.stack.framework}`,
-        `- Language Version: ${repo.stack.languageVersion ?? "unknown"}`,
-        `- Framework Version: ${repo.stack.frameworkVersion ?? "unknown"}`,
-        `- Build: ${repo.stack.buildTool}`,
-        `- Test: ${repo.testing.framework}`,
+        `- ${copy.type}: ${repo.type}`,
+        `- ${copy.stack}: ${repo.stack.language} / ${repo.stack.framework}`,
+        `- ${copy.languageVersion}: ${repo.stack.languageVersion ?? "unknown"}`,
+        `- ${copy.frameworkVersion}: ${repo.stack.frameworkVersion ?? "unknown"}`,
+        `- ${copy.build}: ${repo.stack.buildTool}`,
+        `- ${copy.test}: ${repo.testing.framework}`,
         "",
       ].join("\n"),
     ),
   ].join("\n");
 
   const businessContent = [
-    "# Business Architecture",
+    `# ${copy.businessArchitecture}`,
     "",
-    `Updated at: ${updatedAt}`,
+    `${copy.updatedAt}: ${updatedAt}`,
     "",
-    "## Module Responsibilities",
+    `## ${copy.businessGoal}`,
+    "",
+    `- ${input.interview?.context.businessGoal ?? copy.inferredGoalNotConfirmedYet}`,
+    "",
+    `## ${copy.moduleResponsibilities}`,
     "",
     ...input.fusion.businessModules.map((module) =>
       [
         `### ${module.name}`,
         "",
-        `- Description: ${module.description || "(not provided)"}`,
-        `- Ownership hint: ${module.type}`,
-        ...module.responsibilities.map((responsibility) => `- Responsibility: ${responsibility}`),
+        `- ${copy.description}: ${module.description || copy.notProvided}`,
+        `- ${copy.ownershipHint}: ${module.type}`,
+        ...module.responsibilities.map((responsibility) => `- ${copy.responsibility}: ${responsibility}`),
         "",
       ].join("\n"),
     ),
   ].join("\n");
 
   const dependencyContent = [
-    "# Repo Dependency Graph",
+    `# ${copy.repoDependencyGraph}`,
     "",
-    `Updated at: ${updatedAt}`,
+    `${copy.updatedAt}: ${updatedAt}`,
     "",
-    "## Dependencies",
+    `## ${copy.dependencies}`,
     "",
-    toBulletList(input.fusion.integrationEdges.map((edge) => `${edge.from} -> ${edge.to}`)),
+    toBulletList(input.fusion.integrationEdges.map((edge) => `${edge.from} -> ${edge.to}`), copy.none),
     "",
   ].join("\n");
 
+  const capabilityMapContent = [
+    `# ${copy.capabilityMap}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...input.model.capabilities.map((capability) =>
+      [
+        `## ${capability.name}`,
+        "",
+        `- ${copy.description}: ${capability.description}`,
+        `- ${copy.repositories}: ${capability.owningRepos.join(", ")}`,
+        `- ${copy.confidence}: ${capability.confidence}`,
+        "",
+        `### ${copy.moduleResponsibilities}`,
+        "",
+        ...capability.responsibilities.map((responsibility) => `- ${responsibility}`),
+        "",
+        `### ${copy.evidence}`,
+        "",
+        `- ${capability.evidence.summary}`,
+        ...(capability.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${capability.evidence.signals.join(", ")}`] : []),
+        "",
+      ].join("\n"),
+    ),
+  ].join("\n");
+
+  const criticalFlowsContent = [
+    `# ${copy.criticalFlowAnalysis}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...input.model.criticalFlows.map((flow) =>
+      [
+        `## ${flow.summary}`,
+        "",
+        `- ${copy.confidence}: ${flow.confidence}`,
+        `- ${copy.participatingRepos}: ${flow.participatingRepos.join(", ") || copy.none}`,
+        `- ${copy.participatingModules}: ${flow.participatingModules.join(", ") || copy.none}`,
+        `- ${copy.contracts}: ${flow.contracts.join(", ") || copy.none}`,
+        "",
+        `### ${copy.likelyFlowSequence}`,
+        "",
+        ...flow.steps.map((step) => `1. ${step.repo}: ${step.action} (${step.boundary})`),
+        "",
+        `### ${copy.failureHotspots}`,
+        "",
+        ...(flow.failurePoints.length > 0 ? flow.failurePoints.map((point) => `- ${point}`) : [`- ${copy.none}`]),
+        "",
+        `### ${copy.evidence}`,
+        "",
+        `- ${flow.evidence.summary}`,
+        ...(flow.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${flow.evidence.signals.join(", ")}`] : []),
+        "",
+      ].join("\n"),
+    ),
+  ].join("\n");
+
+  const integrationContractsContent = [
+    `# ${copy.integrationContracts}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...input.model.contractSurfaces.map((contract) =>
+      [
+        `## ${contract.name}`,
+        "",
+        `- ${copy.contractType}: ${contract.type}`,
+        `- ${copy.owners}: ${contract.owners.join(", ") || copy.none}`,
+        `- ${copy.consumers}: ${contract.consumers.join(", ") || copy.none}`,
+        `- ${copy.trustBoundary}: ${contract.boundary}`,
+        `- ${copy.confidence}: ${contract.confidence}`,
+        "",
+        `### ${copy.evidence}`,
+        "",
+        `- ${contract.evidence.summary}`,
+        ...(contract.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${contract.evidence.signals.join(", ")}`] : []),
+        "",
+      ].join("\n"),
+    ),
+  ].join("\n");
+
+  const runtimeConstraintsContent = [
+    `# ${copy.runtimeConstraints}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...input.model.runtimeConstraints.map((constraint) =>
+      [
+        `## ${constraint.statement}`,
+        "",
+        `- ${copy.category}: ${constraint.category}`,
+        `- ${copy.confidence}: ${constraint.confidence}`,
+        `- ${copy.evidence}: ${constraint.evidence.summary}`,
+        ...(constraint.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${constraint.evidence.signals.join(", ")}`] : []),
+        "",
+      ].join("\n"),
+    ),
+  ].join("\n");
+
+  const riskSurfaceContent = [
+    `# ${copy.riskSurface}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...input.model.riskSurface.map((risk) =>
+      [
+        `## ${risk.title}`,
+        "",
+        `- ${copy.severity}: ${risk.severity}`,
+        `- ${copy.repositories}: ${risk.affectedRepos.join(", ") || copy.none}`,
+        `- ${copy.confidence}: ${risk.confidence}`,
+        "",
+        `### ${copy.rationale}`,
+        "",
+        ...risk.reasons.map((reason) => `- ${reason}`),
+        "",
+        `### ${copy.evidence}`,
+        "",
+        `- ${risk.evidence.summary}`,
+        ...(risk.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${risk.evidence.signals.join(", ")}`] : []),
+        "",
+      ].join("\n"),
+    ),
+  ].join("\n");
+
+  const decisionHistoryContent = [
+    `# ${copy.decisionHistoryDoc}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...input.model.decisionRecords.map((decision) =>
+      [
+        `## ${decision.statement}`,
+        "",
+        `- ${copy.status}: ${decision.status}`,
+        `- ${copy.confidence}: ${decision.confidence}`,
+        `- ${copy.rationale}: ${decision.rationale}`,
+        ...(decision.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${decision.evidence.signals.join(", ")}`] : []),
+        "",
+      ].join("\n"),
+    ),
+  ].join("\n");
+
+  const changeImpactContent = [
+    `# ${copy.changeImpactMap}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...input.model.changeImpact.map((impact) =>
+      [
+        `## ${impact.target}`,
+        "",
+        `- ${copy.repositories}: ${impact.impactedRepos.join(", ") || copy.none}`,
+        `- ${copy.contracts}: ${impact.impactedContracts.join(", ") || copy.none}`,
+        `- ${copy.reviewerHints}: ${impact.reviewerHints.join(", ") || copy.none}`,
+        `- ${copy.confidence}: ${impact.confidence}`,
+        "",
+        `### ${copy.test}`,
+        "",
+        ...(impact.impactedTests.length > 0 ? impact.impactedTests.map((test) => `- ${test}`) : [`- ${copy.none}`]),
+        "",
+        `### ${copy.evidence}`,
+        "",
+        `- ${impact.evidence.summary}`,
+        ...(impact.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${impact.evidence.signals.join(", ")}`] : []),
+        "",
+      ].join("\n"),
+    ),
+  ].join("\n");
+
   const workspaceTopologyContent = [
-    "# Workspace Topology",
+    `# ${copy.workspaceTopology}`,
     "",
-    `Updated at: ${updatedAt}`,
+    `${copy.updatedAt}: ${updatedAt}`,
     "",
-    "## Repositories",
+    `## ${copy.repositories}`,
     "",
     ...input.fusion.repos.map((repo) =>
       [
         `### ${repo.name}`,
         "",
-        `- Type: ${repo.type}`,
-        `- Stack: ${repo.stack.language} / ${repo.stack.framework}`,
-        `- Language Version: ${repo.stack.languageVersion ?? "unknown"}`,
-        `- Framework Version: ${repo.stack.frameworkVersion ?? "unknown"}`,
-        `- Direct dependencies: ${repo.deps.length > 0 ? repo.deps.join(", ") : "(none)"}`,
+        `- ${copy.type}: ${repo.type}`,
+        `- ${copy.stack}: ${repo.stack.language} / ${repo.stack.framework}`,
+        `- ${copy.languageVersion}: ${repo.stack.languageVersion ?? "unknown"}`,
+        `- ${copy.frameworkVersion}: ${repo.stack.frameworkVersion ?? "unknown"}`,
+        `- ${copy.directDependencies}: ${repo.deps.length > 0 ? repo.deps.join(", ") : copy.none}`,
         "",
       ].join("\n"),
     ),
   ].join("\n");
 
   const integrationMapContent = [
-    "# Integration Map",
+    `# ${copy.integrationMap}`,
     "",
-    `Updated at: ${updatedAt}`,
+    `${copy.updatedAt}: ${updatedAt}`,
     "",
-    "## Repo Edges",
+    `## ${copy.repoEdges}`,
     "",
     toBulletList(input.fusion.integrationEdges.map((edge) => `${edge.from} -> ${edge.to}`)),
     "",
   ].join("\n");
 
   const moduleMapContent = [
-    "# Module Map",
+    `# ${copy.moduleMap}`,
     "",
-    `Updated at: ${updatedAt}`,
+    `${copy.updatedAt}: ${updatedAt}`,
     "",
-    "## Repositories",
+    `## ${copy.repositories}`,
     "",
     ...input.fusion.repos.map((repo) =>
       [
         `### ${repo.name}`,
         "",
-        `- Description: ${repo.description || "(not provided)"}`,
-        `- Structure markers: ${repo.structure.length > 0 ? repo.structure.join(", ") : "(none)"}`,
+        `- ${copy.description}: ${repo.description || copy.notProvided}`,
+        `- ${copy.structureMarkers}: ${repo.structure.length > 0 ? repo.structure.join(", ") : copy.none}`,
         "",
       ].join("\n"),
     ),
   ].join("\n");
 
   const coreFlowsContent = [
-    "# Core Flows",
+    `# ${copy.coreFlows}`,
     "",
-    `Updated at: ${updatedAt}`,
+    `${copy.updatedAt}: ${updatedAt}`,
     "",
-    "## Current Flow Hypotheses",
+    `## ${copy.interviewConfirmedFlows}`,
     "",
-    ...input.fusion.businessModules.map((module) =>
-      [
-        `### ${module.name}`,
+    ...(input.model.criticalFlows.length
+      ? input.model.criticalFlows.map((flow) => `- ${flow.summary}`)
+      : [`- ${copy.notConfirmedYet}`]),
+    "",
+    `## ${copy.currentFlowHypotheses}`,
+    "",
+    toLinkedList([
+      { label: copy.criticalFlowAnalysis, path: "critical-flows.md" },
+      ...input.model.criticalFlows.slice(0, 5).map((flow) => ({ label: flow.summary, path: "critical-flows.md" })),
+    ]),
+    "",
+  ].join("\n");
+
+  const projectContextContent = [
+    `# ${copy.projectContext}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    `${copy.overview}: ${copy.projectContextOverview}`,
+    "",
+    `## ${copy.keyDocs}`,
+    "",
+    toLinkedList([
+      { label: copy.capabilityMap, path: "capability-map.md" },
+      { label: copy.criticalFlowAnalysis, path: "critical-flows.md" },
+      { label: copy.domainModel, path: "domain-model.md" },
+      { label: copy.integrationContracts, path: "../architecture/integration-contracts.md" },
+      { label: copy.runtimeConstraints, path: "../architecture/runtime-constraints.md" },
+      { label: copy.riskSurface, path: "../architecture/risk-surface.md" },
+      { label: copy.decisionHistoryDoc, path: "../architecture/decision-history.md" },
+      { label: copy.changeImpactMap, path: "../architecture/change-impact-map.md" },
+    ]),
+    "",
+    `## ${copy.businessGoal}`,
+    "",
+    `- ${input.interview?.context.businessGoal ?? copy.notConfirmedYet}`,
+    "",
+    `## ${copy.systemBoundaries}`,
+    "",
+    ...(input.interview?.context.systemBoundaries.length
+      ? input.interview.context.systemBoundaries.map((boundary) => `- ${boundary}`)
+      : [`- ${copy.notConfirmedYet}`]),
+    "",
+    `## ${copy.nonNegotiableConstraints}`,
+    "",
+    ...(input.interview?.context.nonNegotiableConstraints.length
+      ? input.interview.context.nonNegotiableConstraints.map((constraint) => `- ${constraint}`)
+      : [`- ${copy.notConfirmedYet}`]),
+    "",
+    `## ${copy.failureHotspots}`,
+    "",
+    ...(input.interview?.context.failureHotspots.length
+      ? input.interview.context.failureHotspots.map((hotspot) => `- ${hotspot}`)
+      : [`- ${copy.notConfirmedYet}`]),
+    "",
+    `## ${copy.decisionHistory}`,
+    "",
+    ...(input.interview?.context.decisionHistory.length
+      ? input.interview.context.decisionHistory.map((decision) => `- ${decision}`)
+      : [`- ${copy.noneRecordedYet}`]),
+    "",
+    `## ${copy.aiInferredAssumptions}`,
+    "",
+    ...(input.interview?.assumptionsApplied.length
+      ? input.interview.assumptionsApplied.flatMap((assumption) => [
+        `### ${assumption.key}`,
         "",
-        `- Current responsibility: ${module.description || module.type}`,
-        ...(module.flowHints.length > 0 ? module.flowHints.map((hint) => `- Flow hint: ${hint}`) : []),
+        ...assumption.values.map((value) => `- ${value}`),
+        `- ${copy.rationale}: ${assumption.rationale}`,
+        ...(assumption.evidence.length > 0 ? [`- ${copy.evidence}: ${assumption.evidence.join(", ")}`] : []),
+        "",
+      ])
+      : [`- ${copy.none}`]),
+    "",
+  ].join("\n");
+
+  const domainModelContent = [
+    `# ${copy.domainModel}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...input.model.domainContexts.map((context) =>
+      [
+        `## ${context.name}`,
+        "",
+        `- ${copy.repositories}: ${context.ownerRepo}`,
+        `- ${copy.description}: ${context.summary}`,
+        `- ${copy.confidence}: ${context.confidence}`,
+        "",
+        `### ${copy.coreConcepts}`,
+        "",
+        ...(context.coreConcepts.length > 0 ? context.coreConcepts.map((concept) => `- ${concept}`) : [`- ${copy.none}`]),
+        "",
+        `### ${copy.evidence}`,
+        "",
+        `- ${context.evidence.summary}`,
+        ...(context.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${context.evidence.signals.join(", ")}`] : []),
         "",
       ].join("\n"),
     ),
   ].join("\n");
 
+  if (input.focus) {
+    const focusedContent = [
+      `# ${input.focus.query}`,
+      "",
+      `${copy.updatedAt}: ${updatedAt}`,
+      "",
+      `## ${copy.repositories}`,
+      "",
+      ...(input.focus.matchedRepos.length > 0 ? input.focus.matchedRepos.map((repo) => `- ${repo}`) : [`- ${copy.none}`]),
+      "",
+      `## ${copy.likelyFlowSequence}`,
+      "",
+      ...(input.focus.likelyEntrypoints.length > 0 ? input.focus.likelyEntrypoints.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      "",
+      `## ${copy.contracts}`,
+      "",
+      ...(input.focus.matchedContracts.length > 0 ? input.focus.matchedContracts.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      "",
+      `## ${copy.riskSurface}`,
+      "",
+      ...(input.focus.riskHotspots.length > 0 ? input.focus.riskHotspots.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      "",
+      `## ${copy.reviewerHints}`,
+      "",
+      ...(input.focus.reviewerHints.length > 0 ? input.focus.reviewerHints.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      "",
+      `## ${copy.rationale}`,
+      "",
+      ...input.focus.rationale.map((entry) => `- ${entry}`),
+      "",
+      `## ${copy.evidenceSignals}`,
+      "",
+      ...(input.focus.matchedSignals.length > 0 ? input.focus.matchedSignals.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      "",
+    ].join("\n");
+    await writeTextFile(join(input.cwd, focusedAnalysisPath), focusedContent);
+    docsUpdated.push(focusedAnalysisPath);
+  } else if (await exists(join(input.cwd, focusedAnalysisPath))) {
+    await rm(join(input.cwd, focusedAnalysisPath), { force: true });
+  }
+
   await writeTextFile(join(input.cwd, technicalArchitecturePath), technicalContent);
   await writeTextFile(join(input.cwd, businessArchitecturePath), businessContent);
   await writeTextFile(join(input.cwd, dependencyGraphPath), dependencyContent);
+  await writeTextFile(join(input.cwd, capabilityMapPath), capabilityMapContent);
+  await writeTextFile(join(input.cwd, criticalFlowsPath), criticalFlowsContent);
+  await writeTextFile(join(input.cwd, integrationContractsPath), integrationContractsContent);
+  await writeTextFile(join(input.cwd, runtimeConstraintsPath), runtimeConstraintsContent);
+  await writeTextFile(join(input.cwd, riskSurfacePath), riskSurfaceContent);
+  await writeTextFile(join(input.cwd, decisionHistoryPath), decisionHistoryContent);
+  await writeTextFile(join(input.cwd, changeImpactMapPath), changeImpactContent);
   await writeTextFile(join(input.cwd, workspaceTopologyPath), workspaceTopologyContent);
   await writeTextFile(join(input.cwd, integrationMapPath), integrationMapContent);
   await writeTextFile(join(input.cwd, moduleMapPath), moduleMapContent);
   await writeTextFile(join(input.cwd, coreFlowsPath), coreFlowsContent);
+  await writeTextFile(join(input.cwd, projectContextPath), projectContextContent);
+  await writeTextFile(join(input.cwd, domainModelPath), domainModelContent);
 
   for (const technical of input.technical) {
     const repoDocPath = `docs/architecture/repos/${technical.repo.name}.md`;
     const repositoryDocPath = `docs/repositories/${technical.repo.name}.md`;
     const repoContent = [
-      `# ${technical.repo.name} Architecture`,
+      `# ${technical.repo.name} ${copy.technicalArchitecture}`,
       "",
-      `Updated at: ${updatedAt}`,
+      `${copy.updatedAt}: ${updatedAt}`,
       "",
-      "## Technical Summary",
+      `## ${copy.technicalSummary}`,
       "",
-      `- Stack: ${technical.stack.language} / ${technical.stack.framework}`,
-      `- Language Version: ${technical.stack.languageVersion ?? "unknown"}`,
-      `- Framework Version: ${technical.stack.frameworkVersion ?? "unknown"}`,
-      `- Build: ${technical.stack.buildTool}`,
-      `- Testing: ${technical.testing.framework}`,
+      `- ${copy.stack}: ${technical.stack.language} / ${technical.stack.framework}`,
+      `- ${copy.languageVersion}: ${technical.stack.languageVersion ?? "unknown"}`,
+      `- ${copy.frameworkVersion}: ${technical.stack.frameworkVersion ?? "unknown"}`,
+      `- ${copy.build}: ${technical.stack.buildTool}`,
+      `- ${copy.test}: ${technical.testing.framework}`,
       "",
-      "## Structure Markers",
+      `## ${copy.structureMarkers}`,
       "",
-      toBulletList(technical.structure),
+      toBulletList(technical.structure, copy.none),
       "",
-      "## Dependency Markers",
+      `## ${copy.dependencyMarkers}`,
       "",
-      toBulletList(technical.deps),
+      toBulletList(technical.deps, copy.none),
       "",
     ].join("\n");
     const repositorySummaryContent = [
       `# ${technical.repo.name}`,
       "",
-      `Updated at: ${updatedAt}`,
+      `${copy.updatedAt}: ${updatedAt}`,
       "",
-      "## Summary",
+      `## ${copy.summary}`,
       "",
-      `- Type: ${technical.repo.type}`,
-      `- Description: ${technical.repo.description || "(not provided)"}`,
-      `- Stack: ${technical.stack.language} / ${technical.stack.framework}`,
-      `- Language Version: ${technical.stack.languageVersion ?? "unknown"}`,
-      `- Framework Version: ${technical.stack.frameworkVersion ?? "unknown"}`,
+      `- ${copy.type}: ${technical.repo.type}`,
+      `- ${copy.description}: ${technical.repo.description || copy.notProvided}`,
+      `- ${copy.stack}: ${technical.stack.language} / ${technical.stack.framework}`,
+      `- ${copy.languageVersion}: ${technical.stack.languageVersion ?? "unknown"}`,
+      `- ${copy.frameworkVersion}: ${technical.stack.frameworkVersion ?? "unknown"}`,
       "",
       "## Signals",
       "",
-      `- Structure markers: ${technical.structure.length > 0 ? technical.structure.join(", ") : "(none)"}`,
-      `- Dependency markers: ${technical.deps.length > 0 ? technical.deps.join(", ") : "(none)"}`,
+      `- ${copy.structureMarkers}: ${technical.structure.length > 0 ? technical.structure.join(", ") : copy.none}`,
+      `- ${copy.dependencyMarkers}: ${technical.deps.length > 0 ? technical.deps.join(", ") : copy.none}`,
       "",
     ].join("\n");
     await writeTextFile(join(input.cwd, repoDocPath), repoContent);
@@ -217,14 +571,19 @@ export async function writeAnalyzeDocs(input: {
 
   const architectureIndexPath = "docs/architecture/index.md";
   const architectureIndex = [
-    "# Architecture Index",
+    `# ${copy.architectureIndex}`,
     "",
-    "- [Technical Architecture](technical-architecture.md)",
-    "- [Business Architecture](business-architecture.md)",
-    "- [Repo Dependency Graph](repo-dependency-graph.md)",
-    "- [Language Guides](languages/README.md)",
+    `- [${copy.technicalArchitecture}](technical-architecture.md)`,
+    `- [${copy.businessArchitecture}](business-architecture.md)`,
+    `- [${copy.repoDependencyGraph}](repo-dependency-graph.md)`,
+    `- [${copy.integrationContracts}](integration-contracts.md)`,
+    `- [${copy.runtimeConstraints}](runtime-constraints.md)`,
+    `- [${copy.riskSurface}](risk-surface.md)`,
+    `- [${copy.decisionHistoryDoc}](decision-history.md)`,
+    `- [${copy.changeImpactMap}](change-impact-map.md)`,
+    `- [${copy.languageGuides}](languages/README.md)`,
     "",
-    "## Repo Files",
+    `## ${copy.repoFiles}`,
     "",
     ...repoDocs.map(
       (docPath) => `- [${docPath.split("/").at(-1) ?? docPath}](repos/${docPath.split("/").at(-1) ?? ""})`,
@@ -244,12 +603,21 @@ export async function writeAnalyzeDocs(input: {
     technicalArchitecturePath,
     businessArchitecturePath,
     dependencyGraphPath,
+    capabilityMapPath,
+    criticalFlowsPath,
+    integrationContractsPath,
+    runtimeConstraintsPath,
+    riskSurfacePath,
+    decisionHistoryPath,
+    changeImpactMapPath,
     repoDocs,
     repositoryDocs,
     workspaceTopologyPath,
     integrationMapPath,
     moduleMapPath,
     coreFlowsPath,
+    projectContextPath,
+    focusedAnalysisPath: input.focus ? focusedAnalysisPath : null,
     docsUpdated,
   };
 }

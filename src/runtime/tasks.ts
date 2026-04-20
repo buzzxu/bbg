@@ -7,9 +7,11 @@ import { runObserveCommand } from "../commands/observe.js";
 import { runTaskEnvCommand } from "../commands/task-env.js";
 import { runWorkflowCommand } from "../commands/workflow.js";
 import { parseConfig } from "../config/read-write.js";
-import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
+import { exists, readIfExists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { slugifyValue } from "../utils/slug.js";
+import { detectCurrentAgentToolFromEnv } from "./agent-tool.js";
 import { launchConfiguredAgentRunner } from "./agent-runner.js";
+import { readAnalyzeQuarantineSummary } from "./analyze-quarantine.js";
 import { listLoopStates, readLoopState } from "./loops.js";
 import { summarizeObserveSession } from "./observe.js";
 import { buildDefaultRuntimeConfig } from "./schema.js";
@@ -19,6 +21,8 @@ import { writeTaskWikiArtifact } from "./wiki.js";
 import type {
   StartTaskResult,
   TaskContext,
+  TaskExecutionRoute,
+  TaskImpactGuidance,
   TaskObservationSummary,
   TaskRecoveryPlan,
   TaskReviewResult,
@@ -108,6 +112,39 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isExecutionRoute(value: unknown): value is TaskExecutionRoute {
+  return isRecord(value)
+    && isRecord(value.classification)
+    && typeof value.classification.domain === "string"
+    && typeof value.classification.complexity === "string"
+    && typeof value.classification.context === "string"
+    && (value.classification.targetCommand === null || typeof value.classification.targetCommand === "string")
+    && Array.isArray(value.classification.languages)
+    && isRecord(value.recommendation)
+    && typeof value.recommendation.profileClass === "string"
+    && typeof value.recommendation.reason === "string"
+    && typeof value.recommendation.telemetryNote === "string"
+    && Array.isArray(value.recommendation.reviewerAgents)
+    && Array.isArray(value.recommendation.guideReferences);
+}
+
+function isTaskImpactGuidance(value: unknown): value is TaskImpactGuidance {
+  return isRecord(value)
+    && Array.isArray(value.matchedCapabilities)
+    && Array.isArray(value.matchedFlows)
+    && Array.isArray(value.impactedRepos)
+    && Array.isArray(value.impactedContracts)
+    && Array.isArray(value.impactedTests)
+    && Array.isArray(value.riskHotspots)
+    && Array.isArray(value.reviewerHints)
+    && Array.isArray(value.decisionNotes)
+    && Array.isArray(value.evidenceSignals)
+    && Array.isArray(value.references)
+    && (value.confidence === null || typeof value.confidence === "number")
+    && Array.isArray(value.rationale)
+    && (value.reviewHint === null || typeof value.reviewHint === "string");
+}
+
 function isTaskSession(value: unknown): value is TaskSession {
   return isRecord(value)
     && typeof value.version === "number"
@@ -176,21 +213,8 @@ function isTaskContext(value: unknown): value is TaskContext {
     && typeof value.taskId === "string"
     && (value.analyzeRunId === null || typeof value.analyzeRunId === "string")
     && Array.isArray(value.references)
-    && (value.modelRoute === null || (
-      isRecord(value.modelRoute)
-      && isRecord(value.modelRoute.classification)
-      && typeof value.modelRoute.classification.domain === "string"
-      && typeof value.modelRoute.classification.complexity === "string"
-      && typeof value.modelRoute.classification.context === "string"
-      && (value.modelRoute.classification.targetCommand === null || typeof value.modelRoute.classification.targetCommand === "string")
-      && Array.isArray(value.modelRoute.classification.languages)
-      && isRecord(value.modelRoute.recommendation)
-      && typeof value.modelRoute.recommendation.modelClass === "string"
-      && typeof value.modelRoute.recommendation.reason === "string"
-      && typeof value.modelRoute.recommendation.telemetryNote === "string"
-      && Array.isArray(value.modelRoute.recommendation.reviewerAgents)
-      && Array.isArray(value.modelRoute.recommendation.guideReferences)
-    ))
+    && (value.executionRoute === null || isExecutionRoute(value.executionRoute))
+    && (value.impactGuidance === undefined || isTaskImpactGuidance(value.impactGuidance))
     && isRecord(value.languageGuidance)
     && Array.isArray(value.languageGuidance.languages)
     && Array.isArray(value.languageGuidance.guideReferences)
@@ -384,23 +408,40 @@ async function buildTaskContextWithRuntime(
   },
 ): Promise<TaskContext> {
   const loop = await readTaskLoopContext(cwd, input.session.loopId);
-  return buildTaskContext(base, {
-    ...input,
-    loop,
-  });
+  return normalizeTaskContext(
+    buildTaskContext(base, {
+      ...input,
+      loop,
+    }),
+  );
 }
 
 async function writeTaskContextStore(cwd: string, taskId: string, context: TaskContext): Promise<void> {
   await writeJsonStore(getContextPath(cwd, taskId), context);
 }
 
-export async function readTaskContext(cwd: string, taskId: string): Promise<TaskContext> {
-  return readJsonStore(getContextPath(cwd, taskId), {
+function createEmptyTaskContext(): TaskContext {
+  return {
     version: TASK_STORE_VERSION,
     taskId: "",
     analyzeRunId: null,
     references: [],
-    modelRoute: null,
+    executionRoute: null,
+    impactGuidance: {
+      matchedCapabilities: [],
+      matchedFlows: [],
+      impactedRepos: [],
+      impactedContracts: [],
+      impactedTests: [],
+      riskHotspots: [],
+      reviewerHints: [],
+      decisionNotes: [],
+      evidenceSignals: [],
+      references: [],
+      confidence: null,
+      rationale: [],
+      reviewHint: null,
+    },
     languageGuidance: {
       languages: [],
       guideReferences: [],
@@ -449,16 +490,50 @@ export async function readTaskContext(cwd: string, taskId: string): Promise<Task
       resumeStrategy: null,
       recoveryPlan: null,
     },
-  } satisfies TaskContext, isTaskContext);
+  };
+}
+
+function normalizeTaskContext(value: TaskContext): TaskContext {
+  return {
+    ...value,
+    impactGuidance: isTaskImpactGuidance((value as Record<string, unknown>).impactGuidance)
+      ? value.impactGuidance
+      : createEmptyTaskContext().impactGuidance,
+  };
+}
+
+function emptyImpactGuidance(): TaskImpactGuidance {
+  return createEmptyTaskContext().impactGuidance;
+}
+
+export async function readTaskContext(cwd: string, taskId: string): Promise<TaskContext> {
+  const context = await readJsonStore(getContextPath(cwd, taskId), createEmptyTaskContext(), isTaskContext);
+  return normalizeTaskContext(context);
 }
 
 function detectCurrentTool(): string | null {
-  const rawValue = process.env.BBG_CURRENT_TOOL?.trim().toLowerCase();
-  return rawValue?.length ? rawValue : null;
+  return detectCurrentAgentToolFromEnv(process.env);
 }
 
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)];
+}
+
+function tokenize(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/g)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2);
+}
+
+function matchTextSignals(query: string, values: string[]): boolean {
+  const tokens = tokenize(query);
+  if (tokens.length === 0) {
+    return false;
+  }
+  const haystack = values.join(" ").toLowerCase();
+  return tokens.some((token) => haystack.includes(token));
 }
 
 function collectLanguageRuleSet(languages: string[], source: Record<string, string[]>): string[] {
@@ -480,6 +555,19 @@ function detectHermesStrategy(): TaskContext["hermesQuery"]["strategy"] {
 function prependHermesReviewAction(actions: string[]): string[] {
   const filtered = actions.filter((action) => action !== "review-hermes-context");
   return ["review-hermes-context", ...filtered];
+}
+
+function prependImpactReviewAction(actions: string[], impactGuidance: TaskImpactGuidance): string[] {
+  if (
+    impactGuidance.matchedCapabilities.length === 0
+    && impactGuidance.matchedFlows.length === 0
+    && impactGuidance.impactedContracts.length === 0
+    && impactGuidance.riskHotspots.length === 0
+  ) {
+    return actions;
+  }
+  const filtered = actions.filter((action) => action !== "review-impact-surface");
+  return ["review-impact-surface", ...filtered];
 }
 
 async function assertInitialized(cwd: string): Promise<void> {
@@ -529,20 +617,317 @@ async function collectLanguageGuidance(cwd: string): Promise<TaskContext["langua
   };
 }
 
+async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImpactGuidance> {
+  const references = [
+    "docs/business/capability-map.md",
+    "docs/business/critical-flows.md",
+    "docs/architecture/integration-contracts.md",
+    "docs/architecture/risk-surface.md",
+    "docs/architecture/decision-history.md",
+    "docs/architecture/change-impact-map.md",
+  ];
+  const paths = {
+    capabilities: join(cwd, ".bbg", "knowledge", "workspace", "capabilities.json"),
+    flows: join(cwd, ".bbg", "knowledge", "workspace", "critical-flows.json"),
+    contracts: join(cwd, ".bbg", "knowledge", "workspace", "contracts.json"),
+    risks: join(cwd, ".bbg", "knowledge", "workspace", "risk-surface.json"),
+    decisions: join(cwd, ".bbg", "knowledge", "workspace", "decisions.json"),
+    changeImpact: join(cwd, ".bbg", "knowledge", "workspace", "change-impact.json"),
+  };
+
+  const [capabilitiesRaw, flowsRaw, contractsRaw, risksRaw, decisionsRaw, changeImpactRaw] = await Promise.all([
+    readIfExists(paths.capabilities),
+    readIfExists(paths.flows),
+    readIfExists(paths.contracts),
+    readIfExists(paths.risks),
+    readIfExists(paths.decisions),
+    readIfExists(paths.changeImpact),
+  ]);
+
+  const matchedCapabilities: string[] = [];
+  const matchedFlows: string[] = [];
+  const impactedRepos: string[] = [];
+  const impactedContracts: string[] = [];
+  const impactedTests: string[] = [];
+  const riskHotspots: string[] = [];
+  const reviewerHints: string[] = [];
+  const decisionNotes: string[] = [];
+  const evidenceSignals: string[] = [];
+  const rationale: string[] = [];
+  const matchedReferences = new Set<string>();
+  const confidenceScores: number[] = [];
+
+  const parseJson = (raw: string): unknown => {
+    if (!raw.trim()) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw) as unknown;
+    } catch {
+      return null;
+    }
+  };
+
+  const capabilitiesParsed = parseJson(capabilitiesRaw);
+  if (isRecord(capabilitiesParsed) && Array.isArray(capabilitiesParsed.capabilities)) {
+    for (const capability of capabilitiesParsed.capabilities) {
+      if (!isRecord(capability)) {
+        continue;
+      }
+      const values = [
+        typeof capability.name === "string" ? capability.name : "",
+        typeof capability.description === "string" ? capability.description : "",
+        ...(Array.isArray(capability.responsibilities) ? capability.responsibilities.filter((v): v is string => typeof v === "string") : []),
+      ];
+      if (!matchTextSignals(task, values)) {
+        continue;
+      }
+      if (typeof capability.name === "string") {
+        matchedCapabilities.push(capability.name);
+      }
+      if (Array.isArray(capability.owningRepos)) {
+        impactedRepos.push(...capability.owningRepos.filter((v): v is string => typeof v === "string"));
+      }
+      const evidence = isRecord(capability.evidence) ? capability.evidence : null;
+      if (evidence && Array.isArray(evidence.signals)) {
+        evidenceSignals.push(...evidence.signals.filter((v): v is string => typeof v === "string"));
+      }
+      if (typeof capability.confidence === "number") {
+        confidenceScores.push(capability.confidence);
+      }
+      matchedReferences.add("docs/business/capability-map.md");
+    }
+    if (matchedCapabilities.length > 0) {
+      rationale.push(`Matched ${matchedCapabilities.length} capability entry(s) from analyze knowledge.`);
+    }
+  }
+
+  const flowsParsed = parseJson(flowsRaw);
+  if (isRecord(flowsParsed) && Array.isArray(flowsParsed.flows)) {
+    for (const flow of flowsParsed.flows) {
+      if (!isRecord(flow)) {
+        continue;
+      }
+      const values = [
+        typeof flow.summary === "string" ? flow.summary : "",
+        ...(Array.isArray(flow.participatingRepos) ? flow.participatingRepos.filter((v): v is string => typeof v === "string") : []),
+        ...(Array.isArray(flow.failurePoints) ? flow.failurePoints.filter((v): v is string => typeof v === "string") : []),
+      ];
+      if (!matchTextSignals(task, values)) {
+        continue;
+      }
+      if (typeof flow.summary === "string") {
+        matchedFlows.push(flow.summary);
+      }
+      if (Array.isArray(flow.participatingRepos)) {
+        impactedRepos.push(...flow.participatingRepos.filter((v): v is string => typeof v === "string"));
+      }
+      if (Array.isArray(flow.contracts)) {
+        impactedContracts.push(...flow.contracts.filter((v): v is string => typeof v === "string"));
+      }
+      if (Array.isArray(flow.failurePoints)) {
+        riskHotspots.push(...flow.failurePoints.filter((v): v is string => typeof v === "string"));
+      }
+      const evidence = isRecord(flow.evidence) ? flow.evidence : null;
+      if (evidence && Array.isArray(evidence.signals)) {
+        evidenceSignals.push(...evidence.signals.filter((v): v is string => typeof v === "string"));
+      }
+      if (typeof flow.confidence === "number") {
+        confidenceScores.push(flow.confidence);
+      }
+      matchedReferences.add("docs/business/critical-flows.md");
+    }
+    if (matchedFlows.length > 0) {
+      rationale.push(`Matched ${matchedFlows.length} critical flow entry(s) relevant to this task.`);
+    }
+  }
+
+  const contractsParsed = parseJson(contractsRaw);
+  if (isRecord(contractsParsed) && Array.isArray(contractsParsed.contracts)) {
+    for (const contract of contractsParsed.contracts) {
+      if (!isRecord(contract)) {
+        continue;
+      }
+      const values = [
+        typeof contract.name === "string" ? contract.name : "",
+        typeof contract.boundary === "string" ? contract.boundary : "",
+        ...(Array.isArray(contract.owners) ? contract.owners.filter((v): v is string => typeof v === "string") : []),
+        ...(Array.isArray(contract.consumers) ? contract.consumers.filter((v): v is string => typeof v === "string") : []),
+      ];
+      if (!matchTextSignals(task, values)) {
+        continue;
+      }
+      if (typeof contract.name === "string") {
+        impactedContracts.push(contract.name);
+      }
+      if (Array.isArray(contract.owners)) {
+        impactedRepos.push(...contract.owners.filter((v): v is string => typeof v === "string"));
+      }
+      if (Array.isArray(contract.consumers)) {
+        impactedRepos.push(...contract.consumers.filter((v): v is string => typeof v === "string"));
+      }
+      const evidence = isRecord(contract.evidence) ? contract.evidence : null;
+      if (evidence && Array.isArray(evidence.signals)) {
+        evidenceSignals.push(...evidence.signals.filter((v): v is string => typeof v === "string"));
+      }
+      if (typeof contract.confidence === "number") {
+        confidenceScores.push(contract.confidence);
+      }
+      matchedReferences.add("docs/architecture/integration-contracts.md");
+    }
+    if (impactedContracts.length > 0) {
+      rationale.push(`Detected ${unique(impactedContracts).length} contract surface(s) that may be touched by this task.`);
+    }
+  }
+
+  const risksParsed = parseJson(risksRaw);
+  if (isRecord(risksParsed) && Array.isArray(risksParsed.risks)) {
+    for (const risk of risksParsed.risks) {
+      if (!isRecord(risk)) {
+        continue;
+      }
+      const values = [
+        typeof risk.title === "string" ? risk.title : "",
+        ...(Array.isArray(risk.reasons) ? risk.reasons.filter((v): v is string => typeof v === "string") : []),
+        ...(Array.isArray(risk.affectedRepos) ? risk.affectedRepos.filter((v): v is string => typeof v === "string") : []),
+      ];
+      if (!matchTextSignals(task, values)) {
+        continue;
+      }
+      if (typeof risk.title === "string") {
+        riskHotspots.push(risk.title);
+      }
+      if (Array.isArray(risk.affectedRepos)) {
+        impactedRepos.push(...risk.affectedRepos.filter((v): v is string => typeof v === "string"));
+      }
+      const evidence = isRecord(risk.evidence) ? risk.evidence : null;
+      if (evidence && Array.isArray(evidence.signals)) {
+        evidenceSignals.push(...evidence.signals.filter((v): v is string => typeof v === "string"));
+      }
+      if (typeof risk.confidence === "number") {
+        confidenceScores.push(risk.confidence);
+      }
+      matchedReferences.add("docs/architecture/risk-surface.md");
+    }
+    if (riskHotspots.length > 0) {
+      rationale.push(`Found ${unique(riskHotspots).length} risk hotspot(s) associated with the requested task area.`);
+    }
+  }
+
+  const decisionsParsed = parseJson(decisionsRaw);
+  if (isRecord(decisionsParsed) && Array.isArray(decisionsParsed.decisions)) {
+    for (const decision of decisionsParsed.decisions) {
+      if (!isRecord(decision)) {
+        continue;
+      }
+      const values = [
+        typeof decision.statement === "string" ? decision.statement : "",
+        typeof decision.rationale === "string" ? decision.rationale : "",
+      ];
+      if (!matchTextSignals(task, values)) {
+        continue;
+      }
+      if (typeof decision.statement === "string") {
+        decisionNotes.push(decision.statement);
+      }
+      const evidence = isRecord(decision.evidence) ? decision.evidence : null;
+      if (evidence && Array.isArray(evidence.signals)) {
+        evidenceSignals.push(...evidence.signals.filter((v): v is string => typeof v === "string"));
+      }
+      if (typeof decision.confidence === "number") {
+        confidenceScores.push(decision.confidence);
+      }
+      matchedReferences.add("docs/architecture/decision-history.md");
+    }
+    if (decisionNotes.length > 0) {
+      rationale.push(`Matched ${unique(decisionNotes).length} prior decision note(s) that should constrain implementation.`);
+    }
+  }
+
+  const changeImpactParsed = parseJson(changeImpactRaw);
+  if (isRecord(changeImpactParsed) && Array.isArray(changeImpactParsed.entries)) {
+    for (const entry of changeImpactParsed.entries) {
+      if (!isRecord(entry)) {
+        continue;
+      }
+      const values = [
+        typeof entry.target === "string" ? entry.target : "",
+        ...(Array.isArray(entry.impactedRepos) ? entry.impactedRepos.filter((v): v is string => typeof v === "string") : []),
+        ...(Array.isArray(entry.impactedContracts) ? entry.impactedContracts.filter((v): v is string => typeof v === "string") : []),
+      ];
+      if (!matchTextSignals(task, values)) {
+        continue;
+      }
+      if (Array.isArray(entry.impactedRepos)) {
+        impactedRepos.push(...entry.impactedRepos.filter((v): v is string => typeof v === "string"));
+      }
+      if (Array.isArray(entry.impactedContracts)) {
+        impactedContracts.push(...entry.impactedContracts.filter((v): v is string => typeof v === "string"));
+      }
+      if (Array.isArray(entry.impactedTests)) {
+        impactedTests.push(...entry.impactedTests.filter((v): v is string => typeof v === "string"));
+      }
+      if (Array.isArray(entry.reviewerHints)) {
+        reviewerHints.push(...entry.reviewerHints.filter((v): v is string => typeof v === "string"));
+      }
+      const evidence = isRecord(entry.evidence) ? entry.evidence : null;
+      if (evidence && Array.isArray(evidence.signals)) {
+        evidenceSignals.push(...evidence.signals.filter((v): v is string => typeof v === "string"));
+      }
+      if (typeof entry.confidence === "number") {
+        confidenceScores.push(entry.confidence);
+      }
+      matchedReferences.add("docs/architecture/change-impact-map.md");
+    }
+    if (reviewerHints.length > 0 || impactedTests.length > 0) {
+      rationale.push("Pulled reviewer hints and likely impacted tests from analyze change-impact knowledge.");
+    }
+  }
+
+  const normalized = {
+    matchedCapabilities: unique(matchedCapabilities),
+    matchedFlows: unique(matchedFlows),
+    impactedRepos: unique(impactedRepos),
+    impactedContracts: unique(impactedContracts),
+    impactedTests: unique(impactedTests),
+    riskHotspots: unique(riskHotspots),
+    reviewerHints: unique(reviewerHints),
+    decisionNotes: unique(decisionNotes),
+    evidenceSignals: unique(evidenceSignals).slice(0, 12),
+    references: references.filter((reference) => matchedReferences.has(reference)),
+    confidence: confidenceScores.length > 0
+      ? Number((confidenceScores.reduce((sum, value) => sum + value, 0) / confidenceScores.length).toFixed(2))
+      : null,
+    rationale: unique(rationale),
+    reviewHint: null as string | null,
+  };
+  normalized.reviewHint = normalized.impactedRepos.length > 0 || normalized.impactedContracts.length > 0
+    ? `Review impacted repos (${normalized.impactedRepos.join(", ") || "none"}) and contracts (${normalized.impactedContracts.join(", ") || "none"}) before implementation.`
+    : null;
+  return normalized;
+}
+
 function buildReviewGate(input: {
-  modelRoute: TaskContext["modelRoute"];
+  executionRoute: TaskContext["executionRoute"];
+  impactGuidance: TaskContext["impactGuidance"];
   languageGuidance: TaskContext["languageGuidance"];
 }): TaskContext["reviewGate"] {
-  const languages = input.modelRoute?.classification.languages ?? input.languageGuidance.languages;
+  const languages = input.executionRoute?.classification.languages ?? input.languageGuidance.languages;
   const reviewers = unique(
-    input.modelRoute?.recommendation.reviewerAgents.length
-      ? input.modelRoute.recommendation.reviewerAgents
-      : input.languageGuidance.reviewerAgents,
+    [
+      ...(input.executionRoute?.recommendation.reviewerAgents.length
+      ? input.executionRoute.recommendation.reviewerAgents
+      : input.languageGuidance.reviewerAgents),
+      ...input.impactGuidance.reviewerHints,
+    ],
   );
   const guideReferences = unique(
-    input.modelRoute?.recommendation.guideReferences.length
-      ? input.modelRoute.recommendation.guideReferences
-      : input.languageGuidance.guideReferences,
+    [
+      ...(input.executionRoute?.recommendation.guideReferences.length
+      ? input.executionRoute.recommendation.guideReferences
+      : input.languageGuidance.guideReferences),
+      ...input.impactGuidance.references,
+    ],
   );
 
   if (reviewers.length === 0) {
@@ -557,10 +942,14 @@ function buildReviewGate(input: {
   }
 
   const requiresStrictGate = languages.some((language) => ["java", "rust"].includes(language))
-    || input.modelRoute?.recommendation.modelClass === "premium";
+    || input.executionRoute?.recommendation.profileClass === "premium"
+    || input.impactGuidance.riskHotspots.length > 0
+    || input.impactGuidance.impactedContracts.length > 0;
   const recommendsGate = requiresStrictGate
-    || input.modelRoute?.classification.complexity !== "simple"
-    || languages.some((language) => ["typescript", "python", "go", "golang", "kotlin"].includes(language));
+    || input.executionRoute?.classification.complexity !== "simple"
+    || languages.some((language) => ["typescript", "python", "go", "golang", "kotlin"].includes(language))
+    || input.impactGuidance.matchedCapabilities.length > 0
+    || input.impactGuidance.matchedFlows.length > 0;
   const level: TaskContext["reviewGate"]["level"] = requiresStrictGate
     ? "required"
     : recommendsGate
@@ -572,16 +961,26 @@ function buildReviewGate(input: {
     reviewers,
     guideReferences,
     reviewPack: collectLanguageRuleSet(languages, LANGUAGE_REVIEW_PACKS),
-    stopConditions: collectLanguageRuleSet(languages, LANGUAGE_STOP_CONDITIONS),
+    stopConditions: unique([
+      ...collectLanguageRuleSet(languages, LANGUAGE_STOP_CONDITIONS),
+      ...(input.impactGuidance.impactedContracts.length > 0 ? ["cross-repo-contract-impact"] : []),
+      ...(input.impactGuidance.riskHotspots.length > 0 ? ["known-risk-hotspot-change"] : []),
+      ...(input.impactGuidance.matchedFlows.length > 0 ? ["critical-flow-regression-risk"] : []),
+      ...(input.impactGuidance.decisionNotes.length > 0 ? ["decision-history-conflict"] : []),
+    ]),
     reason: level === "required"
-      ? "Language and route risk require a dedicated reviewer gate before considering the task complete."
+      ? input.impactGuidance.rationale.length > 0
+        ? `Language and analyzed impact risk require a dedicated reviewer gate before considering the task complete. ${input.impactGuidance.rationale.join(" ")}`
+        : "Language and route risk require a dedicated reviewer gate before considering the task complete."
       : level === "recommended"
-        ? "Language-specific review is recommended to preserve architecture and implementation quality."
+        ? input.impactGuidance.rationale.length > 0
+          ? `Language-specific review is recommended to preserve architecture and implementation quality. ${input.impactGuidance.rationale.join(" ")}`
+          : "Language-specific review is recommended to preserve architecture and implementation quality."
         : "No explicit language-specific review gate configured.",
   };
 }
 
-async function collectModelRoute(cwd: string, task: string): Promise<TaskContext["modelRoute"]> {
+async function collectExecutionRoute(cwd: string, task: string): Promise<TaskContext["executionRoute"]> {
   try {
     const result = await runModelRouteCommand({ cwd, task });
     if (result.mode !== "recommendation" || !result.classification || !result.recommendation) {
@@ -597,7 +996,7 @@ async function collectModelRoute(cwd: string, task: string): Promise<TaskContext
         languages: [...result.classification.languages],
       },
       recommendation: {
-        modelClass: result.recommendation.modelClass,
+        profileClass: result.recommendation.profileClass,
         reason: result.recommendation.reason,
         telemetryNote: result.recommendation.telemetryNote,
         reviewerAgents: [...result.recommendation.reviewerAgents],
@@ -868,13 +1267,22 @@ async function readLatestAnalyzeSummary(cwd: string): Promise<{
   runId: string | null;
   status: string | null;
   scope: string | null;
+  quarantine: {
+    count: number;
+    latestQuarantinedAt: string | null;
+  };
 }> {
+  const quarantine = await readAnalyzeQuarantineSummary(cwd);
   const pathValue = join(cwd, ".bbg", "analyze", "latest.json");
   if (!(await exists(pathValue))) {
     return {
       runId: null,
       status: null,
       scope: null,
+      quarantine: {
+        count: quarantine.count,
+        latestQuarantinedAt: quarantine.latestQuarantinedAt,
+      },
     };
   }
 
@@ -883,6 +1291,10 @@ async function readLatestAnalyzeSummary(cwd: string): Promise<{
     runId: typeof parsed.runId === "string" ? parsed.runId : null,
     status: typeof parsed.status === "string" ? parsed.status : null,
     scope: typeof parsed.scope === "string" ? parsed.scope : null,
+    quarantine: {
+      count: quarantine.count,
+      latestQuarantinedAt: quarantine.latestQuarantinedAt,
+    },
   };
 }
 
@@ -904,7 +1316,8 @@ async function writeHandoff(cwd: string, taskId: string, input: {
   summary: string;
   commandSpecPath: string;
   references: string[];
-  modelRoute: TaskContext["modelRoute"];
+  executionRoute: TaskContext["executionRoute"];
+  impactGuidance: TaskContext["impactGuidance"];
   languageGuidance: TaskContext["languageGuidance"];
   reviewGate: TaskContext["reviewGate"];
   decisions: Record<string, { decision: string; reasons: string[] }>;
@@ -925,6 +1338,7 @@ async function writeHandoff(cwd: string, taskId: string, input: {
   recoveryPlan?: TaskRecoveryPlan;
   nextActions: string[];
 }): Promise<void> {
+  const impactGuidance = input.impactGuidance ?? emptyImpactGuidance();
   const lines = [
     "# Task Handoff",
     "",
@@ -966,6 +1380,27 @@ async function writeHandoff(cwd: string, taskId: string, input: {
     "",
     ...input.references.map((reference) => `- ${reference}`),
     "",
+    "## Impact Guidance",
+    "",
+    `- Capabilities: ${impactGuidance.matchedCapabilities.length > 0 ? impactGuidance.matchedCapabilities.join(", ") : "(none)"}`,
+    `- Critical Flows: ${impactGuidance.matchedFlows.length > 0 ? impactGuidance.matchedFlows.join(", ") : "(none)"}`,
+    `- Impacted Repos: ${impactGuidance.impactedRepos.length > 0 ? impactGuidance.impactedRepos.join(", ") : "(none)"}`,
+    `- Impacted Contracts: ${impactGuidance.impactedContracts.length > 0 ? impactGuidance.impactedContracts.join(", ") : "(none)"}`,
+    `- Risk Hotspots: ${impactGuidance.riskHotspots.length > 0 ? impactGuidance.riskHotspots.join(", ") : "(none)"}`,
+    `- Reviewer Hints: ${impactGuidance.reviewerHints.length > 0 ? impactGuidance.reviewerHints.join(", ") : "(none)"}`,
+    `- Decision Notes: ${impactGuidance.decisionNotes.length > 0 ? impactGuidance.decisionNotes.join(", ") : "(none)"}`,
+    `- Review Hint: ${impactGuidance.reviewHint ?? "(none)"}`,
+    `- Confidence: ${impactGuidance.confidence ?? "(none)"}`,
+    ...(impactGuidance.rationale.length > 0
+      ? ["- Rationale:", ...impactGuidance.rationale.map((entry) => `  - ${entry}`)]
+      : ["- Rationale: (none)"]),
+    ...(impactGuidance.evidenceSignals.length > 0
+      ? ["- Evidence Signals:", ...impactGuidance.evidenceSignals.map((entry) => `  - ${entry}`)]
+      : ["- Evidence Signals: (none)"]),
+    ...(impactGuidance.references.length > 0
+      ? ["- Impact References:", ...impactGuidance.references.map((reference) => `  - ${reference}`)]
+      : ["- Impact References: (none)"]),
+    "",
     "## Language Guidance",
     "",
     `- Languages: ${input.languageGuidance.languages.length > 0 ? input.languageGuidance.languages.join(", ") : "(none)"}`,
@@ -975,21 +1410,21 @@ async function writeHandoff(cwd: string, taskId: string, input: {
       ? ["- Guides:", ...input.languageGuidance.guideReferences.map((reference) => `  - ${reference}`)]
       : ["- Guides: (none)"]),
     "",
-    "## Model Route",
+    "## Execution Route",
     "",
-    ...(input.modelRoute
+    ...(input.executionRoute
       ? [
-          `- Model Class: ${input.modelRoute.recommendation.modelClass}`,
-          `- Domain: ${input.modelRoute.classification.domain}`,
-          `- Complexity: ${input.modelRoute.classification.complexity}`,
-          `- Context: ${input.modelRoute.classification.context}`,
-          `- Target Command: ${input.modelRoute.classification.targetCommand ?? "(none)"}`,
-          `- Languages: ${input.modelRoute.classification.languages.length > 0 ? input.modelRoute.classification.languages.join(", ") : "(none)"}`,
-          `- Reason: ${input.modelRoute.recommendation.reason}`,
-          `- Telemetry Note: ${input.modelRoute.recommendation.telemetryNote}`,
-          `- Route Reviewers: ${input.modelRoute.recommendation.reviewerAgents.length > 0 ? input.modelRoute.recommendation.reviewerAgents.join(", ") : "(none)"}`,
-          ...(input.modelRoute.recommendation.guideReferences.length > 0
-            ? ["- Route Guides:", ...input.modelRoute.recommendation.guideReferences.map((reference) => `  - ${reference}`)]
+          `- Profile Class: ${input.executionRoute.recommendation.profileClass}`,
+          `- Domain: ${input.executionRoute.classification.domain}`,
+          `- Complexity: ${input.executionRoute.classification.complexity}`,
+          `- Context: ${input.executionRoute.classification.context}`,
+          `- Target Command: ${input.executionRoute.classification.targetCommand ?? "(none)"}`,
+          `- Languages: ${input.executionRoute.classification.languages.length > 0 ? input.executionRoute.classification.languages.join(", ") : "(none)"}`,
+          `- Reason: ${input.executionRoute.recommendation.reason}`,
+          `- Telemetry Note: ${input.executionRoute.recommendation.telemetryNote}`,
+          `- Route Reviewers: ${input.executionRoute.recommendation.reviewerAgents.length > 0 ? input.executionRoute.recommendation.reviewerAgents.join(", ") : "(none)"}`,
+          ...(input.executionRoute.recommendation.guideReferences.length > 0
+            ? ["- Route Guides:", ...input.executionRoute.recommendation.guideReferences.map((reference) => `  - ${reference}`)]
             : ["- Route Guides: (none)"]),
         ]
       : ["- (none)"]),
@@ -1224,21 +1659,25 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
   session.workflowKind = workflow.kind;
   session.taskEnvId = taskEnvId;
   session.observeSessionIds = observeSessionIds;
-  session.nextActions = hermesQuery.executed ? prependHermesReviewAction(workflow.nextActions) : workflow.nextActions;
-  session.status = tool ? "implementing" : "prepared";
-  clearTaskError(session);
-  const [languageGuideReferences, languageGuidance, modelRoute] = await Promise.all([
+  const [languageGuideReferences, languageGuidance, executionRoute, impactGuidance, latestAnalyzeSummary] = await Promise.all([
     collectExistingLanguageGuideReferences(cwd),
     collectLanguageGuidance(cwd),
-    collectModelRoute(cwd, taskText),
+    collectExecutionRoute(cwd, taskText),
+    collectImpactGuidance(cwd, taskText),
+    readLatestAnalyzeSummary(cwd),
   ]);
-  const reviewGate = buildReviewGate({ modelRoute, languageGuidance });
+  session.nextActions = hermesQuery.executed ? prependHermesReviewAction(workflow.nextActions) : workflow.nextActions;
+  session.nextActions = prependImpactReviewAction(session.nextActions, impactGuidance);
+  session.status = tool ? "implementing" : "prepared";
+  clearTaskError(session);
+  const reviewGate = buildReviewGate({ executionRoute, impactGuidance, languageGuidance });
   let context: TaskContext = await buildTaskContextWithRuntime(cwd, {
     version: TASK_STORE_VERSION,
     taskId,
-    analyzeRunId: (await readLatestAnalyzeSummary(cwd)).runId,
-    references: unique([...workflow.references, ...languageGuideReferences]),
-    modelRoute,
+    analyzeRunId: latestAnalyzeSummary.runId,
+    references: unique([...workflow.references, ...languageGuideReferences, ...impactGuidance.references]),
+    executionRoute,
+    impactGuidance,
     languageGuidance,
     reviewGate,
     commandSpecPath: workflow.commandSpecPath,
@@ -1275,7 +1714,8 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
       summary: workflow.summary,
       commandSpecPath: workflow.commandSpecPath,
       references: context.references,
-      modelRoute: context.modelRoute,
+      executionRoute: context.executionRoute,
+      impactGuidance: context.impactGuidance,
       languageGuidance: context.languageGuidance,
       reviewGate: context.reviewGate,
       decisions: workflow.decisions,
@@ -1374,7 +1814,8 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
     summary: workflow.summary,
     commandSpecPath: workflow.commandSpecPath,
     references: context.references,
-    modelRoute: context.modelRoute,
+    executionRoute: context.executionRoute,
+    impactGuidance: context.impactGuidance,
     languageGuidance: context.languageGuidance,
     reviewGate: context.reviewGate,
     decisions: workflow.decisions,
@@ -1520,61 +1961,7 @@ export async function syncTaskContextFromSession(input: {
   defaultTool?: string | null;
   hermesQueryPatch?: Partial<TaskContext["hermesQuery"]>;
 }): Promise<TaskContext> {
-  const current = await readJsonStore(getContextPath(input.cwd, input.taskId), {
-    version: TASK_STORE_VERSION,
-    taskId: "",
-    analyzeRunId: null,
-    references: [],
-    modelRoute: null,
-    languageGuidance: {
-      languages: [],
-      guideReferences: [],
-      reviewerAgents: [],
-      reviewHint: null,
-    },
-    reviewGate: {
-      level: "none",
-      reviewers: [],
-      guideReferences: [],
-      reviewPack: [],
-      stopConditions: [],
-      reason: "No explicit language-specific review gate configured.",
-    },
-    commandSpecPath: "",
-    summary: "",
-    hermesRecommendations: [],
-    hermesQuery: {
-      executed: false,
-      strategy: "default",
-      topic: null,
-      summary: null,
-      commandSpecPath: null,
-      references: [],
-      influencedWorkflow: false,
-      influencedRecovery: false,
-      influencedVerification: false,
-    },
-    taskState: {
-      status: "prepared",
-      currentStep: null,
-      taskEnvId: null,
-      observeSessionIds: [],
-      loopId: null,
-      loop: null,
-      nextActions: [],
-      runner: {
-        ...createRunnerState(),
-      },
-      lastVerification: null,
-      lastRecoveryAction: null,
-      lastReviewResult: null,
-      autonomy: createAutonomyState(),
-    },
-    recovery: {
-      resumeStrategy: null,
-      recoveryPlan: null,
-    },
-  } satisfies TaskContext, isTaskContext);
+  const current = await readTaskContext(input.cwd, input.taskId);
   const resumeStrategy = deriveResumeStrategy(input.session, input.defaultTool?.trim() || null);
   const recoveryPlan = deriveRecoveryPlan(input.session, resumeStrategy);
   const updated = await buildTaskContextWithRuntime(input.cwd, {
@@ -1614,61 +2001,7 @@ export async function assignLoopToTask(input: {
   };
   const resumeStrategy = deriveResumeStrategy(updatedSession, config.agentRunner?.defaultTool?.trim() || null);
   const recoveryPlan = deriveRecoveryPlan(updatedSession, resumeStrategy);
-  const current = await readJsonStore(getContextPath(input.cwd, input.taskId), {
-    version: TASK_STORE_VERSION,
-    taskId: "",
-    analyzeRunId: null,
-    references: [],
-    modelRoute: null,
-    languageGuidance: {
-      languages: [],
-      guideReferences: [],
-      reviewerAgents: [],
-      reviewHint: null,
-    },
-    reviewGate: {
-      level: "none",
-      reviewers: [],
-      guideReferences: [],
-      reviewPack: [],
-      stopConditions: [],
-      reason: "No explicit language-specific review gate configured.",
-    },
-    commandSpecPath: "",
-    summary: "",
-    hermesRecommendations: [],
-    hermesQuery: {
-      executed: false,
-      strategy: "default",
-      topic: null,
-      summary: null,
-      commandSpecPath: null,
-      references: [],
-      influencedWorkflow: false,
-      influencedRecovery: false,
-      influencedVerification: false,
-    },
-    taskState: {
-      status: "prepared",
-      currentStep: null,
-      taskEnvId: null,
-      observeSessionIds: [],
-      loopId: null,
-      loop: null,
-      nextActions: [],
-      runner: {
-        ...createRunnerState(),
-      },
-      lastVerification: null,
-      lastRecoveryAction: null,
-      lastReviewResult: null,
-      autonomy: createAutonomyState(),
-    },
-    recovery: {
-      resumeStrategy: null,
-      recoveryPlan: null,
-    },
-  } satisfies TaskContext, isTaskContext);
+  const current = await readTaskContext(input.cwd, input.taskId);
   const updatedContext = await buildTaskContextWithRuntime(input.cwd, current, {
     session: updatedSession,
     resumeStrategy,
@@ -1691,7 +2024,7 @@ export async function assignLoopToTask(input: {
       summary: current.summary,
       commandSpecPath: current.commandSpecPath,
       references: current.references,
-      modelRoute: current.modelRoute,
+      executionRoute: current.executionRoute,
       languageGuidance: current.languageGuidance,
       reviewGate: current.reviewGate,
       decisions,
@@ -1748,61 +2081,7 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
     loop: { decision: "not-required", reasons: [] },
     hermesQuery: { decision: "not-required", reasons: [] },
   }, (value): value is StartTaskResult["decisions"] => isRecord(value));
-  const context = await readJsonStore(getContextPath(cwd, taskId), {
-    version: TASK_STORE_VERSION,
-    taskId: "",
-    analyzeRunId: null,
-    references: [],
-    modelRoute: null,
-    languageGuidance: {
-      languages: [],
-      guideReferences: [],
-      reviewerAgents: [],
-      reviewHint: null,
-    },
-    reviewGate: {
-      level: "none",
-      reviewers: [],
-      guideReferences: [],
-      reviewPack: [],
-      stopConditions: [],
-      reason: "No explicit language-specific review gate configured.",
-    },
-    commandSpecPath: "",
-    summary: "",
-    hermesRecommendations: [],
-    hermesQuery: {
-      executed: false,
-      strategy: "default",
-      topic: null,
-      summary: null,
-      commandSpecPath: null,
-      references: [],
-      influencedWorkflow: false,
-      influencedRecovery: false,
-      influencedVerification: false,
-    },
-    taskState: {
-      status: "prepared",
-      currentStep: null,
-      taskEnvId: null,
-      observeSessionIds: [],
-      loopId: null,
-      loop: null,
-      nextActions: [],
-      runner: {
-        ...createRunnerState(),
-      },
-      lastVerification: null,
-      lastRecoveryAction: null,
-      lastReviewResult: null,
-      autonomy: createAutonomyState(),
-    },
-    recovery: {
-      resumeStrategy: null,
-      recoveryPlan: null,
-    },
-  } satisfies TaskContext, isTaskContext);
+  const context = await readTaskContext(cwd, taskId);
 
   const now = new Date().toISOString();
   const currentTool = detectCurrentTool();
@@ -1826,12 +2105,13 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
       writeTaskContextStore(cwd, taskId, updatedContext),
       writeHandoff(cwd, taskId, {
         task: escalatedSession.task,
-        summary: context.summary,
-        commandSpecPath: context.commandSpecPath,
-        references: context.references,
-        modelRoute: context.modelRoute,
-        languageGuidance: context.languageGuidance,
-        reviewGate: context.reviewGate,
+      summary: context.summary,
+      commandSpecPath: context.commandSpecPath,
+      references: context.references,
+      executionRoute: context.executionRoute,
+      impactGuidance: context.impactGuidance,
+      languageGuidance: context.languageGuidance,
+      reviewGate: context.reviewGate,
         decisions,
         taskEnvId: escalatedSession.taskEnvId,
         observeSessionIds: escalatedSession.observeSessionIds,
@@ -2088,7 +2368,8 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
       summary: context.summary,
       commandSpecPath: context.commandSpecPath,
       references: context.references,
-      modelRoute: context.modelRoute,
+      executionRoute: context.executionRoute,
+      impactGuidance: context.impactGuidance,
       languageGuidance: context.languageGuidance,
       reviewGate: context.reviewGate,
       decisions,
@@ -2178,7 +2459,8 @@ export async function readTaskStatusSummary(cwd: string): Promise<TaskStatusSumm
       ...task,
       resumeStrategy,
       recoveryPlan: deriveRecoveryPlan(task, resumeStrategy),
-      modelRoute: context.modelRoute,
+      executionRoute: context.executionRoute,
+      impactGuidance: context.impactGuidance,
       languageGuidance: context.languageGuidance,
       reviewGate: context.reviewGate,
     };

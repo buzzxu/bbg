@@ -150,6 +150,8 @@ async function buildTaskVerificationContext(cwd: string): Promise<RunVerifyComma
 
   const ok = reasons.length === 0;
 
+  const executionRoute = context.executionRoute;
+
   return {
     taskId: session.taskId,
     status: session.status,
@@ -173,8 +175,8 @@ async function buildTaskVerificationContext(cwd: string): Promise<RunVerifyComma
       summary: session.lastReviewResult.summary,
       findings: [...session.lastReviewResult.findings],
     } : null,
-    reviewersRecommended: context.modelRoute?.recommendation.reviewerAgents ?? context.languageGuidance.reviewerAgents,
-    guideReferences: context.modelRoute?.recommendation.guideReferences ?? context.languageGuidance.guideReferences,
+    reviewersRecommended: executionRoute?.recommendation.reviewerAgents ?? context.languageGuidance.reviewerAgents,
+    guideReferences: executionRoute?.recommendation.guideReferences ?? context.languageGuidance.guideReferences,
     languageReviewHint: context.languageGuidance.reviewHint,
     hermesQueryExecuted,
   };

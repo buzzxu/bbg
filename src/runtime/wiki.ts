@@ -1,6 +1,8 @@
 import { readdir } from "node:fs/promises";
 import { basename, join } from "node:path";
-import type { WorkspaceFusionResult } from "../analyze/types.js";
+import type { DocumentationLanguage } from "../config/documentation-language.js";
+import { getAnalyzeDocCopy } from "../analyze/doc-copy.js";
+import type { AnalyzeInterviewSummary, AnalyzeKnowledgeModel, WorkspaceFusionResult } from "../analyze/types.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 
 const WIKI_INDEX_PATH = "docs/wiki/index.md";
@@ -207,45 +209,83 @@ function wikiFrontmatter(input: {
 export async function writeAnalyzeWikiArtifacts(input: {
   cwd: string;
   fusion: WorkspaceFusionResult;
+  interview: AnalyzeInterviewSummary | null;
+  model: AnalyzeKnowledgeModel;
+  focus: string | null;
+  documentationLanguage: DocumentationLanguage;
 }): Promise<{ wikiPaths: string[] }> {
+  const copy = getAnalyzeDocCopy(input.documentationLanguage);
   await ensureWikiScaffold(input.cwd);
   const wikiPaths = [WIKI_INDEX_PATH, WIKI_LOG_PATH];
   const conceptEntries: Array<{ path: string; title: string; summary: string }> = [];
   const reportEntries: Array<{ path: string; title: string; summary: string }> = [
     {
       path: WORKSPACE_ANALYSIS_SUMMARY_PATH,
-      title: "Workspace Analysis Summary",
+      title: copy.workspaceAnalysisSummary,
       summary: `Summarizes ${input.fusion.repos.length} analyzed repo(s) and current integration edges.`,
     },
   ];
 
   const workspaceSummaryContent = [
     wikiFrontmatter({
-      title: "Workspace Analysis Summary",
+      title: copy.workspaceAnalysisSummary,
       type: "report",
       sources: [
         ".bbg/analyze/latest.json",
         ".bbg/knowledge/workspace/topology.json",
         ".bbg/knowledge/workspace/integration-map.json",
-        ".bbg/knowledge/workspace/business-modules.json",
+        ".bbg/knowledge/workspace/capabilities.json",
+        ".bbg/knowledge/workspace/critical-flows.json",
+        ".bbg/knowledge/workspace/contracts.json",
+        ".bbg/knowledge/workspace/risk-surface.json",
       ],
       tags: ["analysis", "workspace", "architecture"],
     }),
-    "# Workspace Analysis Summary",
+    `# ${copy.workspaceAnalysisSummary}`,
     "",
-    "## Repositories",
+    `## ${copy.overview}`,
+    "",
+    `- ${copy.keyDocs}:`,
+    `  - [${copy.capabilityMap}](../../business/capability-map.md)`,
+    `  - [${copy.criticalFlowAnalysis}](../../business/critical-flows.md)`,
+    `  - [${copy.integrationContracts}](../../architecture/integration-contracts.md)`,
+    `  - [${copy.riskSurface}](../../architecture/risk-surface.md)`,
+    `  - [${copy.changeImpactMap}](../../architecture/change-impact-map.md)`,
+    ...(input.focus ? ["  - [Focused Analysis](../../workflows/focused-analysis.md)"] : []),
+    "",
+    `## ${copy.repositories}`,
     "",
     ...input.fusion.repos.map((repo) => `- ${repo.name}: ${repo.type} (${repo.stack.language} / ${repo.stack.framework})`),
     "",
-    "## Integration Edges",
+    `## ${copy.capabilityMap}`,
+    "",
+    ...(input.model.capabilities.length > 0
+      ? input.model.capabilities.map((capability) => `- ${capability.name}: ${capability.description}`)
+      : [`- ${copy.none}`]),
+    "",
+    `## ${copy.criticalFlowAnalysis}`,
+    "",
+    ...(input.model.criticalFlows.length > 0
+      ? input.model.criticalFlows.map((flow) => `- ${flow.summary} (${flow.participatingRepos.join(", ") || copy.none})`)
+      : [`- ${copy.none}`]),
+    "",
+    `## ${copy.repoEdges}`,
     "",
     ...(input.fusion.integrationEdges.length > 0
       ? input.fusion.integrationEdges.map((edge) => `- ${edge.from} -> ${edge.to}`)
-      : ["- (none)"]),
+      : [`- ${copy.none}`]),
     "",
-    "## Business Modules",
+    `## ${copy.riskSurface}`,
     "",
-    ...input.fusion.businessModules.map((module) => `- ${module.name}: ${module.description || module.type}`),
+    ...(input.model.riskSurface.length > 0
+      ? input.model.riskSurface.map((risk) => `- [${risk.severity}] ${risk.title}`)
+      : [`- ${copy.none}`]),
+    "",
+    `## ${copy.changeImpactMap}`,
+    "",
+    ...(input.model.changeImpact.length > 0
+      ? input.model.changeImpact.map((impact) => `- ${impact.target}: ${impact.impactedRepos.join(", ") || copy.none}`)
+      : [`- ${copy.none}`]),
     "",
   ].join("\n");
   await writeTextFile(join(input.cwd, WORKSPACE_ANALYSIS_SUMMARY_PATH), workspaceSummaryContent);
@@ -254,7 +294,7 @@ export async function writeAnalyzeWikiArtifacts(input: {
   for (const repo of input.fusion.repos) {
     const pathValue = `docs/wiki/concepts/repo-${repo.name}-overview.md`;
     const title = `${repo.name} Overview`;
-    const content = [
+      const content = [
       wikiFrontmatter({
         title,
         type: "concept",
@@ -267,13 +307,13 @@ export async function writeAnalyzeWikiArtifacts(input: {
       }),
       `# ${title}`,
       "",
-      `- Type: ${repo.type}`,
-      `- Stack: ${repo.stack.language} / ${repo.stack.framework}`,
-      `- Direct dependencies: ${repo.deps.length > 0 ? repo.deps.join(", ") : "(none)"}`,
+      `- ${copy.type}: ${repo.type}`,
+      `- ${copy.stack}: ${repo.stack.language} / ${repo.stack.framework}`,
+      `- ${copy.directDependencies}: ${repo.deps.length > 0 ? repo.deps.join(", ") : copy.none}`,
       "",
-      "## Structure Markers",
+      `## ${copy.structureMarkers}`,
       "",
-      ...(repo.structure.length > 0 ? repo.structure.map((marker) => `- ${marker}`) : ["- (none)"]),
+      ...(repo.structure.length > 0 ? repo.structure.map((marker) => `- ${marker}`) : [`- ${copy.none}`]),
       "",
     ].join("\n");
     await writeTextFile(join(input.cwd, pathValue), content);
@@ -284,6 +324,94 @@ export async function writeAnalyzeWikiArtifacts(input: {
       summary: `${repo.type} repo summary and structural markers.`,
     });
   }
+
+  const projectContextPath = "docs/wiki/concepts/project-context.md";
+  const projectContextContent = [
+    wikiFrontmatter({
+      title: copy.projectContext,
+      type: "concept",
+      sources: [
+        ".bbg/analyze/latest.json",
+        ".bbg/analyze/interview/latest.json",
+        ".bbg/knowledge/workspace/business-context.json",
+        ".bbg/knowledge/workspace/capabilities.json",
+        ".bbg/knowledge/workspace/critical-flows.json",
+        ".bbg/knowledge/workspace/contracts.json",
+        ".bbg/knowledge/workspace/constraints.json",
+        ".bbg/knowledge/workspace/risk-surface.json",
+        ".bbg/knowledge/workspace/decisions.json",
+        ".bbg/knowledge/workspace/change-impact.json",
+      ],
+      tags: ["analysis", "project", "business-context"],
+    }),
+    `# ${copy.projectContext}`,
+    "",
+    `- ${copy.businessGoal}: ${input.interview?.context.businessGoal ?? copy.notConfirmedYet}`,
+    `- Interview mode: ${input.interview?.mode ?? "off"}`,
+    `- Unresolved gaps: ${input.interview?.unresolvedGaps.join(", ") || copy.none}`,
+    "",
+    `## ${copy.keyDocs}`,
+    "",
+    `- [${copy.capabilityMap}](../../business/capability-map.md)`,
+    `- [${copy.criticalFlowAnalysis}](../../business/critical-flows.md)`,
+    `- [${copy.domainModel}](../../business/domain-model.md)`,
+    `- [${copy.integrationContracts}](../../architecture/integration-contracts.md)`,
+    `- [${copy.runtimeConstraints}](../../architecture/runtime-constraints.md)`,
+    `- [${copy.riskSurface}](../../architecture/risk-surface.md)`,
+    `- [${copy.decisionHistoryDoc}](../../architecture/decision-history.md)`,
+    `- [${copy.changeImpactMap}](../../architecture/change-impact-map.md)`,
+    "",
+    `## ${copy.criticalFlowAnalysis}`,
+    "",
+    ...(input.model.criticalFlows.length
+      ? input.model.criticalFlows.map((flow) => `- ${flow.summary}`)
+      : [`- ${copy.notConfirmedYet}`]),
+    "",
+    `## ${copy.capabilityMap}`,
+    "",
+    ...(input.model.capabilities.length
+      ? input.model.capabilities.map((capability) => `- ${capability.name}: ${capability.description}`)
+      : [`- ${copy.notConfirmedYet}`]),
+    "",
+    `## ${copy.nonNegotiableConstraints}`,
+    "",
+    ...(input.interview?.context.nonNegotiableConstraints.length
+      ? input.interview.context.nonNegotiableConstraints.map((constraint) => `- ${constraint}`)
+      : [`- ${copy.notConfirmedYet}`]),
+    "",
+    `## ${copy.failureHotspots}`,
+    "",
+    ...(input.model.riskSurface.length
+      ? input.model.riskSurface.map((risk) => `- [${risk.severity}] ${risk.title}`)
+      : [`- ${copy.notConfirmedYet}`]),
+    "",
+    `## ${copy.decisionHistoryDoc}`,
+    "",
+    ...(input.model.decisionRecords.length
+      ? input.model.decisionRecords.map((decision) => `- [${decision.status}] ${decision.statement}`)
+      : [`- ${copy.noneRecordedYet}`]),
+    "",
+    `## ${copy.aiInferredAssumptions}`,
+    "",
+    ...(input.interview?.assumptionsApplied.length
+      ? input.interview.assumptionsApplied.flatMap((assumption) => [
+        `### ${assumption.key}`,
+        "",
+        ...assumption.values.map((value) => `- ${value}`),
+        `- ${copy.rationale}: ${assumption.rationale}`,
+        ...(assumption.evidence.length > 0 ? [`- ${copy.evidence}: ${assumption.evidence.join(", ")}`] : []),
+        "",
+      ])
+      : [`- ${copy.none}`]),
+    "",
+  ].join("\n");
+  await writeTextFile(join(input.cwd, projectContextPath), projectContextContent);
+  wikiPaths.push(projectContextPath);
+  conceptEntries.push({
+    path: projectContextPath,
+    title: copy.projectContext,
+    summary: "Durable business goals, boundaries, constraints, and hotspots for future task routing.",
+  });
 
   await updateWikiIndex({
     cwd: input.cwd,
@@ -427,6 +555,72 @@ export async function buildWikiQueryAugmentation(input: {
   };
 }
 
+export async function buildAnalyzeKnowledgeQueryAugmentation(input: {
+  cwd: string;
+  topic?: string | null;
+}): Promise<{ references: string[]; summary: string | null }> {
+  const topic = input.topic?.trim();
+  if (!topic) {
+    return { references: [], summary: null };
+  }
+
+  const tokens = topicTokens(topic);
+  if (tokens.length === 0) {
+    return { references: [], summary: null };
+  }
+
+  const candidates: Array<{ path: string; dimension: string }> = [
+    { path: "docs/business/capability-map.md", dimension: "capabilities" },
+    { path: "docs/business/critical-flows.md", dimension: "critical flows" },
+    { path: "docs/architecture/integration-contracts.md", dimension: "contracts" },
+    { path: "docs/architecture/risk-surface.md", dimension: "risk surface" },
+    { path: "docs/architecture/change-impact-map.md", dimension: "change impact" },
+    { path: "docs/architecture/decision-history.md", dimension: "decision history" },
+    { path: ".bbg/knowledge/workspace/capabilities.json", dimension: "capabilities" },
+    { path: ".bbg/knowledge/workspace/critical-flows.json", dimension: "critical flows" },
+    { path: ".bbg/knowledge/workspace/contracts.json", dimension: "contracts" },
+    { path: ".bbg/knowledge/workspace/risk-surface.json", dimension: "risk surface" },
+    { path: ".bbg/knowledge/workspace/change-impact.json", dimension: "change impact" },
+    { path: ".bbg/knowledge/workspace/decisions.json", dimension: "decision history" },
+  ];
+
+  const scored: Array<{ path: string; score: number; dimension: string }> = [];
+  for (const candidate of candidates) {
+    const absolutePath = join(input.cwd, candidate.path);
+    if (!(await exists(absolutePath))) {
+      continue;
+    }
+
+    const content = (await readTextFile(absolutePath)).toLowerCase();
+    const normalizedPath = candidate.path.toLowerCase();
+    let score = 0;
+    for (const token of tokens) {
+      if (normalizedPath.includes(token)) {
+        score += 4;
+      }
+      if (content.includes(token)) {
+        score += 1;
+      }
+    }
+
+    if (score > 0) {
+      scored.push({ path: candidate.path, score, dimension: candidate.dimension });
+    }
+  }
+
+  scored.sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
+  const matched = scored.slice(0, 6);
+  if (matched.length === 0) {
+    return { references: [], summary: null };
+  }
+
+  const dimensions = unique(matched.map((entry) => entry.dimension));
+  return {
+    references: unique(matched.map((entry) => entry.path)),
+    summary: `Analyze knowledge references for this task: ${dimensions.join(", ")}.`,
+  };
+}
+
 export async function writeVerifyWikiArtifacts(input: {
   cwd: string;
   taskId: string;
@@ -535,6 +729,7 @@ export async function readWikiDoctorArtifacts(input: {
   const generated = input.hasAnalyzeState
     ? [
         WORKSPACE_ANALYSIS_SUMMARY_PATH,
+        "docs/wiki/concepts/project-context.md",
         ...input.repos.map((repo) => `docs/wiki/concepts/repo-${repo}-overview.md`),
       ]
     : [WORKSPACE_ANALYSIS_SUMMARY_PATH];

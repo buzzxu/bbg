@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { buildWikiQueryAugmentation } from "../runtime/wiki.js";
+import { buildAnalyzeKnowledgeQueryAugmentation, buildWikiQueryAugmentation } from "../runtime/wiki.js";
 import { exists, readTextFile } from "../utils/fs.js";
 
 export type HermesKind =
@@ -78,14 +78,17 @@ export async function runHermesCommand(input: RunHermesCommandInput): Promise<Ru
   const wikiAugmentation = input.kind === "query"
     ? await buildWikiQueryAugmentation({ cwd: input.cwd, topic: input.topic })
     : { references: [] as string[], summary: null as string | null };
+  const analyzeAugmentation = input.kind === "query"
+    ? await buildAnalyzeKnowledgeQueryAugmentation({ cwd: input.cwd, topic: input.topic })
+    : { references: [] as string[], summary: null as string | null };
 
   return {
     kind: input.kind,
     topic: input.topic?.trim().length ? input.topic.trim() : null,
     commandSpecPath: hermes.commandSpecPath,
-    summary: [firstParagraph ?? hermes.summary, wikiAugmentation.summary]
+    summary: [firstParagraph ?? hermes.summary, wikiAugmentation.summary, analyzeAugmentation.summary]
       .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       .join(" "),
-    references: [...new Set([...hermes.references, ...wikiAugmentation.references])],
+    references: [...new Set([...hermes.references, ...wikiAugmentation.references, ...analyzeAugmentation.references])],
   };
 }

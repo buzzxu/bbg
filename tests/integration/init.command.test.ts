@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,6 +13,7 @@ const gitState = vi.hoisted(() => ({
   ensureGitAvailable: vi.fn(),
   listRemoteBranches: vi.fn(),
   cloneRepo: vi.fn(),
+  discoverLocalChildRepos: vi.fn(),
 }));
 
 const analyzerState = vi.hoisted(() => ({
@@ -37,33 +38,43 @@ const runtimePathState = vi.hoisted(() => ({
 
 vi.mock("../../src/utils/prompts.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../src/utils/prompts.js")>();
+  const { uiText } = await import("../../src/i18n/ui-copy.js");
   return {
     promptInput: promptState.promptInput,
     promptConfirm: promptState.promptConfirm,
     promptSelect: promptState.promptSelect,
     sanitizePromptValue: actual.sanitizePromptValue,
     collectStackInfo: async (detectedStack: Record<string, string>) => {
-      const useDetected = await promptState.promptConfirm({ message: "Use detected stack info?", default: true });
+      const useDetected = await promptState.promptConfirm({
+        message: uiText("init.useDetectedStackInfo"),
+        default: true,
+      });
       if (useDetected) return detectedStack;
       return {
         language: actual.sanitizePromptValue(
-          await promptState.promptInput({ message: "Stack language", default: detectedStack.language }),
+          await promptState.promptInput({ message: uiText("init.stackLanguage"), default: detectedStack.language }),
           detectedStack.language,
         ),
         framework: actual.sanitizePromptValue(
-          await promptState.promptInput({ message: "Stack framework", default: detectedStack.framework }),
+          await promptState.promptInput({ message: uiText("init.stackFramework"), default: detectedStack.framework }),
           detectedStack.framework,
         ),
         buildTool: actual.sanitizePromptValue(
-          await promptState.promptInput({ message: "Stack build tool", default: detectedStack.buildTool }),
+          await promptState.promptInput({ message: uiText("init.stackBuildTool"), default: detectedStack.buildTool }),
           detectedStack.buildTool,
         ),
         testFramework: actual.sanitizePromptValue(
-          await promptState.promptInput({ message: "Stack test framework", default: detectedStack.testFramework }),
+          await promptState.promptInput({
+            message: uiText("init.stackTestFramework"),
+            default: detectedStack.testFramework,
+          }),
           detectedStack.testFramework,
         ),
         packageManager: actual.sanitizePromptValue(
-          await promptState.promptInput({ message: "Stack package manager", default: detectedStack.packageManager }),
+          await promptState.promptInput({
+            message: uiText("init.stackPackageManager"),
+            default: detectedStack.packageManager,
+          }),
           detectedStack.packageManager,
         ),
       };
@@ -75,6 +86,7 @@ vi.mock("../../src/utils/git.js", () => ({
   ensureGitAvailable: gitState.ensureGitAvailable,
   listRemoteBranches: gitState.listRemoteBranches,
   cloneRepo: gitState.cloneRepo,
+  discoverLocalChildRepos: gitState.discoverLocalChildRepos,
 }));
 
 vi.mock("../../src/analyzers/index.js", () => ({
@@ -94,6 +106,7 @@ vi.mock("../../src/runtime/paths.js", async (importOriginal) => {
 });
 
 import { runInit } from "../../src/commands/init.js";
+import { uiText } from "../../src/i18n/ui-copy.js";
 
 const tempDirs: string[] = [];
 
@@ -111,6 +124,7 @@ describe("init command", () => {
     gitState.ensureGitAvailable.mockReset();
     gitState.listRemoteBranches.mockReset();
     gitState.cloneRepo.mockReset();
+    gitState.discoverLocalChildRepos.mockReset();
     analyzerState.analyzeRepo.mockReset();
     doctorState.runDoctor.mockReset();
     runtimePathState.overridePaths = undefined;
@@ -121,6 +135,7 @@ describe("init command", () => {
     gitState.ensureGitAvailable.mockResolvedValue(undefined);
     gitState.listRemoteBranches.mockResolvedValue({ branches: ["main"], credentials: null });
     gitState.cloneRepo.mockResolvedValue(undefined);
+    gitState.discoverLocalChildRepos.mockResolvedValue([]);
     analyzerState.analyzeRepo.mockResolvedValue({
       stack: {
         language: "typescript",
@@ -181,9 +196,19 @@ describe("init command", () => {
     expect(claudeAdapter).toContain("bbg analyze");
     expect(claudeAdapter).toContain('bbg start "<task>"');
 
+    const agentsText = await readFile(join(cwd, "AGENTS.md"), "utf8");
+    expect(agentsText).toContain("bbg does not require a specific model vendor or model name");
+
     const geminiSettings = await readFile(join(cwd, ".gemini", "settings.json"), "utf8");
     expect(geminiSettings).toContain(".bbg/context/repo-map.json");
     expect(geminiSettings).toContain(".bbg/policy/decisions.json");
+
+    const codexConfig = await readFile(join(cwd, ".codex", "config.toml"), "utf8");
+    expect(codexConfig).not.toContain("model =");
+    expect(codexConfig).toContain("bbg intentionally does not pin a Codex model");
+
+    const readmeText = await readFile(join(cwd, "README.md"), "utf8");
+    expect(readmeText).toContain("bbg does not pin a required model for any AI tool");
 
     const harnessPlaybook = await readFile(join(cwd, "docs", "workflows", "harness-engineering-playbook.md"), "utf8");
     expect(harnessPlaybook).toContain("BBG uses a two-layer model");
@@ -467,62 +492,62 @@ describe("init command", () => {
 
     expect(promptState.promptInput).toHaveBeenCalledTimes(7);
     expect(promptState.promptInput).toHaveBeenNthCalledWith(1, {
-      message: "Project name",
+      message: uiText("init.projectName"),
       default: "bbg-project",
     });
     expect(promptState.promptInput).toHaveBeenNthCalledWith(2, {
-      message: "Project description",
+      message: uiText("init.projectDescription"),
       default: "Generated by bbg init",
     });
     expect(promptState.promptInput).toHaveBeenNthCalledWith(3, {
-      message: "Repository git URL",
+      message: uiText("init.repositoryGitUrl"),
     });
     expect(promptState.promptInput).toHaveBeenNthCalledWith(4, {
-      message: "Repository description",
+      message: uiText("init.repositoryDescription"),
       default: "",
     });
     expect(promptState.promptInput).toHaveBeenNthCalledWith(5, {
-      message: "High risk threshold (GRADE:score)",
+      message: uiText("init.highRiskThreshold"),
       default: "A+:99",
     });
     expect(promptState.promptInput).toHaveBeenNthCalledWith(6, {
-      message: "Medium risk threshold (GRADE:score)",
+      message: uiText("init.mediumRiskThreshold"),
       default: "A:95",
     });
     expect(promptState.promptInput).toHaveBeenNthCalledWith(7, {
-      message: "Low risk threshold (GRADE:score)",
+      message: uiText("init.lowRiskThreshold"),
       default: "B:85",
     });
 
     expect(promptState.promptConfirm).toHaveBeenCalledTimes(6);
     expect(promptState.promptConfirm).toHaveBeenNthCalledWith(1, {
-      message: "Add repository now?",
+      message: uiText("init.addRepositoryNow"),
       default: true,
     });
     expect(promptState.promptConfirm).toHaveBeenNthCalledWith(2, {
-      message: "Use detected stack info?",
+      message: uiText("init.useDetectedStackInfo"),
       default: true,
     });
     expect(promptState.promptConfirm).toHaveBeenNthCalledWith(3, {
-      message: "Add another repository?",
+      message: uiText("init.addAnotherRepository"),
       default: false,
     });
     expect(promptState.promptConfirm).toHaveBeenNthCalledWith(4, {
-      message: "Override default governance risk thresholds?",
+      message: uiText("init.overrideRiskThresholds"),
       default: false,
     });
     expect(promptState.promptConfirm).toHaveBeenNthCalledWith(5, {
-      message: "Enable red-team workflow?",
+      message: uiText("init.enableRedTeam"),
       default: true,
     });
     expect(promptState.promptConfirm).toHaveBeenNthCalledWith(6, {
-      message: "Enable cross-audit workflow?",
+      message: uiText("init.enableCrossAudit"),
       default: true,
     });
 
     expect(promptState.promptSelect).toHaveBeenCalledTimes(2);
     expect(promptState.promptSelect).toHaveBeenNthCalledWith(1, {
-      message: "Select default branch",
+      message: uiText("init.selectDefaultBranch"),
       choices: [
         { name: "main", value: "main" },
         { name: "develop", value: "develop" },
@@ -530,7 +555,7 @@ describe("init command", () => {
       default: "main",
     });
     expect(promptState.promptSelect).toHaveBeenNthCalledWith(2, {
-      message: "Repository type",
+      message: uiText("init.repositoryType"),
       choices: [
         { name: "backend", value: "backend" },
         { name: "frontend-pc", value: "frontend-pc" },
@@ -695,5 +720,77 @@ describe("init command", () => {
       testFramework: "pytest",
       packageManager: "pip",
     });
+  });
+
+  it("detects existing local child repositories and lets the user confirm them", { timeout: 20000 }, async () => {
+    const cwd = await makeTempDir();
+    const localRepoPath = join(cwd, "frontend");
+    await mkdir(localRepoPath, { recursive: true });
+
+    gitState.discoverLocalChildRepos.mockResolvedValue([
+      {
+        name: "frontend",
+        absolutePath: localRepoPath,
+        relativePath: "frontend",
+        remoteUrl: "https://example.com/frontend.git",
+        branch: "main",
+      },
+    ]);
+
+    promptState.promptInput
+      .mockResolvedValueOnce("workspace")
+      .mockResolvedValueOnce("workspace description")
+      .mockResolvedValueOnce("frontend repo");
+
+    promptState.promptConfirm
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true);
+
+    promptState.promptSelect.mockResolvedValueOnce("frontend-web");
+
+    analyzerState.analyzeRepo.mockResolvedValue({
+      stack: {
+        language: "typescript",
+        framework: "nextjs",
+        buildTool: "npm",
+        testFramework: "vitest",
+        packageManager: "npm",
+      },
+      structure: [],
+      deps: [],
+      testing: {
+        framework: "vitest",
+        hasTestDir: true,
+        testPattern: "*.test.ts",
+      },
+    });
+
+    const result = await runInit({ cwd, yes: false, dryRun: false });
+
+    const configText = await readFile(join(cwd, ".bbg", "config.json"), "utf8");
+    const config = JSON.parse(configText) as { repos: Array<{ name: string; gitUrl: string; branch: string; type: string; description: string }> };
+    expect(config.repos).toEqual([
+      {
+        name: "frontend",
+        gitUrl: "https://example.com/frontend.git",
+        branch: "main",
+        type: "frontend-web",
+        description: "frontend repo",
+        stack: {
+          language: "typescript",
+          framework: "nextjs",
+          buildTool: "npm",
+          testFramework: "vitest",
+          packageManager: "npm",
+        },
+      },
+    ]);
+    expect(gitState.cloneRepo).not.toHaveBeenCalled();
+    expect(analyzerState.analyzeRepo).toHaveBeenCalledWith(localRepoPath);
+    expect(result.clonedRepos).toEqual([]);
   });
 });

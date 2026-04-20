@@ -1,5 +1,9 @@
 import { execa } from "execa";
+import { readdir } from "node:fs/promises";
+import { basename, join, relative, sep } from "node:path";
+import { exists } from "./fs.js";
 import { BbgGitError } from "./errors.js";
+import { uiText } from "../i18n/ui-copy.js";
 import { promptInput } from "./prompts.js";
 
 const REMOTE_HEAD_PREFIX = "refs/heads/";
@@ -52,8 +56,8 @@ export interface GitCredentials {
 }
 
 export async function promptGitCredentials(): Promise<GitCredentials> {
-  const username = await promptInput({ message: "Git username" });
-  const password = await promptInput({ message: "Git password / token", transformer: () => "****" });
+  const username = await promptInput({ message: uiText("git.username") });
+  const password = await promptInput({ message: uiText("git.passwordToken"), transformer: () => "****" });
   return { username, password };
 }
 
@@ -130,6 +134,77 @@ export interface CloneRepoInput {
   targetDir: string;
   /** Credentials from a prior listRemoteBranches call — skips re-prompting. */
   credentials?: GitCredentials;
+}
+
+export interface LocalRepoMetadata {
+  name: string;
+  absolutePath: string;
+  relativePath: string;
+  remoteUrl: string;
+  branch: string;
+}
+
+async function readLocalGitValue(repoPath: string, args: string[]): Promise<string | null> {
+  try {
+    const result = await execa("git", ["-C", repoPath, ...args], {
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+    });
+    const value = result.stdout.trim();
+    return value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function isLocalGitRepo(repoPath: string): Promise<boolean> {
+  const result = await readLocalGitValue(repoPath, ["rev-parse", "--is-inside-work-tree"]);
+  return result === "true";
+}
+
+export async function readLocalRepoMetadata(workspaceRoot: string, repoPath: string): Promise<LocalRepoMetadata> {
+  if (!(await isLocalGitRepo(repoPath))) {
+    throw new BbgGitError(
+      `Local repository path is not a git repository: ${repoPath}`,
+      "E_GIT_LOCAL_REPO_INVALID",
+      "Choose a directory that already contains a git repository.",
+    );
+  }
+
+  const remoteUrl = (await readLocalGitValue(repoPath, ["config", "--get", "remote.origin.url"])) ?? "";
+  const branch = (await readLocalGitValue(repoPath, ["branch", "--show-current"])) ?? "main";
+  const relativePath = relative(workspaceRoot, repoPath).split(sep).join("/");
+
+  return {
+    name: basename(repoPath),
+    absolutePath: repoPath,
+    relativePath,
+    remoteUrl,
+    branch,
+  };
+}
+
+export async function discoverLocalChildRepos(workspaceRoot: string): Promise<LocalRepoMetadata[]> {
+  const entries = await readdir(workspaceRoot, { withFileTypes: true });
+  const discovered: LocalRepoMetadata[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) {
+      continue;
+    }
+
+    const candidatePath = join(workspaceRoot, entry.name);
+    if (!(await exists(join(candidatePath, ".git")))) {
+      continue;
+    }
+
+    if (!(await isLocalGitRepo(candidatePath))) {
+      continue;
+    }
+
+    discovered.push(await readLocalRepoMetadata(workspaceRoot, candidatePath));
+  }
+
+  return discovered.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
 }
 
 export async function cloneRepo(input: CloneRepoInput): Promise<void> {

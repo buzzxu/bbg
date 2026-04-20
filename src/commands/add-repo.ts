@@ -1,5 +1,5 @@
 import { rm, unlink } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeRepo } from "../analyzers/index.js";
 import type { FileHashRecord } from "../config/hash.js";
@@ -11,10 +11,11 @@ import { writeRepoRegistrationState } from "../runtime/repos.js";
 import { buildTemplateContext } from "../templates/context.js";
 import { renderProjectTemplates } from "../templates/render.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
-import { cloneRepo, listRemoteBranches } from "../utils/git.js";
+import { cloneRepo, listRemoteBranches, readLocalRepoMetadata } from "../utils/git.js";
 import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
 import { normalizeWorkspaceRelativePath, resolveBuiltinTemplatesRoot } from "../utils/paths.js";
 import { collectStackInfo, promptConfirm, promptInput, promptSelect, sanitizePromptValue } from "../utils/prompts.js";
+import { uiText } from "../i18n/ui-copy.js";
 import { runAnalyzeCommand } from "./analyze.js";
 import { runDoctor } from "./doctor.js";
 
@@ -27,6 +28,10 @@ export interface RunAddRepoInput {
 
 export interface RunAddRepoResult {
   addedRepoName: string;
+}
+
+function isWorkspaceChildRelativePath(relativePath: string): boolean {
+  return relativePath.length > 0 && !relativePath.startsWith("..") && !relativePath.includes("/");
 }
 
 async function restoreFile(pathValue: string, previousContent: string | null): Promise<void> {
@@ -47,33 +52,65 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
   }
 
   const config = parseConfig(await readTextFile(configPath));
-  const resolvedUrl = sanitizePromptValue(input.url ?? (await promptInput({ message: "Repository git URL" })), "");
-  if (!isParseableGitUrl(resolvedUrl)) {
-    throw new Error("Repository git URL is invalid. Please provide a parseable git URL.");
+  const repoSource = sanitizePromptValue(
+    input.url ?? (await promptInput({ message: uiText("addRepo.repositoryGitUrlOrLocalPath") })),
+    "",
+  );
+  const localSourcePath = resolve(input.cwd, repoSource);
+  const isLocalSource = !isParseableGitUrl(repoSource) && await exists(localSourcePath);
+
+  let resolvedUrl = repoSource;
+  let resolvedBranch = sanitizePromptValue(input.branch ?? "", "");
+  let repoName: string;
+  let targetDir: string;
+  let clonedInThisRun = false;
+
+  if (isLocalSource) {
+    const localRepo = await readLocalRepoMetadata(input.cwd, localSourcePath);
+    if (!isWorkspaceChildRelativePath(localRepo.relativePath)) {
+      throw new Error("Local repository path must be a direct child of the current workspace root.");
+    }
+
+    resolvedUrl = localRepo.remoteUrl;
+    resolvedBranch = resolvedBranch || localRepo.branch;
+    repoName = localRepo.name;
+    targetDir = localRepo.absolutePath;
+  } else {
+    if (!isParseableGitUrl(repoSource)) {
+      throw new Error("Repository git URL or local path is invalid. Provide a parseable git URL or an existing local git repository path.");
+    }
+
+    const { branches, credentials } = await listRemoteBranches(repoSource);
+    const branchChoices = (branches.length > 0 ? branches : ["main"]).map((branch) => ({
+      name: branch,
+      value: branch,
+    }));
+    resolvedBranch = resolvedBranch
+      ? resolvedBranch
+      : await promptSelect<string>({
+          message: uiText("addRepo.selectDefaultBranch"),
+          choices: branchChoices,
+          default: branchChoices[0]?.value,
+        });
+
+    if (!branchChoices.some((choice) => choice.value === resolvedBranch)) {
+      throw new Error(`Branch ${resolvedBranch} is not available in remote branches.`);
+    }
+
+    repoName = inferRepoName(repoSource);
+    targetDir = join(input.cwd, repoName);
+
+    if (await exists(targetDir)) {
+      await rm(targetDir, { recursive: true, force: true });
+    }
+    await cloneRepo({ url: repoSource, branch: resolvedBranch, targetDir, credentials: credentials ?? undefined });
+    clonedInThisRun = true;
   }
 
-  const { branches, credentials } = await listRemoteBranches(resolvedUrl);
-  const branchChoices = (branches.length > 0 ? branches : ["main"]).map((branch) => ({
-    name: branch,
-    value: branch,
-  }));
-  const resolvedBranch = input.branch
-    ? sanitizePromptValue(input.branch)
-    : await promptSelect<string>({
-        message: "Select default branch",
-        choices: branchChoices,
-        default: branchChoices[0]?.value,
-      });
-
-  if (!branchChoices.some((choice) => choice.value === resolvedBranch)) {
-    throw new Error(`Branch ${resolvedBranch} is not available in remote branches.`);
-  }
-
-  const repoName = inferRepoName(resolvedUrl);
   const existingIndex = config.repos.findIndex((repo) => repo.name === repoName);
   if (existingIndex !== -1) {
     const overwrite = await promptConfirm({
-      message: `Repository ${repoName} is already registered. Overwrite it?`,
+      message: uiText("addRepo.repositoryAlreadyRegistered", { value: repoName }),
       default: false,
     });
     if (!overwrite) {
@@ -81,23 +118,18 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     }
   }
 
-  const targetDir = join(input.cwd, repoName);
-  // Remove existing directory if present so clone doesn't fail
-  if (await exists(targetDir)) {
-    await rm(targetDir, { recursive: true, force: true });
-  }
-  let clonedInThisRun = false;
-  await cloneRepo({ url: resolvedUrl, branch: resolvedBranch, targetDir, credentials: credentials ?? undefined });
-  clonedInThisRun = true;
   const analysis = await analyzeRepo(targetDir);
   const stack = await collectStackInfo(analysis.stack);
 
   const type = await promptSelect<RepoType>({
-    message: "Repository type",
+    message: uiText("addRepo.repositoryType"),
     choices: REPO_TYPE_CHOICES,
     default: "other",
   });
-  const description = sanitizePromptValue(await promptInput({ message: "Repository description", default: "" }), "");
+  const description = sanitizePromptValue(
+    await promptInput({ message: uiText("addRepo.repositoryDescription"), default: "" }),
+    "",
+  );
 
   const repoEntry: RepoEntry = {
     name: repoName,
@@ -209,7 +241,7 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
   await writeRepoRegistrationState(input.cwd, {
     version: 1,
     name: repoName,
-    source: resolvedUrl,
+    source: resolvedUrl || normalizeWorkspaceRelativePath(input.cwd, targetDir),
     branch: resolvedBranch,
     registeredAt: new Date().toISOString(),
     analyzeStatus,

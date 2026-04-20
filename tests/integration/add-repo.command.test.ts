@@ -12,6 +12,7 @@ const promptState = vi.hoisted(() => ({
 const gitState = vi.hoisted(() => ({
   listRemoteBranches: vi.fn(),
   cloneRepo: vi.fn(),
+  readLocalRepoMetadata: vi.fn(),
 }));
 
 const analyzerState = vi.hoisted(() => ({
@@ -61,6 +62,7 @@ vi.mock("../../src/utils/prompts.js", async (importOriginal) => {
 vi.mock("../../src/utils/git.js", () => ({
   listRemoteBranches: gitState.listRemoteBranches,
   cloneRepo: gitState.cloneRepo,
+  readLocalRepoMetadata: gitState.readLocalRepoMetadata,
 }));
 
 vi.mock("../../src/analyzers/index.js", () => ({
@@ -150,6 +152,7 @@ describe("add-repo command", () => {
     promptState.promptConfirm.mockReset();
     gitState.listRemoteBranches.mockReset();
     gitState.cloneRepo.mockReset();
+    gitState.readLocalRepoMetadata.mockReset();
     analyzerState.analyzeRepo.mockReset();
     doctorState.runDoctor.mockReset();
 
@@ -158,6 +161,13 @@ describe("add-repo command", () => {
     promptState.promptConfirm.mockResolvedValue(true);
     gitState.listRemoteBranches.mockResolvedValue({ branches: ["main", "develop"], credentials: null });
     gitState.cloneRepo.mockResolvedValue(undefined);
+    gitState.readLocalRepoMetadata.mockResolvedValue({
+      name: "frontend",
+      absolutePath: "/tmp/workspace/frontend",
+      relativePath: "frontend",
+      remoteUrl: "https://example.com/frontend.git",
+      branch: "main",
+    });
     analyzerState.analyzeRepo.mockResolvedValue({
       stack: {
         language: "typescript",
@@ -371,5 +381,53 @@ describe("add-repo command", () => {
       repos: Array<{ name: string }>;
     };
     expect(config.repos.some((repo) => repo.name === "repo")).toBe(true);
+  });
+
+  it("registers an existing local workspace child repository without cloning", async () => {
+    const cwd = await makeTempDir();
+    await writeSeededConfig(cwd);
+    const localRepoPath = join(cwd, "frontend");
+    await mkdir(localRepoPath, { recursive: true });
+
+    gitState.readLocalRepoMetadata.mockResolvedValueOnce({
+      name: "frontend",
+      absolutePath: localRepoPath,
+      relativePath: "frontend",
+      remoteUrl: "https://example.com/frontend.git",
+      branch: "main",
+    });
+
+    const result = await runAddRepo({
+      cwd,
+      url: "./frontend",
+      analyze: false,
+    });
+
+    expect(result).toEqual({ addedRepoName: "frontend" });
+    expect(gitState.cloneRepo).not.toHaveBeenCalled();
+    expect(gitState.listRemoteBranches).not.toHaveBeenCalled();
+    expect(analyzerState.analyzeRepo).toHaveBeenCalledWith(localRepoPath);
+
+    const config = JSON.parse(await readFile(join(cwd, ".bbg", "config.json"), "utf8")) as {
+      repos: Array<{ name: string; gitUrl: string; branch: string }>;
+    };
+    expect(config.repos[1]).toEqual(
+      expect.objectContaining({
+        name: "frontend",
+        gitUrl: "https://example.com/frontend.git",
+        branch: "main",
+      }),
+    );
+
+    const registration = JSON.parse(
+      await readFile(join(cwd, ".bbg", "repos", "frontend", "registration.json"), "utf8"),
+    ) as { source: string; analyzeStatus: string; workspaceFusionStatus: string };
+    expect(registration).toEqual(
+      expect.objectContaining({
+        source: "https://example.com/frontend.git",
+        analyzeStatus: "pending",
+        workspaceFusionStatus: "pending",
+      }),
+    );
   });
 });

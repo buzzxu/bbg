@@ -268,6 +268,7 @@ function isBbgConfig(value: unknown): value is BbgConfig {
     isString(value.version) &&
     isString(value.projectName) &&
     isString(value.projectDescription) &&
+    (value.documentationLanguage === undefined || value.documentationLanguage === "zh-CN" || value.documentationLanguage === "en") &&
     isString(value.createdAt) &&
     isString(value.updatedAt) &&
     isRiskThreshold(value.governance.riskThresholds.high) &&

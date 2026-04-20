@@ -40,6 +40,16 @@ Prefer these primary CLI entrypoints when switching between AI tools:
 
 Tool-specific prompts should act as shortcuts to these primary entrypoints.
 
+## Model Choice
+
+bbg does not require a specific model vendor or model name. Keep model selection inside your current AI tool and prefer models that fit the active role:
+
+- planner: strong reasoning, architecture, and tradeoff analysis
+- implementer: strong code editing, build/test iteration, and repo-local execution
+- reviewer: strong review quality, risk detection, and standards enforcement
+
+Do not rewrite bbg-generated tool config just to force one model across every workflow. Use the model picker or tool-local settings when you need to switch.
+
 ## Task Handoff Priority
 
 When resuming or continuing a task, prefer structured runtime state over free-form recollection:

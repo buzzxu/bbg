@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -135,6 +135,14 @@ describe("upgrade command", () => {
 
     const createdHookContent = await readFile(join(cwd, ".githooks", "pre-commit"), "utf8");
     expect(createdHookContent).toContain("#!/usr/bin/env bash");
+    const preCommitMode = (await stat(join(cwd, ".githooks", "pre-commit"))).mode;
+    const prePushMode = (await stat(join(cwd, ".githooks", "pre-push"))).mode;
+    const doctorScriptMode = (await stat(join(cwd, "scripts", "doctor.py"))).mode;
+    const syncVersionsMode = (await stat(join(cwd, "scripts", "sync_versions.py"))).mode;
+    expect(preCommitMode & 0o111).toBeTruthy();
+    expect(prePushMode & 0o111).toBeTruthy();
+    expect(doctorScriptMode & 0o111).toBeTruthy();
+    expect(syncVersionsMode & 0o111).toBeTruthy();
 
     const updatedConfig = JSON.parse(await readFile(join(cwd, ".bbg", "config.json"), "utf8")) as {
       version: string;
@@ -189,6 +197,25 @@ describe("upgrade command", () => {
     expect(result.created).toContain("README.md");
     expect(result.created).toContain(".githooks/pre-commit");
     expect(result.skippedDeletedTemplate).toContain(".gitignore");
+  });
+
+  it("reports unchanged tracked files after a clean upgrade has already been applied", { timeout: 20000 }, async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+
+    await runUpgrade({ cwd });
+    const secondResult = await runUpgrade({ cwd });
+
+    expect(secondResult.overwritten).toEqual([]);
+    expect(secondResult.merged).toEqual([]);
+    expect(secondResult.conflicted).toEqual([]);
+    expect(secondResult.patches).toEqual([]);
+    expect(secondResult.skipped).toEqual([]);
+    expect(secondResult.skippedWithNotice).toEqual([]);
+    expect(secondResult.created).toEqual([]);
+    expect(secondResult.skippedDeletedTemplate).toContain(".gitignore");
+    expect(secondResult.unchanged.length).toBeGreaterThan(0);
+    expect(secondResult.unchanged).toContain("AGENTS.md");
   });
 
   it("performs three-way merge for user-modified tracked files using old snapshot baseline", { timeout: 20000 }, async () => {

@@ -75,6 +75,39 @@ export interface TaskAutonomyState {
   escalatedAt: string | null;
 }
 
+export interface TaskExecutionRoute {
+  classification: {
+    domain: string;
+    complexity: string;
+    context: string;
+    targetCommand: string | null;
+    languages: string[];
+  };
+  recommendation: {
+    profileClass: string;
+    reason: string;
+    telemetryNote: string;
+    reviewerAgents: string[];
+    guideReferences: string[];
+  };
+}
+
+export interface TaskImpactGuidance {
+  matchedCapabilities: string[];
+  matchedFlows: string[];
+  impactedRepos: string[];
+  impactedContracts: string[];
+  impactedTests: string[];
+  riskHotspots: string[];
+  reviewerHints: string[];
+  decisionNotes: string[];
+  evidenceSignals: string[];
+  references: string[];
+  confidence: number | null;
+  rationale: string[];
+  reviewHint: string | null;
+}
+
 export interface TaskSession {
   version: number;
   taskId: string;
@@ -106,22 +139,8 @@ export interface TaskContext {
   taskId: string;
   analyzeRunId: string | null;
   references: string[];
-  modelRoute: {
-    classification: {
-      domain: string;
-      complexity: string;
-      context: string;
-      targetCommand: string | null;
-      languages: string[];
-    };
-    recommendation: {
-      modelClass: string;
-      reason: string;
-      telemetryNote: string;
-      reviewerAgents: string[];
-      guideReferences: string[];
-    };
-  } | null;
+  executionRoute: TaskExecutionRoute | null;
+  impactGuidance: TaskImpactGuidance;
   languageGuidance: {
     languages: string[];
     guideReferences: string[];
@@ -200,7 +219,8 @@ export interface TaskRecoveryPlan {
 export interface TaskStatusEntry extends TaskSession {
   resumeStrategy: TaskResumeStrategy;
   recoveryPlan: TaskRecoveryPlan;
-  modelRoute: TaskContext["modelRoute"];
+  executionRoute: TaskContext["executionRoute"];
+  impactGuidance: TaskContext["impactGuidance"];
   languageGuidance: TaskContext["languageGuidance"];
   reviewGate: TaskContext["reviewGate"];
 }
@@ -219,6 +239,10 @@ export interface TaskStatusSummary {
     runId: string | null;
     status: string | null;
     scope: string | null;
+    quarantine: {
+      count: number;
+      latestQuarantinedAt: string | null;
+    };
   };
   tasks: TaskStatusEntry[];
   taskEnvs: TaskEnvManifest[];

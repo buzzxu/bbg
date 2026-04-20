@@ -718,7 +718,7 @@ describe("verify command", () => {
         taskId: "fix-java-boundary",
         analyzeRunId: null,
         references: ["docs/architecture/languages/java/application-patterns.md"],
-        modelRoute: {
+        executionRoute: {
           classification: {
             domain: "implementation",
             complexity: "moderate",
@@ -727,7 +727,7 @@ describe("verify command", () => {
             languages: ["java"],
           },
           recommendation: {
-            modelClass: "premium",
+            profileClass: "premium",
             reason: "java boundary work benefits from stronger review before completion.",
             telemetryNote: "No local telemetry feedback available.",
             reviewerAgents: ["java-reviewer"],

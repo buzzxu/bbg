@@ -130,17 +130,17 @@ describe("model-route command", () => {
       domain: "debugging",
     }));
     expect(recommendation).toEqual(expect.objectContaining({
-      modelClass: "premium",
+      profileClass: "premium",
       telemetryNote: expect.stringContaining("Escalated from local telemetry"),
     }));
-    expect(["fast", "balanced", "premium"]).toContain(recommendation.modelClass);
+    expect(["fast", "balanced", "premium"]).toContain(recommendation.profileClass);
 
     const telemetry = JSON.parse(await readFile(join(cwd, ".bbg", "telemetry", "events.json"), "utf8")) as {
-      events: Array<{ type: string; details: { modelClass?: string } }>;
+      events: Array<{ type: string; details: { profileClass?: string } }>;
     };
     expect(telemetry.events.at(-1)).toEqual(expect.objectContaining({
       type: "model-route.recommended",
-      details: expect.objectContaining({ modelClass: "premium" }),
+      details: expect.objectContaining({ profileClass: "premium" }),
     }));
   });
 
@@ -258,7 +258,7 @@ describe("model-route command", () => {
       domain: "review",
     }));
     expect(result.recommendation).toEqual(expect.objectContaining({
-      modelClass: "premium",
+      profileClass: "premium",
       reviewerAgents: ["java-reviewer"],
       guideReferences: ["docs/architecture/languages/java/application-patterns.md"],
     }));
@@ -275,9 +275,9 @@ describe("model-route command", () => {
     expect(result).toEqual({
       mode: "list",
       profiles: expect.arrayContaining([
-        expect.objectContaining({ modelClass: "fast" }),
-        expect.objectContaining({ modelClass: "balanced" }),
-        expect.objectContaining({ modelClass: "premium" }),
+        expect.objectContaining({ profileClass: "fast" }),
+        expect.objectContaining({ profileClass: "balanced" }),
+        expect.objectContaining({ profileClass: "premium" }),
       ]),
     });
   });

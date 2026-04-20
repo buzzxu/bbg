@@ -77,6 +77,7 @@ vi.mock("../../../src/commands/doctor.js", () => ({ runDoctor: vi.fn() }));
 vi.mock("../../../src/commands/sync.js", () => ({ runSync: vi.fn() }));
 vi.mock("../../../src/commands/release.js", () => ({ runRelease: vi.fn() }));
 vi.mock("../../../src/commands/upgrade.js", () => ({ runUpgrade: vi.fn() }));
+vi.mock("../../../src/commands/uninstall.js", () => ({ runUninstall: vi.fn() }));
 vi.mock("../../../src/commands/quality-gate.js", () => ({ runQualityGateCommand: vi.fn() }));
 vi.mock("../../../src/commands/checkpoint.js", () => ({ runCheckpointCommand: vi.fn() }));
 vi.mock("../../../src/commands/verify.js", () => ({ runVerifyCommand: vi.fn() }));
@@ -127,6 +128,7 @@ describe("cli command registration", () => {
       "sync",
       "release",
       "upgrade",
+      "uninstall",
       "repair-adapters",
       "task-env",
       "doc-garden",
@@ -144,7 +146,7 @@ describe("cli command registration", () => {
       "harness-audit",
       "model-route [task...]",
       "task-start [requirement...]",
-      "analyze",
+      "analyze [focus...]",
       "analyze-repo <repo>",
       "deliver",
       "cross-audit",

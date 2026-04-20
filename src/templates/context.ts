@@ -1,4 +1,5 @@
 import type { BbgConfig, RepoEntry } from "../config/schema.js";
+import { CLI_VERSION } from "../constants.js";
 
 export interface TemplateContext {
   projectName: string;
@@ -115,7 +116,7 @@ export function buildTemplateContext(config: BbgConfig): TemplateContext {
     hasKotlin: languages.includes("kotlin"),
     hasPhp: languages.includes("php"),
     hasCpp: languages.includes("cpp") || languages.includes("c++"),
-    bbgVersion: config.version,
+    bbgVersion: CLI_VERSION,
     generatedAt: new Date().toISOString(),
     buildCommand: deriveBuildCommand(languages, config.repos),
     testCommand: deriveTestCommand(languages, config.repos),

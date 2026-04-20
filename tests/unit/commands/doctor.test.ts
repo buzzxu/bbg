@@ -305,6 +305,21 @@ describe("doctor command", () => {
     );
   });
 
+  it("reports quarantined analyze runtime state", async () => {
+    const cwd = await makeTempDir();
+    await createMinimalWorkspace(cwd);
+    await writeTextFile(join(cwd, ".bbg", "quarantine", "analyze", "broken-handoff.json"), "{}\n");
+
+    const report = await runDoctor({ cwd, json: true, workspace: true });
+
+    expect(report.checks.find((entry) => entry.id === "analyze-quarantine")).toEqual(
+      expect.objectContaining({
+        passed: false,
+        message: expect.stringContaining("analyze runtime state quarantined: 1 file(s)"),
+      }),
+    );
+  });
+
   it("reports stale task environments and observation note reuse", async () => {
     const cwd = await makeTempDir();
     await createMinimalWorkspace(cwd);

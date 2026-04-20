@@ -38,3 +38,21 @@ export function replaceManagedSection(currentContent: string, nextContent: strin
 
   return currentContent.replace(currentSection, nextSection);
 }
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function removeManagedSection(currentContent: string): string | null {
+  if (!hasManagedSection(currentContent)) {
+    return null;
+  }
+
+  const sectionPattern = new RegExp(
+    `\\s*${escapeRegExp(MANAGED_SECTION_START)}[\\s\\S]*?${escapeRegExp(MANAGED_SECTION_END)}\\s*`,
+    "m",
+  );
+  const nextContent = currentContent.replace(sectionPattern, "\n").replace(/\n{3,}/g, "\n\n").trim();
+
+  return nextContent.length > 0 ? `${nextContent}\n` : "";
+}

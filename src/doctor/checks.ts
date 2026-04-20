@@ -8,6 +8,7 @@ import { sha256Hex, type FileHashRecord } from "../config/hash.js";
 import type { BbgConfig } from "../config/schema.js";
 import { getPolicyCoverageReport } from "../policy/engine.js";
 import { POLICY_COMMANDS } from "../policy/schema.js";
+import { readAnalyzeQuarantineSummary } from "../runtime/analyze-quarantine.js";
 import { readLatestAnalyzeRunState } from "../runtime/analyze-runs.js";
 import { resolveRuntimeCommands } from "../runtime/commands.js";
 import { resolveRuntimePaths } from "../runtime/paths.js";
@@ -193,6 +194,7 @@ async function runAiFillMarkersCheck(cwd: string): Promise<DoctorCheckResult> {
 
 async function runAnalyzeArtifactChecks(cwd: string, config: BbgConfig | null): Promise<DoctorCheckResult[]> {
   const state = await readLatestAnalyzeRunState(cwd);
+  const quarantine = await readAnalyzeQuarantineSummary(cwd);
   const reposToCheck = state?.repos.length
     ? state.repos
     : (config?.repos.map((repo) => repo.name) ?? []);
@@ -216,6 +218,14 @@ async function runAnalyzeArtifactChecks(cwd: string, config: BbgConfig | null): 
       buildCheck("language-pattern-guides", "info", false, "language pattern guides have not been generated yet"),
       canonicalWikiCheck,
       buildCheck("wiki-generated-artifacts", "info", false, "wiki generated artifacts have not been created yet"),
+      buildCheck(
+        "analyze-quarantine",
+        "warning",
+        quarantine.count === 0,
+        quarantine.count === 0
+          ? "no quarantined analyze runtime state detected"
+          : `analyze runtime state quarantined: ${quarantine.count} file(s), latest ${quarantine.latestQuarantinedAt ?? "unknown"}`,
+      ),
     ];
   }
 
@@ -233,11 +243,29 @@ async function runAnalyzeArtifactChecks(cwd: string, config: BbgConfig | null): 
     "docs/architecture/languages/README.md",
     "docs/architecture/workspace-topology.md",
     "docs/architecture/integration-map.md",
+    "docs/architecture/integration-contracts.md",
+    "docs/architecture/runtime-constraints.md",
+    "docs/architecture/risk-surface.md",
+    "docs/architecture/decision-history.md",
+    "docs/architecture/change-impact-map.md",
+    "docs/business/capability-map.md",
+    "docs/business/critical-flows.md",
+    "docs/business/domain-model.md",
     "docs/business/module-map.md",
     "docs/business/core-flows.md",
+    "docs/business/project-context.md",
     ".bbg/knowledge/workspace/topology.json",
     ".bbg/knowledge/workspace/integration-map.json",
     ".bbg/knowledge/workspace/business-modules.json",
+    ".bbg/knowledge/workspace/business-context.json",
+    ".bbg/knowledge/workspace/constraints.json",
+    ".bbg/knowledge/workspace/capabilities.json",
+    ".bbg/knowledge/workspace/critical-flows.json",
+    ".bbg/knowledge/workspace/contracts.json",
+    ".bbg/knowledge/workspace/domain-model.json",
+    ".bbg/knowledge/workspace/risk-surface.json",
+    ".bbg/knowledge/workspace/decisions.json",
+    ".bbg/knowledge/workspace/change-impact.json",
   ];
   const requiredLanguageDocs = getLanguageGuidePathsForLanguages(
     reposToCheck.map((repoName) => config?.repos.find((repo) => repo.name === repoName)?.stack.language ?? "unknown"),
@@ -302,6 +330,14 @@ async function runAnalyzeArtifactChecks(cwd: string, config: BbgConfig | null): 
       wikiArtifacts.missingGenerated.length === 0
         ? "wiki generated artifacts exist"
         : `missing wiki generated artifacts: ${wikiArtifacts.missingGenerated.join(", ")}`,
+    ),
+    buildCheck(
+      "analyze-quarantine",
+      "warning",
+      quarantine.count === 0,
+      quarantine.count === 0
+        ? "no quarantined analyze runtime state detected"
+        : `analyze runtime state quarantined: ${quarantine.count} file(s), latest ${quarantine.latestQuarantinedAt ?? "unknown"}`,
     ),
   ];
 }

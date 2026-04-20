@@ -77,6 +77,13 @@ async function makeTempDir(): Promise<string> {
 
 describe("target project primary flow", () => {
   beforeEach(() => {
+    delete process.env.BBG_CURRENT_TOOL;
+    delete process.env.CODEX_THREAD_ID;
+    delete process.env.CODEX_CI;
+    delete process.env.CODEX_MANAGED_BY_NPM;
+    delete process.env.CODEX_SANDBOX;
+    delete process.env.CODEX_SANDBOX_NETWORK_DISABLED;
+
     analyzerState.analyzeRepo.mockReset();
     doctorState.runDoctor.mockReset();
     workflowState.runWorkflowCommand.mockReset();
@@ -178,6 +185,11 @@ describe("target project primary flow", () => {
 
   afterEach(async () => {
     delete process.env.BBG_CURRENT_TOOL;
+    delete process.env.CODEX_THREAD_ID;
+    delete process.env.CODEX_CI;
+    delete process.env.CODEX_MANAGED_BY_NPM;
+    delete process.env.CODEX_SANDBOX;
+    delete process.env.CODEX_SANDBOX_NETWORK_DISABLED;
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 

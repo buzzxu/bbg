@@ -512,7 +512,7 @@ function maxVersion(versions: Array<string | undefined>): string | undefined {
 
 function frontmatter(input: {
   title: string;
-  language: LanguageKey;
+  language: LanguageKey | "multi";
   category: string;
   minimumSupportedVersion?: string;
   detectedVersion?: string;
@@ -639,7 +639,23 @@ function displayLanguage(language: LanguageKey): string {
 function buildLanguageReadme(input: {
   groupedRepos: Map<LanguageKey, RepoTechnicalAnalysis[]>;
 }): string {
+  const minimumSupportedVersion = minVersion(
+    [...input.groupedRepos.values()].flatMap((repos) => repos.map((repo) => repo.stack.languageVersion)),
+  );
+  const sources = unique(
+    [...input.groupedRepos.keys()].flatMap((language) => LANGUAGE_SPECS[language].sources),
+  );
   const lines = [
+    frontmatter({
+      title: "Language Architecture Guides",
+      language: "multi",
+      category: "index",
+      minimumSupportedVersion,
+      detectedVersion: null,
+      frameworks: [],
+      frameworkVersions: [],
+      sources,
+    }),
     "# Language Architecture Guides",
     "",
     "This directory groups repo-level language patterns by language so analyze, start, review, and doctor can load only the relevant guidance.",

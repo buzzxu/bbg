@@ -1,23 +1,21 @@
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
 import { parseConfig, serializeConfig } from "../config/read-write.js";
-import type { RepoEntry } from "../config/schema.js";
 import { CLI_VERSION } from "../constants.js";
-import { buildTemplateContext } from "../templates/context.js";
-import { buildGovernanceManifest } from "../templates/governance.js";
-import { getRootTemplateManifest, getToolConfigTemplates } from "./init.js";
-import { renderTemplateContents } from "../templates/render.js";
 import { threeWayMerge } from "../upgrade/merge3.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
-import {
-  resolveBuiltinTemplatesRoot,
-  resolvePackageRoot,
-  toSnapshotRelativePath,
-} from "../utils/paths.js";
 import { promptConfirm } from "../utils/prompts.js";
 import { isManagedAdapterPath, replaceManagedSection } from "../adapters/managed.js";
+import { makeExecutable } from "../utils/platform.js";
+import { uiText } from "../i18n/ui-copy.js";
+import {
+  buildTrackedFiles,
+  loadSnapshot,
+  toPatchRelativePath,
+  tryExtractChildAgentsRepoName,
+  writeSnapshot,
+} from "../lifecycle/tracked-files.js";
 
 export interface RunUpgradeInput {
   cwd: string;
@@ -28,6 +26,7 @@ export interface RunUpgradeInput {
 
 export interface RunUpgradeResult {
   overwritten: string[];
+  unchanged: string[];
   merged: string[];
   conflicted: string[];
   patches: string[];
@@ -37,110 +36,19 @@ export interface RunUpgradeResult {
   created: string[];
 }
 
-interface TrackedFile {
-  path: string;
-  nextContent: string | null;
-  previousHash?: string;
-  missingRepoContext?: boolean;
-}
+const EXECUTABLE_GENERATED_PATHS = new Set([
+  ".githooks/pre-commit",
+  ".githooks/pre-push",
+  "scripts/doctor.py",
+  "scripts/sync_versions.py",
+]);
 
-function tryExtractChildAgentsRepoName(filePath: string): string | null {
-  const normalizedPath = filePath.split("\\").join("/");
-  const match = normalizedPath.match(/^([^/]+)\/AGENTS\.md$/);
-  return match?.[1] ?? null;
-}
-
-function toPatchRelativePath(filePath: string): string {
-  return `.bbg/upgrade-patches/${filePath}.patch`.split("\\").join("/");
-}
-
-async function loadSnapshot(cwd: string, filePath: string): Promise<string | null> {
-  const snapshotPath = join(cwd, toSnapshotRelativePath(filePath));
-  if (!(await exists(snapshotPath))) {
-    return null;
+function maybeMakeExecutable(cwd: string, relativePath: string): void {
+  if (!EXECUTABLE_GENERATED_PATHS.has(relativePath)) {
+    return;
   }
 
-  return readTextFile(snapshotPath);
-}
-
-async function writeSnapshot(cwd: string, filePath: string, content: string): Promise<void> {
-  await writeTextFile(join(cwd, toSnapshotRelativePath(filePath)), content);
-}
-
-async function buildTrackedFiles(cwd: string, hashRecord: FileHashRecord): Promise<TrackedFile[]> {
-  const config = parseConfig(await readTextFile(join(cwd, ".bbg", "config.json")));
-  const commandDir = dirname(fileURLToPath(import.meta.url));
-  const builtinTemplatesRoot = await resolveBuiltinTemplatesRoot(commandDir, [
-    join(cwd, "node_modules", "bbg", "templates"),
-  ]);
-  const packageRoot = await resolvePackageRoot(commandDir);
-
-  const baseContext = buildTemplateContext(config);
-  const governanceTemplates = buildGovernanceManifest(baseContext);
-
-  const rootRendered = await renderTemplateContents({
-    workspaceRoot: cwd,
-    builtinTemplatesRoot,
-    packageRoot,
-    context: baseContext,
-    templates: [...getRootTemplateManifest(), ...getToolConfigTemplates()],
-  });
-
-  const governanceRendered = await renderTemplateContents({
-    workspaceRoot: cwd,
-    builtinTemplatesRoot,
-    packageRoot,
-    context: baseContext,
-    templates: governanceTemplates,
-  });
-
-  const childRenderedByRepo = await Promise.all(
-    config.repos.map((repo) =>
-      renderTemplateContents({
-        workspaceRoot: cwd,
-        builtinTemplatesRoot,
-        packageRoot,
-        context: { ...baseContext, repo },
-        templates: [
-          {
-            source: "handlebars/child-AGENTS.md.hbs",
-            destination: `${repo.name}/AGENTS.md`,
-            mode: "handlebars",
-          },
-        ],
-      }),
-    ),
-  );
-  const rendered = [...rootRendered, ...governanceRendered, ...childRenderedByRepo.flat()];
-
-  const renderedByPath = new Map(rendered.map((item) => [item.destination, item.content]));
-
-  const repoByName = new Map<string, RepoEntry>(config.repos.map((repo) => [repo.name, repo]));
-  const trackedFromHashes = Object.keys(hashRecord)
-    .sort((a, b) => a.localeCompare(b))
-    .map((path) => {
-      const nextContent = renderedByPath.get(path) ?? null;
-      const childRepoName = tryExtractChildAgentsRepoName(path);
-      const missingRepoContext = childRepoName !== null && nextContent === null && !repoByName.has(childRepoName);
-      return {
-        path,
-        nextContent,
-        previousHash: hashRecord[path]?.generatedHash,
-        missingRepoContext,
-      };
-    });
-
-  const trackedSet = new Set(trackedFromHashes.map((item) => item.path));
-  const newlyIntroducedManifestFiles = rendered
-    .filter((item) => !trackedSet.has(item.destination))
-    .map((item) => ({
-      path: item.destination,
-      nextContent: item.content,
-      previousHash: undefined,
-    }))
-    .sort((a, b) => a.path.localeCompare(b.path));
-
-  return [...trackedFromHashes, ...newlyIntroducedManifestFiles];
+  makeExecutable(join(cwd, relativePath));
 }
 
 function buildMissingBaselineNotice(filePath: string, nextContent: string): string {
@@ -187,7 +95,7 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
 
   if (input.force) {
     const confirmed = await promptConfirm({
-      message: `Force overwrite ${trackedFiles.length} generated files?`,
+      message: uiText("upgrade.forceOverwrite", { value: trackedFiles.length }),
       default: false,
     });
     if (!confirmed) {
@@ -196,6 +104,7 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
   }
 
   const overwritten: string[] = [];
+  const unchanged: string[] = [];
   const merged: string[] = [];
   const conflicted: string[] = [];
   const patches: string[] = [];
@@ -236,6 +145,7 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
       created.push(trackedFile.path);
       if (!input.dryRun) {
         await writeTextFile(absolutePath, nextContent);
+        maybeMakeExecutable(input.cwd, trackedFile.path);
         await writeSnapshot(input.cwd, trackedFile.path, nextContent);
         nextHashes[trackedFile.path] = {
           generatedHash: sha256Hex(nextContent),
@@ -250,11 +160,17 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
     if (isManagedAdapterPath(trackedFile.path)) {
       const managedUpdated = replaceManagedSection(currentContent, nextContent);
       if (managedUpdated !== null) {
+        if (managedUpdated === currentContent) {
+          unchanged.push(trackedFile.path);
+        }
         if (managedUpdated !== currentContent) {
           merged.push(trackedFile.path);
         }
         if (!input.dryRun) {
-          await writeTextFile(absolutePath, managedUpdated);
+          if (managedUpdated !== currentContent) {
+            await writeTextFile(absolutePath, managedUpdated);
+            maybeMakeExecutable(input.cwd, trackedFile.path);
+          }
           await writeSnapshot(input.cwd, trackedFile.path, nextContent);
           nextHashes[trackedFile.path] = {
             generatedHash: sha256Hex(nextContent),
@@ -284,10 +200,24 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
       await writeSnapshot(input.cwd, trackedFile.path, oldGeneratedContent);
     }
 
+    if (currentContent === nextContent) {
+      unchanged.push(trackedFile.path);
+      if (!input.dryRun) {
+        await writeSnapshot(input.cwd, trackedFile.path, nextContent);
+        nextHashes[trackedFile.path] = {
+          generatedHash: sha256Hex(nextContent),
+          generatedAt: nowIso,
+          templateVersion: CLI_VERSION,
+        };
+      }
+      continue;
+    }
+
     if (input.force || currentHash === trackedFile.previousHash) {
       overwritten.push(trackedFile.path);
       if (!input.dryRun) {
         await writeTextFile(absolutePath, nextContent);
+        maybeMakeExecutable(input.cwd, trackedFile.path);
         await writeSnapshot(input.cwd, trackedFile.path, nextContent);
         nextHashes[trackedFile.path] = {
           generatedHash: sha256Hex(nextContent),
@@ -318,6 +248,7 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
       merged.push(trackedFile.path);
       if (!input.dryRun) {
         await writeTextFile(absolutePath, mergeResult.merged);
+        maybeMakeExecutable(input.cwd, trackedFile.path);
         await writeSnapshot(input.cwd, trackedFile.path, nextContent);
         nextHashes[trackedFile.path] = {
           generatedHash: sha256Hex(nextContent),
@@ -327,7 +258,7 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
       }
     } else if (input.interactive) {
       const accept = await promptConfirm({
-        message: `${trackedFile.path} has ${mergeResult.conflictCount} conflict(s). Accept with conflict markers?`,
+        message: uiText("upgrade.acceptConflictMarkers", { value: trackedFile.path }),
         default: true,
       });
       if (accept) {
@@ -354,5 +285,15 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
     await writeTextFile(hashPath, `${JSON.stringify(nextHashes, null, 2)}\n`);
   }
 
-  return { overwritten, merged, conflicted, patches, skipped, skippedWithNotice, skippedDeletedTemplate, created };
+  return {
+    overwritten,
+    unchanged,
+    merged,
+    conflicted,
+    patches,
+    skipped,
+    skippedWithNotice,
+    skippedDeletedTemplate,
+    created,
+  };
 }

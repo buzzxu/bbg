@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import type { AnalyzeFocusSummary, AnalyzeInterviewQuestionKey, AnalyzePhaseSummary } from "../analyze/types.js";
 import { readJsonStore, writeJsonStore } from "./store.js";
 import { exists } from "../utils/fs.js";
 
@@ -14,6 +15,14 @@ export interface AnalyzeRunState {
   knowledgeUpdated: string[];
   warnings: string[];
   failures: string[];
+  phases?: AnalyzePhaseSummary[];
+  focus?: AnalyzeFocusSummary | null;
+  interview?: {
+    mode: "off" | "passive" | "guided" | "deep";
+    asked: number;
+    answered: number;
+    unresolvedGaps: AnalyzeInterviewQuestionKey[];
+  } | null;
 }
 
 function createDefaultAnalyzeRunState(): AnalyzeRunState {
@@ -29,6 +38,9 @@ function createDefaultAnalyzeRunState(): AnalyzeRunState {
     knowledgeUpdated: [],
     warnings: [],
     failures: [],
+    phases: [],
+    focus: null,
+    interview: null,
   };
 }
 
@@ -48,7 +60,10 @@ function isAnalyzeRunState(value: unknown): value is AnalyzeRunState {
     && Array.isArray(value.docsUpdated)
     && Array.isArray(value.knowledgeUpdated)
     && Array.isArray(value.warnings)
-    && Array.isArray(value.failures);
+    && Array.isArray(value.failures)
+    && (value.phases === undefined || Array.isArray(value.phases))
+    && (value.focus === undefined || value.focus === null || isRecord(value.focus))
+    && (value.interview === undefined || value.interview === null || isRecord(value.interview));
 }
 
 export function createAnalyzeRunId(now = new Date()): string {

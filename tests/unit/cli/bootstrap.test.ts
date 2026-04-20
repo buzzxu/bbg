@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { uiText } from "../../../src/i18n/ui-copy.js";
 
 const runInitState = vi.hoisted(() => ({
   runInit: vi.fn(),
@@ -22,6 +23,10 @@ const runTaskStartState = vi.hoisted(() => ({
 
 const runRepairAdaptersState = vi.hoisted(() => ({
   runRepairAdapters: vi.fn(),
+}));
+
+const runUninstallState = vi.hoisted(() => ({
+  runUninstall: vi.fn(),
 }));
 
 const runHermesState = vi.hoisted(() => ({
@@ -66,6 +71,18 @@ const runLoopStatusState = vi.hoisted(() => ({
 
 const runAnalyzeState = vi.hoisted(() => ({
   runAnalyzeCommand: vi.fn(),
+}));
+
+const analyzeHandoffState = vi.hoisted(() => ({
+  detectCurrentAnalyzeAgentTool: vi.fn(),
+  listAnalyzeAgentTools: vi.fn(),
+  readPendingAnalyzeAgentHandoff: vi.fn(),
+  writeAnalyzeAgentHandoff: vi.fn(),
+  markAnalyzeAgentHandoffConsumed: vi.fn(),
+}));
+
+const promptState = vi.hoisted(() => ({
+  promptSelect: vi.fn(),
 }));
 
 const runAnalyzeRepoState = vi.hoisted(() => ({
@@ -197,6 +214,10 @@ vi.mock("../../../src/commands/repair-adapters.js", () => ({
   runRepairAdapters: runRepairAdaptersState.runRepairAdapters,
 }));
 
+vi.mock("../../../src/commands/uninstall.js", () => ({
+  runUninstall: runUninstallState.runUninstall,
+}));
+
 vi.mock("../../../src/commands/hermes.js", () => ({
   runHermesCommand: runHermesState.runHermesCommand,
 }));
@@ -235,6 +256,18 @@ vi.mock("../../../src/commands/status.js", () => ({
 
 vi.mock("../../../src/commands/analyze.js", () => ({
   runAnalyzeCommand: runAnalyzeState.runAnalyzeCommand,
+}));
+
+vi.mock("../../../src/runtime/analyze-handoff.js", () => ({
+  detectCurrentAnalyzeAgentTool: analyzeHandoffState.detectCurrentAnalyzeAgentTool,
+  listAnalyzeAgentTools: analyzeHandoffState.listAnalyzeAgentTools,
+  readPendingAnalyzeAgentHandoff: analyzeHandoffState.readPendingAnalyzeAgentHandoff,
+  writeAnalyzeAgentHandoff: analyzeHandoffState.writeAnalyzeAgentHandoff,
+  markAnalyzeAgentHandoffConsumed: analyzeHandoffState.markAnalyzeAgentHandoffConsumed,
+}));
+
+vi.mock("../../../src/utils/prompts.js", () => ({
+  promptSelect: promptState.promptSelect,
 }));
 
 vi.mock("../../../src/commands/analyze-repo.js", () => ({
@@ -279,6 +312,7 @@ describe("cli bootstrap", () => {
     runHarnessAuditState.runHarnessAuditCommand.mockReset();
     runTaskStartState.runTaskStartCommand.mockReset();
     runRepairAdaptersState.runRepairAdapters.mockReset();
+    runUninstallState.runUninstall.mockReset();
     runHermesState.runHermesCommand.mockReset();
     runTaskEnvState.runTaskEnvCommand.mockReset();
     runDocGardenState.runDocGardenCommand.mockReset();
@@ -290,6 +324,12 @@ describe("cli bootstrap", () => {
     runLoopStartState.runLoopStartCommand.mockReset();
     runLoopStatusState.runLoopStatusCommand.mockReset();
     runAnalyzeState.runAnalyzeCommand.mockReset();
+    analyzeHandoffState.detectCurrentAnalyzeAgentTool.mockReset();
+    analyzeHandoffState.listAnalyzeAgentTools.mockReset();
+    analyzeHandoffState.readPendingAnalyzeAgentHandoff.mockReset();
+    analyzeHandoffState.writeAnalyzeAgentHandoff.mockReset();
+    analyzeHandoffState.markAnalyzeAgentHandoffConsumed.mockReset();
+    promptState.promptSelect.mockReset();
     runAnalyzeRepoState.runAnalyzeRepoCommand.mockReset();
     runDeliverState.runDeliverCommand.mockReset();
     runCrossAuditState.runCrossAuditCommand.mockReset();
@@ -346,6 +386,14 @@ describe("cli bootstrap", () => {
     runRepairAdaptersState.runRepairAdapters.mockResolvedValue({
       repaired: ["CLAUDE.md"],
       created: [".gemini/settings.json"],
+    });
+    runUninstallState.runUninstall.mockResolvedValue({
+      deleted: [".bbg/config.json"],
+      removedSections: ["CLAUDE.md"],
+      kept: [".bbg/tasks"],
+      skippedModified: ["AGENTS.md"],
+      missing: [],
+      notices: ["AGENTS.md: user-modified generated file"],
     });
     runHermesState.runHermesCommand.mockResolvedValue({
       kind: "query",
@@ -477,7 +525,7 @@ describe("cli bootstrap", () => {
         taskId: "ship-feature",
         analyzeRunId: null,
         references: ["AGENTS.md", "RULES.md"],
-        modelRoute: {
+        executionRoute: {
           classification: {
             domain: "implementation",
             complexity: "moderate",
@@ -486,8 +534,8 @@ describe("cli bootstrap", () => {
             languages: ["typescript"],
           },
           recommendation: {
-            modelClass: "balanced",
-            reason: "implementation work with moderate complexity and medium context fits the balanced class. Language focus: typescript.",
+            profileClass: "balanced",
+            reason: "implementation work with moderate complexity and medium context fits the balanced execution profile. Language focus: typescript.",
             telemetryNote: "No local telemetry feedback available.",
             reviewerAgents: ["typescript-reviewer"],
             guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
@@ -570,7 +618,7 @@ describe("cli bootstrap", () => {
         taskId: "ship-feature",
         analyzeRunId: null,
         references: ["AGENTS.md", "RULES.md"],
-        modelRoute: {
+        executionRoute: {
           classification: {
             domain: "implementation",
             complexity: "moderate",
@@ -579,8 +627,8 @@ describe("cli bootstrap", () => {
             languages: ["typescript"],
           },
           recommendation: {
-            modelClass: "balanced",
-            reason: "implementation work with moderate complexity and medium context fits the balanced class. Language focus: typescript.",
+            profileClass: "balanced",
+            reason: "implementation work with moderate complexity and medium context fits the balanced execution profile. Language focus: typescript.",
             telemetryNote: "No local telemetry feedback available.",
             reviewerAgents: ["typescript-reviewer"],
             guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
@@ -613,6 +661,10 @@ describe("cli bootstrap", () => {
         runId: "20260409T120000Z-a1b2c3",
         status: "completed",
         scope: "workspace",
+        quarantine: {
+          count: 1,
+          latestQuarantinedAt: "2026-04-19T12:00:00.000Z",
+        },
       },
       tasks: [
         {
@@ -673,7 +725,7 @@ describe("cli bootstrap", () => {
             actions: ["implement", "verify"],
             reason: "task should continue implementation and then re-run verification",
           },
-          modelRoute: {
+          executionRoute: {
             classification: {
               domain: "implementation",
               complexity: "moderate",
@@ -682,8 +734,8 @@ describe("cli bootstrap", () => {
               languages: ["typescript"],
             },
             recommendation: {
-              modelClass: "balanced",
-              reason: "implementation work with moderate complexity and medium context fits the balanced class. Language focus: typescript.",
+              profileClass: "balanced",
+              reason: "implementation work with moderate complexity and medium context fits the balanced execution profile. Language focus: typescript.",
               telemetryNote: "No local telemetry feedback available.",
               reviewerAgents: ["typescript-reviewer"],
               guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
@@ -780,12 +832,67 @@ describe("cli bootstrap", () => {
       iterations: [{ iteration: 1, timestamp: "2026-04-09T12:00:00.000Z", changedFiles: [], checks: {} }],
     });
     runAnalyzeState.runAnalyzeCommand.mockResolvedValue({
+      runId: "20260419T120000Z-a1b2c3",
+      status: "completed",
+      scope: "repo",
       analyzedRepos: ["repo-a"],
       technicalArchitecturePath: "docs/architecture/technical-architecture.md",
       businessArchitecturePath: "docs/architecture/business-architecture.md",
       dependencyGraphPath: "docs/architecture/repo-dependency-graph.md",
+      capabilityMapPath: "docs/business/capability-map.md",
+      criticalFlowsPath: "docs/business/critical-flows.md",
+      integrationContractsPath: "docs/architecture/integration-contracts.md",
+      runtimeConstraintsPath: "docs/architecture/runtime-constraints.md",
+      riskSurfacePath: "docs/architecture/risk-surface.md",
+      decisionHistoryPath: "docs/architecture/decision-history.md",
+      changeImpactMapPath: "docs/architecture/change-impact-map.md",
       repoDocs: ["docs/architecture/repos/repo-a.md"],
+      repositoryDocs: ["docs/repositories/repo-a.md"],
+      workspaceTopologyPath: "docs/architecture/workspace-topology.md",
+      integrationMapPath: "docs/architecture/integration-map.md",
+      moduleMapPath: "docs/business/module-map.md",
+      coreFlowsPath: "docs/business/core-flows.md",
+      projectContextPath: "docs/business/project-context.md",
+      focusedAnalysisPath: "docs/workflows/focused-analysis.md",
+      docsUpdated: ["docs/architecture/technical-architecture.md"],
+      knowledgeUpdated: [".bbg/knowledge/workspace/topology.json"],
+      phases: [{ name: "discovery", status: "completed", details: ["scope=repo"] }],
+      focus: null,
+      interview: null,
     });
+    analyzeHandoffState.detectCurrentAnalyzeAgentTool.mockReturnValue("claude");
+    analyzeHandoffState.listAnalyzeAgentTools.mockResolvedValue({
+      defaultTool: "claude",
+      tools: ["claude", "codex", "gemini", "opencode", "cursor"],
+    });
+    analyzeHandoffState.readPendingAnalyzeAgentHandoff.mockResolvedValue(null);
+    analyzeHandoffState.writeAnalyzeAgentHandoff.mockResolvedValue({
+      handoff: {
+        version: 1,
+        status: "pending",
+        preferredTool: "claude",
+        availableTools: ["claude", "codex"],
+        reasons: [
+          "analyze is AI-native for deep technical and business understanding",
+          "terminal mode prepares the workspace handoff but does not complete full analysis",
+        ],
+        command: "bbg analyze",
+        request: {
+          repos: [],
+          refresh: false,
+          focus: null,
+          interviewMode: "auto",
+        },
+        createdAt: "2026-04-19T12:00:00.000Z",
+        updatedAt: "2026-04-19T12:00:00.000Z",
+        consumedAt: null,
+        consumedBy: null,
+      },
+      jsonPath: ".bbg/analyze/handoff/latest.json",
+      markdownPath: ".bbg/analyze/handoff/latest.md",
+    });
+    analyzeHandoffState.markAnalyzeAgentHandoffConsumed.mockResolvedValue(null);
+    promptState.promptSelect.mockResolvedValue("claude");
     runAnalyzeRepoState.runAnalyzeRepoCommand.mockResolvedValue({
       repo: "repo-a",
       repoDocPath: "docs/architecture/repos/repo-a.md",
@@ -922,7 +1029,7 @@ describe("cli bootstrap", () => {
       task: "ship feature",
     });
     expect(stdoutSpy).toHaveBeenCalledWith("Start: ship-feature\n");
-    expect(stdoutSpy).toHaveBeenCalledWith("Route: balanced (implementation/moderate)\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Execution route: balanced (implementation/moderate)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Route reviewers: typescript-reviewer\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Review gate: recommended\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Language review: Prefer typescript-reviewer for language-specific design and implementation review.\n");
@@ -967,17 +1074,18 @@ describe("cli bootstrap", () => {
     const handler = statusCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
-    await handler?.({});
+    await handler?.(undefined, {});
 
     expect(runStatusState.runStatusCommand).toHaveBeenCalledWith({ cwd: "/tmp/workspace" });
     expect(stdoutSpy).toHaveBeenCalledWith("Analyze: completed (workspace, 20260409T120000Z-a1b2c3)\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Analyze quarantine: 1 (latest=2026-04-19T12:00:00.000Z)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Tasks: 1\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  runner: current (tool=claude, launched=yes, command=none)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  resume: last-runner (preferred=claude, fallback=none)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  resume reason: continue with the most recent successful runner\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  recovery: retry-implement (implement, verify)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  recovery reason: task should continue implementation and then re-run verification\n");
-    expect(stdoutSpy).toHaveBeenCalledWith("  route: balanced (implementation/moderate)\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("  execution route: balanced (implementation/moderate)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  route reviewers: typescript-reviewer\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  review gate: recommended\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  language review: Prefer typescript-reviewer for language-specific design and implementation review.\n");
@@ -1081,6 +1189,78 @@ describe("cli bootstrap", () => {
     cwdSpy.mockRestore();
   });
 
+  it("groups doctor warnings into baseline and optional maturity sections", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+    const doctorModule = await import("../../../src/commands/doctor.js");
+    vi.mocked(doctorModule.runDoctor).mockResolvedValue({
+      ok: true,
+      mode: "full",
+      checks: [],
+      errors: [],
+      warnings: [
+        {
+          id: "language-pattern-guides",
+          checkId: "language-pattern-guides",
+          severity: "warning",
+          passed: false,
+          message: "language guide metadata incomplete: docs/architecture/languages/README.md",
+        },
+        {
+          id: "scripts-exist",
+          checkId: "scripts-exist",
+          severity: "warning",
+          passed: false,
+          message: "missing or non-executable scripts: scripts/doctor.py, scripts/sync_versions.py",
+        },
+        {
+          id: "runtime-telemetry",
+          checkId: "runtime-telemetry",
+          severity: "warning",
+          passed: false,
+          message: "missing telemetry store: .bbg/telemetry/events.json",
+        },
+        {
+          id: "runtime-policy-coverage",
+          checkId: "runtime-policy-coverage",
+          severity: "warning",
+          passed: false,
+          message: "policy coverage gap for commands: all",
+        },
+      ],
+      info: [],
+      exitCode: 0,
+      fixesApplied: [],
+    });
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const doctorCommand = commandState.getCommandMock("doctor");
+    const handler = doctorCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.({});
+
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("doctor.baseline")} (2):\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "- language-pattern-guides: language guide metadata incomplete: docs/architecture/languages/README.md\n",
+    );
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "- scripts-exist: missing or non-executable scripts: scripts/doctor.py, scripts/sync_versions.py\n",
+    );
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("doctor.maturity")} (2):\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "- runtime-telemetry: missing telemetry store: .bbg/telemetry/events.json\n",
+    );
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "- runtime-policy-coverage: policy coverage gap for commands: all\n",
+    );
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
   it("prints actionable harness audit details", async () => {
     const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
@@ -1092,7 +1272,7 @@ describe("cli bootstrap", () => {
     const handler = auditCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
-    await handler?.({});
+    await handler?.(undefined, {});
 
     expect(runHarnessAuditState.runHarnessAuditCommand).toHaveBeenCalledWith({ cwd: "/tmp/workspace" });
     expect(stdoutSpy).toHaveBeenCalledWith("Audit state: approval-required\n");
@@ -1116,11 +1296,53 @@ describe("cli bootstrap", () => {
     const handler = repairCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
-    await handler?.({});
+    await handler?.(undefined, {});
 
     expect(runRepairAdaptersState.runRepairAdapters).toHaveBeenCalledWith({ cwd: "/tmp/workspace" });
     expect(stdoutSpy).toHaveBeenCalledWith("Repaired: 1\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Created: 1\n");
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
+  it("prints uninstall summary with safe-removal categories", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const uninstallCommand = commandState.getCommandMock("uninstall");
+    const handler = uninstallCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.({
+      dryRun: true,
+      force: false,
+      keepRuntimeData: true,
+      keepDocs: false,
+      keepKnowledge: false,
+      keepToolAdapters: false,
+      yes: true,
+    });
+
+    expect(runUninstallState.runUninstall).toHaveBeenCalledWith({
+      cwd: "/tmp/workspace",
+      dryRun: true,
+      force: false,
+      keepRuntimeData: true,
+      keepDocs: false,
+      keepKnowledge: false,
+      keepToolAdapters: false,
+      yes: true,
+    });
+    expect(stdoutSpy).toHaveBeenCalledWith("Deleted: 1\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Removed sections: 1\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Kept: 1\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Skipped modified: 1\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Missing: 0\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Notices: 1\n");
 
     stdoutSpy.mockRestore();
     cwdSpy.mockRestore();
@@ -1238,6 +1460,400 @@ describe("cli bootstrap", () => {
     expect(stdoutSpy).toHaveBeenCalledWith("Decisions:\n");
     expect(stdoutSpy).toHaveBeenCalledWith("- taskEnv: required (debug-or-stabilization-task)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Next: implement, verify\n");
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
+  it("prepares an analyze handoff outside AI agent context", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+    analyzeHandoffState.detectCurrentAnalyzeAgentTool.mockReturnValue(null);
+    promptState.promptSelect.mockResolvedValue("codex");
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const handler = analyzeCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.(undefined, { repo: "repo-a", refresh: true, interview: "guided" });
+
+    expect(promptState.promptSelect).toHaveBeenCalledWith({
+      message: uiText("analyze.continueInWhichAi"),
+      choices: [
+        { name: "claude", value: "claude" },
+        { name: "codex", value: "codex" },
+        { name: "gemini", value: "gemini" },
+        { name: "opencode", value: "opencode" },
+        { name: "cursor", value: "cursor" },
+      ],
+      default: "claude",
+    });
+    expect(analyzeHandoffState.writeAnalyzeAgentHandoff).toHaveBeenCalledWith({
+      cwd: "/tmp/workspace",
+      preferredTool: "codex",
+      availableTools: ["claude", "codex", "gemini", "opencode", "cursor"],
+      request: {
+        repos: ["repo-a"],
+        refresh: true,
+        focus: null,
+        interviewMode: "guided",
+      },
+      reasons: [
+        "analyze is AI-native for deep technical and business understanding",
+        "terminal mode prepares the workspace handoff but does not complete full analysis",
+      ],
+    });
+    expect(runAnalyzeState.runAnalyzeCommand).not.toHaveBeenCalled();
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.requiresAi")}\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.preferredAi")}: claude\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.replay")}: bbg analyze\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.handoff")}: .bbg/analyze/handoff/latest.md\n`);
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
+  it("runs analyze inside AI agent context and consumes pending handoff request", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+    analyzeHandoffState.detectCurrentAnalyzeAgentTool.mockReturnValue("claude");
+    analyzeHandoffState.readPendingAnalyzeAgentHandoff.mockResolvedValue({
+      version: 1,
+      status: "pending",
+      preferredTool: "claude",
+      availableTools: ["claude", "codex"],
+      reasons: ["needs ai"],
+      command: "bbg analyze --repo repo-a --refresh --interview guided",
+      request: {
+        repos: ["repo-a"],
+        refresh: true,
+        focus: null,
+        interviewMode: "guided",
+      },
+      createdAt: "2026-04-19T12:00:00.000Z",
+      updatedAt: "2026-04-19T12:00:00.000Z",
+      consumedAt: null,
+      consumedBy: null,
+    });
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const handler = analyzeCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.(undefined, {});
+
+    expect(runAnalyzeState.runAnalyzeCommand).toHaveBeenCalledWith({
+      cwd: "/tmp/workspace",
+      repos: ["repo-a"],
+      refresh: true,
+      interview: {
+        mode: "guided",
+      },
+    });
+    expect(analyzeHandoffState.markAnalyzeAgentHandoffConsumed).toHaveBeenCalledWith("/tmp/workspace", "claude");
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.run")}: 20260419T120000Z-a1b2c3\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.phases")}:\n`);
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
+  it("prints pending AI interview questions and keeps handoff pending for rerun", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+    analyzeHandoffState.detectCurrentAnalyzeAgentTool.mockReturnValue("codex");
+    analyzeHandoffState.readPendingAnalyzeAgentHandoff.mockResolvedValue({
+      version: 1,
+      status: "pending",
+      preferredTool: "codex",
+      availableTools: ["claude", "codex"],
+      reasons: ["needs ai"],
+      command: "bbg analyze --repo repo-a",
+      request: {
+        repos: ["repo-a"],
+        refresh: false,
+        focus: null,
+        interviewMode: "guided",
+      },
+      createdAt: "2026-04-19T12:00:00.000Z",
+      updatedAt: "2026-04-19T12:00:00.000Z",
+      consumedAt: null,
+      consumedBy: null,
+    });
+    runAnalyzeState.runAnalyzeCommand.mockResolvedValueOnce({
+      runId: "20260419T120000Z-a1b2c3",
+      status: "partial",
+      scope: "repo",
+      analyzedRepos: ["repo-a"],
+      technicalArchitecturePath: "docs/architecture/technical-architecture.md",
+      businessArchitecturePath: "docs/architecture/business-architecture.md",
+      dependencyGraphPath: "docs/architecture/repo-dependency-graph.md",
+      capabilityMapPath: "docs/business/capability-map.md",
+      criticalFlowsPath: "docs/business/critical-flows.md",
+      integrationContractsPath: "docs/architecture/integration-contracts.md",
+      runtimeConstraintsPath: "docs/architecture/runtime-constraints.md",
+      riskSurfacePath: "docs/architecture/risk-surface.md",
+      decisionHistoryPath: "docs/architecture/decision-history.md",
+      changeImpactMapPath: "docs/architecture/change-impact-map.md",
+      repoDocs: ["docs/architecture/repos/repo-a.md"],
+      repositoryDocs: ["docs/repositories/repo-a.md"],
+      workspaceTopologyPath: "docs/architecture/workspace-topology.md",
+      integrationMapPath: "docs/architecture/integration-map.md",
+      moduleMapPath: "docs/business/module-map.md",
+      coreFlowsPath: "docs/business/core-flows.md",
+      projectContextPath: "docs/business/project-context.md",
+      focusedAnalysisPath: "docs/workflows/focused-analysis.md",
+      docsUpdated: ["docs/architecture/technical-architecture.md"],
+      knowledgeUpdated: [".bbg/knowledge/workspace/topology.json"],
+      phases: [{ name: "deep-interview", status: "pending", details: ["mode=guided"] }],
+      focus: null,
+      interview: {
+        mode: "guided",
+        interactive: true,
+        asked: 3,
+        answered: 0,
+        gaps: [],
+        assumptionsApplied: [],
+        pendingQuestions: [
+          {
+            key: "businessGoal",
+            question: "What is the core business goal of this system?",
+            reason: "confidence 0.28 is below 0.65",
+            priority: 1,
+          },
+        ],
+        pendingQuestionsPath: ".bbg/analyze/interview/pending.json",
+        unresolvedGaps: ["businessGoal"],
+        confidenceBefore: {
+          businessGoal: 0.28,
+          criticalFlows: 0.34,
+          systemBoundaries: 0.6,
+          nonNegotiableConstraints: 0.18,
+          failureHotspots: 0.39,
+          decisionHistory: 0.12,
+        },
+        confidenceAfter: {
+          businessGoal: 0.28,
+          criticalFlows: 0.34,
+          systemBoundaries: 0.6,
+          nonNegotiableConstraints: 0.18,
+          failureHotspots: 0.39,
+          decisionHistory: 0.12,
+        },
+        context: {
+          businessGoal: null,
+          criticalFlows: [],
+          systemBoundaries: [],
+          nonNegotiableConstraints: [],
+          failureHotspots: [],
+          decisionHistory: [],
+        },
+        artifactsUpdated: [],
+      },
+    });
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const handler = analyzeCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.(undefined, {});
+
+    expect(analyzeHandoffState.markAnalyzeAgentHandoffConsumed).not.toHaveBeenCalled();
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.interviewQuestionsPending")}:\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith("- What is the core business goal of this system?\n");
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.answersFile")}: .bbg/analyze/interview/pending.json\n`);
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
+  it("prints interview-derived project context directly in analyze output", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+    analyzeHandoffState.detectCurrentAnalyzeAgentTool.mockReturnValue("codex");
+    analyzeHandoffState.readPendingAnalyzeAgentHandoff.mockResolvedValue(null);
+    runAnalyzeState.runAnalyzeCommand.mockResolvedValueOnce({
+      runId: "20260419T120000Z-a1b2c3",
+      status: "completed",
+      scope: "workspace",
+      analyzedRepos: ["repo-a"],
+      technicalArchitecturePath: "docs/architecture/technical-architecture.md",
+      businessArchitecturePath: "docs/architecture/business-architecture.md",
+      dependencyGraphPath: "docs/architecture/repo-dependency-graph.md",
+      capabilityMapPath: "docs/business/capability-map.md",
+      criticalFlowsPath: "docs/business/critical-flows.md",
+      integrationContractsPath: "docs/architecture/integration-contracts.md",
+      runtimeConstraintsPath: "docs/architecture/runtime-constraints.md",
+      riskSurfacePath: "docs/architecture/risk-surface.md",
+      decisionHistoryPath: "docs/architecture/decision-history.md",
+      changeImpactMapPath: "docs/architecture/change-impact-map.md",
+      repoDocs: ["docs/architecture/repos/repo-a.md"],
+      repositoryDocs: ["docs/repositories/repo-a.md"],
+      workspaceTopologyPath: "docs/architecture/workspace-topology.md",
+      integrationMapPath: "docs/architecture/integration-map.md",
+      moduleMapPath: "docs/business/module-map.md",
+      coreFlowsPath: "docs/business/core-flows.md",
+      projectContextPath: "docs/business/project-context.md",
+      focusedAnalysisPath: "docs/workflows/focused-analysis.md",
+      docsUpdated: ["docs/architecture/technical-architecture.md"],
+      knowledgeUpdated: [".bbg/knowledge/workspace/topology.json"],
+      phases: [{ name: "deep-interview", status: "completed", details: ["mode=deep"] }],
+      focus: null,
+      interview: {
+        mode: "deep",
+        interactive: true,
+        asked: 0,
+        answered: 0,
+        gaps: [],
+        assumptionsApplied: [
+          {
+            key: "nonNegotiableConstraints",
+            values: ["Must preserve public APIs during rollout."],
+            rationale: "Derived from multi-repo topology.",
+            evidence: ["repo:poster-project", "stack:poster-project:java/spring", "dependency:poster-project:auth-sdk"],
+          },
+        ],
+        pendingQuestions: [],
+        pendingQuestionsPath: null,
+        unresolvedGaps: [],
+        confidenceBefore: {
+          businessGoal: 0.28,
+          criticalFlows: 0.34,
+          systemBoundaries: 0.6,
+          nonNegotiableConstraints: 0.18,
+          failureHotspots: 0.39,
+          decisionHistory: 0.12,
+        },
+        confidenceAfter: {
+          businessGoal: 0.88,
+          criticalFlows: 0.74,
+          systemBoundaries: 0.92,
+          nonNegotiableConstraints: 0.82,
+          failureHotspots: 0.79,
+          decisionHistory: 0.71,
+        },
+        context: {
+          businessGoal: "Support campaign poster operations across client, admin, and backend surfaces.",
+          criticalFlows: ["User opens campaign poster", "Admin publishes campaign changes"],
+          systemBoundaries: ["frontend: campaign poster surface", "backend: campaign orchestration"],
+          nonNegotiableConstraints: ["Must preserve public APIs during rollout."],
+          failureHotspots: ["campaign poster rendering", "admin/backend integration seams"],
+          decisionHistory: ["Cross-repo contract drift has caused regressions before."],
+        },
+        artifactsUpdated: [],
+      },
+    });
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const handler = analyzeCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.(undefined, {});
+
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      `${uiText("analyze.businessGoal")} (${uiText("analyze.confidence")} 0.88): Support campaign poster operations across client, admin, and backend surfaces.\n`,
+    );
+    expect(stdoutSpy).toHaveBeenCalledWith("Critical flows (confidence 0.74):\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("- User opens campaign poster\n");
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.systemBoundaries")} (${uiText("analyze.confidence")} 0.92):\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.nonNegotiableConstraints")} (${uiText("analyze.confidence")} 0.82):\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.decisionHistory")} (${uiText("analyze.confidence")} 0.71):\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.failureHotspots")} (${uiText("analyze.confidence")} 0.79):\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`  ${uiText("analyze.evidence")}: Derived from multi-repo topology.\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      `  ${uiText("analyze.signals")}: repo:poster-project, stack:poster-project:java/spring, dependency:poster-project:auth-sdk\n`,
+    );
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "- Non-negotiable constraints: Must preserve public APIs during rollout.\n",
+    );
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
+  it("passes focused analyze queries through runtime and prints focus summary", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+    analyzeHandoffState.detectCurrentAnalyzeAgentTool.mockReturnValue("codex");
+    analyzeHandoffState.readPendingAnalyzeAgentHandoff.mockResolvedValue(null);
+    runAnalyzeState.runAnalyzeCommand.mockResolvedValueOnce({
+      runId: "20260419T120000Z-a1b2c3",
+      status: "completed",
+      scope: "workspace",
+      analyzedRepos: ["repo-a"],
+      technicalArchitecturePath: "docs/architecture/technical-architecture.md",
+      businessArchitecturePath: "docs/architecture/business-architecture.md",
+      dependencyGraphPath: "docs/architecture/repo-dependency-graph.md",
+      capabilityMapPath: "docs/business/capability-map.md",
+      criticalFlowsPath: "docs/business/critical-flows.md",
+      integrationContractsPath: "docs/architecture/integration-contracts.md",
+      runtimeConstraintsPath: "docs/architecture/runtime-constraints.md",
+      riskSurfacePath: "docs/architecture/risk-surface.md",
+      decisionHistoryPath: "docs/architecture/decision-history.md",
+      changeImpactMapPath: "docs/architecture/change-impact-map.md",
+      repoDocs: ["docs/architecture/repos/repo-a.md"],
+      repositoryDocs: ["docs/repositories/repo-a.md"],
+      workspaceTopologyPath: "docs/architecture/workspace-topology.md",
+      integrationMapPath: "docs/architecture/integration-map.md",
+      moduleMapPath: "docs/business/module-map.md",
+      coreFlowsPath: "docs/business/core-flows.md",
+      projectContextPath: "docs/business/project-context.md",
+      focusedAnalysisPath: "docs/workflows/focused-analysis.md",
+      docsUpdated: ["docs/architecture/technical-architecture.md"],
+      knowledgeUpdated: [".bbg/knowledge/workspace/topology.json"],
+      phases: [{ name: "focus-analysis", status: "completed", details: ["query=checkout flow"] }],
+      focus: {
+        query: "checkout flow",
+        matchedRepos: ["repo-a"],
+        matchedSignals: ["repo-a: checkout service", "repo-a: payment adapter"],
+        matchedContracts: ["repo-a HTTP/API contract surface"],
+        riskHotspots: ["repo-a: checkout risk seam"],
+        reviewerHints: ["typescript-reviewer"],
+        likelyEntrypoints: ["repo-a: checkout service"],
+        rationale: ["Matched focus tokens against repo descriptions, structure markers, dependencies, and inferred business responsibilities in repo-a."],
+      },
+      interview: null,
+    });
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const handler = analyzeCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.(["checkout", "flow"], {});
+
+    expect(runAnalyzeState.runAnalyzeCommand).toHaveBeenCalledWith({
+      cwd: "/tmp/workspace",
+      refresh: false,
+      focus: "checkout flow",
+      interview: {
+        mode: "auto",
+      },
+    });
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.focus")}: checkout flow\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.matchedRepos")}: repo-a\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.matchedSignals")}:\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith("- repo-a: checkout service\n");
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.likelyEntrypoints")}:\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.matchedContracts")}:\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.focusRisks")}:\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.reviewerHints")}: typescript-reviewer\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.focusRationale")}:\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.focusedAnalysis")}: docs/workflows/focused-analysis.md\n`);
 
     stdoutSpy.mockRestore();
     cwdSpy.mockRestore();

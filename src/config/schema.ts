@@ -64,6 +64,7 @@ export interface BbgConfig {
   version: string;
   projectName: string;
   projectDescription: string;
+  documentationLanguage?: "zh-CN" | "en";
   createdAt: string;
   updatedAt: string;
   repos: RepoEntry[];

@@ -24,6 +24,18 @@ This project is equipped with comprehensive AI development workflow governance, 
 | Codex CLI | `.codex/` | Config, AGENTS.md |
 | Gemini | `.gemini/` | Settings, reusable prompts |
 
+### Model Selection
+
+bbg does not pin a required model for any AI tool. It manages workflow entrypoints, runtime context, review gates, and role/capability guidance.
+
+Choose any supported model in your current tool that matches the work:
+
+- planner work: strong reasoning and architecture analysis
+- implementer work: strong code editing and iterative verification
+- reviewer work: strong code review and risk detection
+
+If your tool supports switching models directly, keep using the tool and change the model there instead of changing bbg-generated files.
+
 ### Governance Resources
 
 | Directory | Contents |

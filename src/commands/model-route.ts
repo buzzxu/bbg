@@ -11,10 +11,19 @@ type ModelRouteDomain = "docs" | "debugging" | "implementation" | "planning" | "
 type ModelRouteComplexity = "simple" | "moderate" | "complex";
 type ModelRouteContext = "small" | "medium" | "large";
 
-const MODEL_CLASSES: Array<{ modelClass: ModelClass; summary: string }> = [
-  { modelClass: "fast", summary: "Best for docs, formatting, and low-risk single-file tasks." },
-  { modelClass: "balanced", summary: "Default for multi-file implementation, review, and debugging work." },
-  { modelClass: "premium", summary: "Reserve for security, architecture, or high-precision investigations." },
+const MODEL_CLASSES: Array<{ profileClass: ModelClass; summary: string }> = [
+  {
+    profileClass: "fast",
+    summary: "Fast execution profile for docs, formatting, and low-risk single-file tasks.",
+  },
+  {
+    profileClass: "balanced",
+    summary: "Balanced execution profile for multi-file implementation, review, and debugging work.",
+  },
+  {
+    profileClass: "premium",
+    summary: "Premium execution profile for security, architecture, or high-precision investigations.",
+  },
 ];
 
 const TARGET_COMMANDS = ["quality-gate", "checkpoint", "verify", "sessions", "eval", "harness-audit", "model-route", "doctor", "sync"];
@@ -31,7 +40,7 @@ const LANGUAGE_REVIEWERS: Record<string, string> = {
 
 export interface ModelRouteCommandResult {
   mode: "recommendation" | "list";
-  profiles?: Array<{ modelClass: ModelClass; summary: string }>;
+  profiles?: Array<{ profileClass: ModelClass; summary: string }>;
   task?: string;
   classification?: {
     domain: ModelRouteDomain;
@@ -41,7 +50,7 @@ export interface ModelRouteCommandResult {
     languages: string[];
   };
   recommendation?: {
-    modelClass: ModelClass;
+    profileClass: ModelClass;
     reason: string;
     telemetryNote: string;
     reviewerAgents: string[];
@@ -185,9 +194,9 @@ async function getTelemetryAdjustment(input: {
   current: ModelClass;
   prefer?: ModelRoutePreference;
   stickyPremium: boolean;
-}): Promise<{ modelClass: ModelClass; telemetryNote: string }> {
+}): Promise<{ profileClass: ModelClass; telemetryNote: string }> {
   if (input.targetCommand === null || !input.runtime.telemetry.enabled) {
-    return { modelClass: input.current, telemetryNote: "No local telemetry feedback available." };
+    return { profileClass: input.current, telemetryNote: "No local telemetry feedback available." };
   }
 
   let telemetry;
@@ -195,7 +204,7 @@ async function getTelemetryAdjustment(input: {
     telemetry = await readTelemetryDocument(input.cwd, input.runtime);
   } catch {
     return {
-      modelClass: input.current,
+      profileClass: input.current,
       telemetryNote: "Telemetry feedback unavailable; ignoring local telemetry history.",
     };
   }
@@ -204,33 +213,33 @@ async function getTelemetryAdjustment(input: {
     (event) => event.type === "runtime.command.completed" && event.details.command === input.targetCommand,
   );
   if (matchingRuns.length < 2) {
-    return { modelClass: input.current, telemetryNote: "Not enough local telemetry for this command yet." };
+    return { profileClass: input.current, telemetryNote: "Not enough local telemetry for this command yet." };
   }
 
   const okRuns = matchingRuns.filter((event) => event.details.ok === true).length;
   const successRate = okRuns / matchingRuns.length;
   if (successRate < 0.5) {
     return {
-      modelClass: bumpClass(input.current, "up"),
+      profileClass: bumpClass(input.current, "up"),
       telemetryNote: `Escalated from local telemetry: ${okRuns}/${matchingRuns.length} recent ${input.targetCommand} runs succeeded.`,
     };
   }
 
   if (!input.stickyPremium && (input.prefer === "cost" || input.prefer === "speed") && successRate >= 0.9) {
     return {
-      modelClass: bumpClass(input.current, "down"),
+      profileClass: bumpClass(input.current, "down"),
       telemetryNote: `Lowered from local telemetry: ${okRuns}/${matchingRuns.length} recent ${input.targetCommand} runs succeeded.`,
     };
   }
 
   return {
-    modelClass: input.current,
+    profileClass: input.current,
     telemetryNote: `Local telemetry stable: ${okRuns}/${matchingRuns.length} recent ${input.targetCommand} runs succeeded.`,
   };
 }
 
 function buildReason(input: {
-  modelClass: ModelClass;
+  profileClass: ModelClass;
   domain: ModelRouteDomain;
   complexity: ModelRouteComplexity;
   context: ModelRouteContext;
@@ -239,7 +248,7 @@ function buildReason(input: {
 }): string {
   const preferenceNote = input.prefer ? ` Preference bias: ${input.prefer}.` : "";
   const languageNote = input.languages.length > 0 ? ` Language focus: ${input.languages.join(", ")}.` : "";
-  return `${input.domain} work with ${input.complexity} complexity and ${input.context} context fits the ${input.modelClass} class.${languageNote}${preferenceNote}`;
+  return `${input.domain} work with ${input.complexity} complexity and ${input.context} context fits the ${input.profileClass} execution profile.${languageNote}${preferenceNote}`;
 }
 
 export async function runModelRouteCommand(input: {
@@ -272,23 +281,23 @@ export async function runModelRouteCommand(input: {
     languages,
   };
   const stickyPremium = classification.domain === "security" || classification.domain === "architecture";
-  let modelClass = chooseBaseModelClass(classification);
+  let profileClass = chooseBaseModelClass(classification);
   if (!stickyPremium && input.prefer === "quality") {
-    modelClass = bumpClass(modelClass, "up");
+    profileClass = bumpClass(profileClass, "up");
   }
   if (!stickyPremium && (input.prefer === "cost" || input.prefer === "speed")) {
-    modelClass = bumpClass(modelClass, "down");
+    profileClass = bumpClass(profileClass, "down");
   }
 
   const telemetryAdjustment = await getTelemetryAdjustment({
     cwd: input.cwd,
     targetCommand: classification.targetCommand,
     runtime,
-    current: modelClass,
+    current: profileClass,
     prefer: input.prefer,
     stickyPremium,
   });
-  modelClass = telemetryAdjustment.modelClass;
+  profileClass = telemetryAdjustment.profileClass;
   const guideReferences = (await Promise.all(
     getLanguageGuidePathsForLanguages(languages).map(async (pathValue) =>
       (await exists(join(input.cwd, pathValue))) ? pathValue : null),
@@ -310,7 +319,7 @@ export async function runModelRouteCommand(input: {
         targetCommand: classification.targetCommand,
         languages,
         prefer: input.prefer ?? null,
-        modelClass,
+        profileClass,
         reviewerAgents,
       },
     });
@@ -323,8 +332,8 @@ export async function runModelRouteCommand(input: {
     task: input.task.trim(),
     classification,
     recommendation: {
-      modelClass,
-      reason: buildReason({ ...classification, modelClass, prefer: input.prefer }),
+      profileClass,
+      reason: buildReason({ ...classification, profileClass, prefer: input.prefer }),
       telemetryNote: telemetryAdjustment.telemetryNote,
       reviewerAgents,
       guideReferences,

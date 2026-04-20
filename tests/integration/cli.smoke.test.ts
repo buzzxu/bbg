@@ -31,5 +31,6 @@ describe("cli smoke", () => {
     expect(stdout).toContain("sync");
     expect(stdout).toContain("release");
     expect(stdout).toContain("upgrade");
+    expect(stdout).toContain("uninstall");
   });
 });

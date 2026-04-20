@@ -1,5 +1,6 @@
 import { confirm, input, select } from "@inquirer/prompts";
 import type { StackInfo } from "../config/schema.js";
+import { uiText } from "../i18n/ui-copy.js";
 
 export type InputPromptOptions = Parameters<typeof input>[0];
 
@@ -25,30 +26,30 @@ export function sanitizePromptValue(value: string, fallback = ""): string {
 }
 
 export async function collectStackInfo(detectedStack: StackInfo): Promise<StackInfo> {
-  const useDetectedStack = await promptConfirm({ message: "Use detected stack info?", default: true });
+  const useDetectedStack = await promptConfirm({ message: uiText("init.useDetectedStackInfo"), default: true });
   if (useDetectedStack) {
     return detectedStack;
   }
 
   return {
     language: sanitizePromptValue(
-      await promptInput({ message: "Stack language", default: detectedStack.language }),
+      await promptInput({ message: uiText("init.stackLanguage"), default: detectedStack.language }),
       detectedStack.language,
     ),
     framework: sanitizePromptValue(
-      await promptInput({ message: "Stack framework", default: detectedStack.framework }),
+      await promptInput({ message: uiText("init.stackFramework"), default: detectedStack.framework }),
       detectedStack.framework,
     ),
     buildTool: sanitizePromptValue(
-      await promptInput({ message: "Stack build tool", default: detectedStack.buildTool }),
+      await promptInput({ message: uiText("init.stackBuildTool"), default: detectedStack.buildTool }),
       detectedStack.buildTool,
     ),
     testFramework: sanitizePromptValue(
-      await promptInput({ message: "Stack test framework", default: detectedStack.testFramework }),
+      await promptInput({ message: uiText("init.stackTestFramework"), default: detectedStack.testFramework }),
       detectedStack.testFramework,
     ),
     packageManager: sanitizePromptValue(
-      await promptInput({ message: "Stack package manager", default: detectedStack.packageManager }),
+      await promptInput({ message: uiText("init.stackPackageManager"), default: detectedStack.packageManager }),
       detectedStack.packageManager,
     ),
   };

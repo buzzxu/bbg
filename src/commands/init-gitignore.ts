@@ -60,3 +60,43 @@ export async function ensureRootGitignore(cwd: string, repos: RepoEntry[]): Prom
   await writeTextFile(gitignorePath, `${outputLines.join("\n")}\n`);
   return gitignorePath;
 }
+
+export function removeBbgGitignoreEntries(content: string): string {
+  const lines = content.length > 0 ? content.split(/\r?\n/) : [];
+  const nextLines: string[] = [];
+  let skippingManagedBlock = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === MANAGED_GITIGNORE_BLOCK_START) {
+      skippingManagedBlock = true;
+      continue;
+    }
+
+    if (trimmed === MANAGED_GITIGNORE_BLOCK_END) {
+      skippingManagedBlock = false;
+      continue;
+    }
+
+    if (skippingManagedBlock) {
+      continue;
+    }
+
+    if (BBG_GITIGNORE_ENTRIES.includes(trimmed as (typeof BBG_GITIGNORE_ENTRIES)[number])) {
+      continue;
+    }
+
+    nextLines.push(line);
+  }
+
+  while (nextLines.length > 0 && nextLines[0]?.trim() === "") {
+    nextLines.shift();
+  }
+
+  while (nextLines.length > 0 && nextLines[nextLines.length - 1]?.trim() === "") {
+    nextLines.pop();
+  }
+
+  const normalized = nextLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return normalized.length > 0 ? `${normalized}\n` : "";
+}

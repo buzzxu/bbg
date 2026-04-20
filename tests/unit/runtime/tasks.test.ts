@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -86,6 +86,13 @@ async function initializeWorkspace(cwd: string): Promise<void> {
 
 describe("tasks runtime", () => {
   beforeEach(() => {
+    delete process.env.BBG_CURRENT_TOOL;
+    delete process.env.CODEX_THREAD_ID;
+    delete process.env.CODEX_CI;
+    delete process.env.CODEX_MANAGED_BY_NPM;
+    delete process.env.CODEX_SANDBOX;
+    delete process.env.CODEX_SANDBOX_NETWORK_DISABLED;
+
     vi.resetModules();
     workflowState.runWorkflowCommand.mockReset();
     taskEnvState.runTaskEnvCommand.mockReset();
@@ -160,6 +167,11 @@ describe("tasks runtime", () => {
 
   afterEach(async () => {
     delete process.env.BBG_CURRENT_TOOL;
+    delete process.env.CODEX_THREAD_ID;
+    delete process.env.CODEX_CI;
+    delete process.env.CODEX_MANAGED_BY_NPM;
+    delete process.env.CODEX_SANDBOX;
+    delete process.env.CODEX_SANDBOX_NETWORK_DISABLED;
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
@@ -234,7 +246,7 @@ describe("tasks runtime", () => {
       reviewerAgents: ["typescript-reviewer"],
       reviewHint: "Prefer typescript-reviewer for language-specific design and implementation review.",
     });
-    expect(result.context.modelRoute).toEqual({
+    expect(result.context.executionRoute).toEqual({
       classification: {
         domain: "debugging",
         complexity: "simple",
@@ -243,8 +255,8 @@ describe("tasks runtime", () => {
         languages: ["typescript"],
       },
       recommendation: {
-        modelClass: "balanced",
-        reason: "debugging work with simple complexity and medium context fits the balanced class. Language focus: typescript.",
+        profileClass: "balanced",
+        reason: "debugging work with simple complexity and medium context fits the balanced execution profile. Language focus: typescript.",
         telemetryNote: "No local telemetry feedback available.",
         reviewerAgents: ["typescript-reviewer"],
         guideReferences: [
@@ -300,8 +312,8 @@ describe("tasks runtime", () => {
     expect(handoff).toContain("- Languages: typescript");
     expect(handoff).toContain("- Reviewers: typescript-reviewer");
     expect(handoff).toContain("docs/architecture/languages/typescript/application-patterns.md");
-    expect(handoff).toContain("## Model Route");
-    expect(handoff).toContain("- Model Class: balanced");
+    expect(handoff).toContain("## Execution Route");
+    expect(handoff).toContain("- Profile Class: balanced");
     expect(handoff).toContain("- Route Reviewers: typescript-reviewer");
     expect(handoff).toContain("## Review Gate");
     expect(handoff).toContain("- Level: recommended");
@@ -314,6 +326,156 @@ describe("tasks runtime", () => {
     const status = await readTaskStatusSummary(cwd);
     expect(status.tasks).toHaveLength(1);
     expect(status.tasks[0]?.taskId).toBe("fix-checkout-timeout");
+  });
+
+  it("derives impact guidance from analyze knowledge and elevates review gating", async () => {
+    const cwd = await makeTempDir();
+    await initializeWorkspace(cwd);
+    process.env.BBG_CURRENT_TOOL = "claude";
+
+    await writeTextFile(
+      join(cwd, ".bbg", "knowledge", "workspace", "capabilities.json"),
+      JSON.stringify({
+        capabilities: [{
+          name: "checkout",
+          description: "Checkout timeout recovery capability",
+          owningRepos: ["app"],
+          responsibilities: ["Handle checkout timeout retries"],
+          evidence: { summary: "Derived from flow analysis.", signals: ["repo:app"] },
+          confidence: 0.91,
+        }],
+      }),
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "knowledge", "workspace", "critical-flows.json"),
+      JSON.stringify({
+        flows: [{
+          name: "flow-1",
+          summary: "checkout timeout handling",
+          participatingRepos: ["app"],
+          participatingModules: ["app"],
+          contracts: ["app HTTP/API contract surface"],
+          failurePoints: ["checkout timeout pipeline"],
+          steps: [],
+          evidence: { summary: "Traced from checkout markers.", signals: ["repo:app", "flow:checkout-timeout"] },
+          confidence: 0.84,
+        }],
+      }),
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "knowledge", "workspace", "contracts.json"),
+      JSON.stringify({
+        contracts: [{
+          name: "app HTTP/API contract surface",
+          type: "http-api",
+          owners: ["app"],
+          consumers: ["web"],
+          boundary: "service and API boundary",
+          evidence: { summary: "Derived from API markers.", signals: ["repo:app", "contract:http-api"] },
+          confidence: 0.8,
+        }],
+      }),
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "knowledge", "workspace", "risk-surface.json"),
+      JSON.stringify({
+        risks: [{
+          title: "checkout timeout pipeline",
+          severity: "high",
+          affectedRepos: ["app"],
+          reasons: ["Timeout handling is historically fragile."],
+          evidence: { summary: "Derived from prior flow risk analysis.", signals: ["repo:app", "risk:checkout-timeout"] },
+          confidence: 0.83,
+        }],
+      }),
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "knowledge", "workspace", "decisions.json"),
+      JSON.stringify({
+        decisions: [{
+          statement: "Checkout fixes must preserve API compatibility.",
+          status: "confirmed",
+          rationale: "Existing clients depend on the current response contract.",
+          evidence: { summary: "Recorded decision history.", signals: ["repo:app", "decision:api-compatibility"] },
+          confidence: 0.74,
+        }],
+      }),
+    );
+    await writeTextFile(
+      join(cwd, ".bbg", "knowledge", "workspace", "change-impact.json"),
+      JSON.stringify({
+        entries: [{
+          target: "checkout",
+          impactedRepos: ["app"],
+          impactedContracts: ["app HTTP/API contract surface"],
+          impactedTests: ["app: vitest (has tests)"],
+          reviewerHints: ["typescript-reviewer"],
+          evidence: { summary: "Computed from change impact analysis.", signals: ["repo:app", "impact:checkout"] },
+          confidence: 0.88,
+        }],
+      }),
+    );
+
+    const { startTask, readTaskStatusSummary } = await import("../../../src/runtime/tasks.js");
+    const result = await startTask(cwd, "Fix checkout timeout");
+
+    expect(result.context.impactGuidance).toEqual({
+      matchedCapabilities: ["checkout"],
+      matchedFlows: ["checkout timeout handling"],
+      impactedRepos: ["app"],
+      impactedContracts: ["app HTTP/API contract surface"],
+      impactedTests: ["app: vitest (has tests)"],
+      riskHotspots: ["checkout timeout pipeline"],
+      reviewerHints: ["typescript-reviewer"],
+      decisionNotes: ["Checkout fixes must preserve API compatibility."],
+      evidenceSignals: expect.arrayContaining([
+        "repo:app",
+        "flow:checkout-timeout",
+        "risk:checkout-timeout",
+        "decision:api-compatibility",
+        "impact:checkout",
+      ]),
+      references: [
+        "docs/business/capability-map.md",
+        "docs/business/critical-flows.md",
+        "docs/architecture/risk-surface.md",
+        "docs/architecture/decision-history.md",
+        "docs/architecture/change-impact-map.md",
+      ],
+      confidence: expect.any(Number),
+      rationale: expect.arrayContaining([
+        expect.stringContaining("capability"),
+        expect.stringContaining("critical flow"),
+        expect.stringContaining("contract surface"),
+      ]),
+      reviewHint: "Review impacted repos (app) and contracts (app HTTP/API contract surface) before implementation.",
+    });
+    expect(result.context.reviewGate.level).toBe("required");
+    expect(result.context.reviewGate.stopConditions).toEqual(
+      expect.arrayContaining([
+        "cross-repo-contract-impact",
+        "known-risk-hotspot-change",
+        "critical-flow-regression-risk",
+        "decision-history-conflict",
+      ]),
+    );
+    expect(result.session.nextActions).toEqual([
+      "review-impact-surface",
+      "review-hermes-context",
+      "implement",
+      "add-tests",
+      "verify",
+    ]);
+    const handoff = await readTextFile(join(cwd, result.handoffPath));
+    expect(handoff).toContain("## Impact Guidance");
+    expect(handoff).toContain("- Capabilities: checkout");
+    expect(handoff).toContain("- Critical Flows: checkout timeout handling");
+    expect(handoff).toContain("- Impacted Contracts: app HTTP/API contract surface");
+    expect(handoff).toContain("- Risk Hotspots: checkout timeout pipeline");
+
+    const status = await readTaskStatusSummary(cwd);
+    expect(status.tasks[0]?.impactGuidance.impactedContracts).toContain("app HTTP/API contract surface");
+    expect(status.tasks[0]?.reviewGate.level).toBe("required");
   });
 
   it("resumes an existing task session and refreshes the handoff", async () => {
@@ -1019,5 +1181,26 @@ describe("tasks runtime", () => {
     expect(updated.blockedReason).toBe("autonomy budget exceeded");
     expect(updated.autonomy.escalated).toBe(true);
     expect(updated.lastRecoveryAction?.kind).toBe("autonomy-budget-escalation");
+  });
+
+  it("includes analyze quarantine summary in task status output", async () => {
+    const cwd = await makeTempDir();
+    await initializeWorkspace(cwd);
+    await writeTextFile(
+      join(cwd, ".bbg", "analyze", "latest.json"),
+      `${JSON.stringify({
+        runId: "run-1",
+        status: "partial",
+        scope: "workspace",
+      }, null, 2)}\n`,
+    );
+    await writeTextFile(join(cwd, ".bbg", "quarantine", "analyze", "invalid-handoff.json"), "{}\n");
+
+    const { readTaskStatusSummary } = await import("../../../src/runtime/tasks.js");
+    const status = await readTaskStatusSummary(cwd);
+
+    expect(status.analyze.quarantine.count).toBe(1);
+    expect(status.analyze.quarantine.latestQuarantinedAt).toEqual(expect.any(String));
+    expect(await readdir(join(cwd, ".bbg", "quarantine", "analyze"))).toEqual(["invalid-handoff.json"]);
   });
 });

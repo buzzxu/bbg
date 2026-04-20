@@ -151,7 +151,7 @@ describe("loop commands", () => {
         taskId: "fix-checkout-timeout",
         analyzeRunId: null,
         references: ["AGENTS.md"],
-        modelRoute: null,
+        executionRoute: null,
         languageGuidance: {
           languages: [],
           guideReferences: [],

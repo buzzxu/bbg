@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { seedEvalArtifacts } from "../../../src/evals/datasets.js";
 import { readEvalHistory, summarizeEvalHistory } from "../../../src/evals/history.js";
 import { writeJsonStore } from "../../../src/runtime/store.js";
@@ -17,7 +17,22 @@ async function makeTempDir(): Promise<string> {
 }
 
 describe("eval runner", () => {
+  beforeEach(() => {
+    delete process.env.BBG_CURRENT_TOOL;
+    delete process.env.CODEX_THREAD_ID;
+    delete process.env.CODEX_CI;
+    delete process.env.CODEX_MANAGED_BY_NPM;
+    delete process.env.CODEX_SANDBOX;
+    delete process.env.CODEX_SANDBOX_NETWORK_DISABLED;
+  });
+
   afterEach(async () => {
+    delete process.env.BBG_CURRENT_TOOL;
+    delete process.env.CODEX_THREAD_ID;
+    delete process.env.CODEX_CI;
+    delete process.env.CODEX_MANAGED_BY_NPM;
+    delete process.env.CODEX_SANDBOX;
+    delete process.env.CODEX_SANDBOX_NETWORK_DISABLED;
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
