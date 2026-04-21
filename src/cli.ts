@@ -39,6 +39,7 @@ import {
   listAnalyzeAgentTools,
   markAnalyzeAgentHandoffConsumed,
   readPendingAnalyzeAgentHandoff,
+  tryLaunchAnalyzeAgentHandoff,
   writeAnalyzeAgentHandoff,
 } from "./runtime/analyze-handoff.js";
 import { ConfigParseError, ConfigValidationError } from "./config/read-write.js";
@@ -109,9 +110,7 @@ const mapCliErrorToExitCode = (error: unknown): number => {
   return 1;
 };
 
-const resolveExecutionRouteProfile = (
-  route: { recommendation: { profileClass: string } } | null,
-): string | null => {
+const resolveExecutionRouteProfile = (route: { recommendation: { profileClass: string } } | null): string | null => {
   if (!route) {
     return null;
   }
@@ -213,12 +212,17 @@ const printObserveResult = (result: Awaited<ReturnType<typeof runObserveCommand>
     process.stdout.write(`Log artifacts: ${result.report.logArtifacts}\n`);
     process.stdout.write(`Metric artifacts: ${result.report.metricArtifacts}\n`);
     process.stdout.write(`Trace artifacts: ${result.report.traceArtifacts}\n`);
-    process.stdout.write(`Evidence kinds: ${result.report.evidenceKinds.length > 0 ? result.report.evidenceKinds.join(", ") : "none"}\n`);
+    process.stdout.write(
+      `Evidence kinds: ${result.report.evidenceKinds.length > 0 ? result.report.evidenceKinds.join(", ") : "none"}\n`,
+    );
     process.stdout.write(`Readiness: ${result.report.readiness}\n`);
   }
 };
 
-const printTaskSessionResult = (label: "Start" | "Resume", result: Awaited<ReturnType<typeof runStartCommand>>): void => {
+const printTaskSessionResult = (
+  label: "Start" | "Resume",
+  result: Awaited<ReturnType<typeof runStartCommand>>,
+): void => {
   const impactGuidance = result.context.impactGuidance ?? {
     matchedCapabilities: [],
     matchedFlows: [],
@@ -275,10 +279,10 @@ const printTaskSessionResult = (label: "Start" | "Resume", result: Awaited<Retur
     process.stdout.write(`Review gate reason: ${result.context.reviewGate.reason}\n`);
   }
   if (
-    impactGuidance.matchedCapabilities.length > 0
-    || impactGuidance.matchedFlows.length > 0
-    || impactGuidance.impactedRepos.length > 0
-    || impactGuidance.impactedContracts.length > 0
+    impactGuidance.matchedCapabilities.length > 0 ||
+    impactGuidance.matchedFlows.length > 0 ||
+    impactGuidance.impactedRepos.length > 0 ||
+    impactGuidance.impactedContracts.length > 0
   ) {
     process.stdout.write(
       `Impact: repos=${impactGuidance.impactedRepos.join(", ") || "none"}, contracts=${impactGuidance.impactedContracts.join(", ") || "none"}\n`,
@@ -370,10 +374,10 @@ const printStatusResult = (result: Awaited<ReturnType<typeof runStatusCommand>>)
       process.stdout.write(`  review gate reason: ${task.reviewGate.reason}\n`);
     }
     if (
-      impactGuidance.matchedCapabilities.length > 0
-      || impactGuidance.matchedFlows.length > 0
-      || impactGuidance.impactedRepos.length > 0
-      || impactGuidance.impactedContracts.length > 0
+      impactGuidance.matchedCapabilities.length > 0 ||
+      impactGuidance.matchedFlows.length > 0 ||
+      impactGuidance.impactedRepos.length > 0 ||
+      impactGuidance.impactedContracts.length > 0
     ) {
       process.stdout.write(
         `  impact: repos=${impactGuidance.impactedRepos.join(", ") || "none"}, contracts=${impactGuidance.impactedContracts.join(", ") || "none"}\n`,
@@ -880,41 +884,44 @@ export const buildProgram = (): Command => {
     .option("--max-iterations <count>", "Maximum loop iterations")
     .option("--poll-ms <count>", "Workspace change poll interval in milliseconds")
     .option("--idle-ms <count>", "How long to wait for changes before pausing")
-    .action(async (options: {
-      id?: string;
-      taskId?: string;
-      envId?: string;
-      checks?: string;
-      maxIterations?: string;
-      pollMs?: string;
-      idleMs?: string;
-    }) => {
-      const checks = options.checks
-        ?.split(",")
-        .map((value) => value.trim())
-        .filter((value): value is "build" | "tests" | "typecheck" | "lint" =>
-          value === "build" || value === "tests" || value === "typecheck" || value === "lint",
-        );
-      const result = await runLoopStartCommand({
-        cwd: process.cwd(),
-        id: options.id,
-        taskId: options.taskId,
-        envId: options.envId,
-        checks,
-        maxIterations: options.maxIterations ? Number.parseInt(options.maxIterations, 10) : undefined,
-        pollIntervalMs: options.pollMs ? Number.parseInt(options.pollMs, 10) : undefined,
-        idleTimeoutMs: options.idleMs ? Number.parseInt(options.idleMs, 10) : undefined,
-      });
-      process.stdout.write(`Loop: ${result.id}\n`);
-      if (result.taskId) {
-        process.stdout.write(`Task: ${result.taskId}\n`);
-      }
-      if (result.taskEnvId) {
-        process.stdout.write(`Task environment: ${result.taskEnvId}\n`);
-      }
-      process.stdout.write(`Status: ${result.status}\n`);
-      process.stdout.write(`Iterations: ${result.iterations.length}\n`);
-    });
+    .action(
+      async (options: {
+        id?: string;
+        taskId?: string;
+        envId?: string;
+        checks?: string;
+        maxIterations?: string;
+        pollMs?: string;
+        idleMs?: string;
+      }) => {
+        const checks = options.checks
+          ?.split(",")
+          .map((value) => value.trim())
+          .filter(
+            (value): value is "build" | "tests" | "typecheck" | "lint" =>
+              value === "build" || value === "tests" || value === "typecheck" || value === "lint",
+          );
+        const result = await runLoopStartCommand({
+          cwd: process.cwd(),
+          id: options.id,
+          taskId: options.taskId,
+          envId: options.envId,
+          checks,
+          maxIterations: options.maxIterations ? Number.parseInt(options.maxIterations, 10) : undefined,
+          pollIntervalMs: options.pollMs ? Number.parseInt(options.pollMs, 10) : undefined,
+          idleTimeoutMs: options.idleMs ? Number.parseInt(options.idleMs, 10) : undefined,
+        });
+        process.stdout.write(`Loop: ${result.id}\n`);
+        if (result.taskId) {
+          process.stdout.write(`Task: ${result.taskId}\n`);
+        }
+        if (result.taskEnvId) {
+          process.stdout.write(`Task environment: ${result.taskEnvId}\n`);
+        }
+        process.stdout.write(`Status: ${result.status}\n`);
+        process.stdout.write(`Iterations: ${result.iterations.length}\n`);
+      },
+    );
 
   program
     .command("loop-status")
@@ -1037,24 +1044,29 @@ export const buildProgram = (): Command => {
     .requiredOption("--status <status>", "Review result: passed or failed")
     .requiredOption("--summary <text>", "Short review summary")
     .option("--finding <text...>", "Optional review findings")
-    .action(async (taskId: string, options: {
-      reviewer: string;
-      status: "passed" | "failed";
-      summary: string;
-      finding?: string[];
-    }) => {
-      const result = await runReviewRecordCommand({
-        cwd: process.cwd(),
-        taskId,
-        reviewer: options.reviewer,
-        status: options.status,
-        summary: options.summary,
-        findings: options.finding,
-      });
-      process.stdout.write(`Review record: ${result.session.taskId}\n`);
-      process.stdout.write(`Reviewer: ${result.session.lastReviewResult?.reviewer ?? "none"}\n`);
-      process.stdout.write(`Review status: ${result.session.lastReviewResult?.status ?? "none"}\n`);
-    });
+    .action(
+      async (
+        taskId: string,
+        options: {
+          reviewer: string;
+          status: "passed" | "failed";
+          summary: string;
+          finding?: string[];
+        },
+      ) => {
+        const result = await runReviewRecordCommand({
+          cwd: process.cwd(),
+          taskId,
+          reviewer: options.reviewer,
+          status: options.status,
+          summary: options.summary,
+          findings: options.finding,
+        });
+        process.stdout.write(`Review record: ${result.session.taskId}\n`);
+        process.stdout.write(`Reviewer: ${result.session.lastReviewResult?.reviewer ?? "none"}\n`);
+        process.stdout.write(`Review status: ${result.session.lastReviewResult?.status ?? "none"}\n`);
+      },
+    );
 
   program
     .command("sessions")
@@ -1242,15 +1254,23 @@ export const buildProgram = (): Command => {
       process.stdout.write(`Benchmark previous: ${result.report.previous ?? "none"}\n`);
       process.stdout.write(`History window: ${result.report.entries.length}/${result.report.totalEntries}\n`);
       for (const [key, value] of Object.entries(result.report.metrics)) {
-        process.stdout.write(`- ${key}: latest=${value.latest} avg=${value.average} best=${value.best} worst=${value.worst}\n`);
+        process.stdout.write(
+          `- ${key}: latest=${value.latest} avg=${value.average} best=${value.best} worst=${value.worst}\n`,
+        );
       }
       process.stdout.write("Recovery plan coverage:\n");
       process.stdout.write(`- collect-evidence: ${result.report.recoveryPlanCoverage.collectEvidenceRate ?? "n/a"}\n`);
       process.stdout.write(`- retry-implement: ${result.report.recoveryPlanCoverage.retryImplementRate ?? "n/a"}\n`);
       process.stdout.write(`- manual-review: ${result.report.recoveryPlanCoverage.manualReviewRate ?? "n/a"}\n`);
-      process.stdout.write(`- auto-recovery-action: ${result.report.recoveryPlanCoverage.autoRecoveryActionRate ?? "n/a"}\n`);
-      process.stdout.write(`- autonomy-guardrail: ${result.report.recoveryPlanCoverage.autonomyGuardrailRate ?? "n/a"}\n`);
-      process.stdout.write(`- budget-escalation: ${result.report.recoveryPlanCoverage.budgetEscalationRate ?? "n/a"}\n`);
+      process.stdout.write(
+        `- auto-recovery-action: ${result.report.recoveryPlanCoverage.autoRecoveryActionRate ?? "n/a"}\n`,
+      );
+      process.stdout.write(
+        `- autonomy-guardrail: ${result.report.recoveryPlanCoverage.autonomyGuardrailRate ?? "n/a"}\n`,
+      );
+      process.stdout.write(
+        `- budget-escalation: ${result.report.recoveryPlanCoverage.budgetEscalationRate ?? "n/a"}\n`,
+      );
       process.stdout.write(`- manual-handoff: ${result.report.recoveryPlanCoverage.manualHandoffRate ?? "n/a"}\n`);
       if (result.report.hermesStrategyComparison.control && result.report.hermesStrategyComparison.treatment) {
         process.stdout.write("Hermes strategy comparison:\n");
@@ -1361,258 +1381,294 @@ export const buildProgram = (): Command => {
     .option("--refresh", "Force a full refresh of analysis artifacts", false)
     .option("--interview [mode]", "Project deep interview mode: auto, guided, deep, or off", "auto")
     .option("--json", "Output analyze result as JSON", false)
-    .action(async (focusParts: string[] | undefined, options: { repos?: string; repo?: string; refresh?: boolean; json?: boolean; interview?: string }) => {
-      const cwd = process.cwd();
-      const repos = options.repos?.split(",").map((value) => value.trim());
-      const requestedRepos = options.repo ? [options.repo] : repos;
-      const currentTool = detectCurrentAnalyzeAgentTool();
-      const pendingHandoff = currentTool ? await readPendingAnalyzeAgentHandoff(cwd) : null;
-      const cliFocus = focusParts?.join(" ").trim();
-      const request = {
-        repos: requestedRepos ?? pendingHandoff?.request.repos ?? [],
-        refresh: options.refresh || pendingHandoff?.request.refresh || false,
-        focus: cliFocus || pendingHandoff?.request.focus || null,
-        interviewMode: ((options.interview ?? "auto") === "auto" && pendingHandoff
-          ? pendingHandoff.request.interviewMode
-          : options.interview ?? "auto") as "auto" | "off" | "guided" | "deep",
-      };
+    .action(
+      async (
+        focusParts: string[] | undefined,
+        options: { repos?: string; repo?: string; refresh?: boolean; json?: boolean; interview?: string },
+      ) => {
+        const cwd = process.cwd();
+        const repos = options.repos?.split(",").map((value) => value.trim());
+        const requestedRepos = options.repo ? [options.repo] : repos;
+        const currentTool = detectCurrentAnalyzeAgentTool();
+        const pendingHandoff = currentTool ? await readPendingAnalyzeAgentHandoff(cwd) : null;
+        const cliFocus = focusParts?.join(" ").trim();
+        const request = {
+          repos: requestedRepos ?? pendingHandoff?.request.repos ?? [],
+          refresh: options.refresh || pendingHandoff?.request.refresh || false,
+          focus: cliFocus || pendingHandoff?.request.focus || null,
+          interviewMode: ((options.interview ?? "auto") === "auto" && pendingHandoff
+            ? pendingHandoff.request.interviewMode
+            : (options.interview ?? "auto")) as "auto" | "off" | "guided" | "deep",
+        };
 
-      if (!currentTool) {
-        const toolOptions = await listAnalyzeAgentTools(cwd);
-        let preferredTool = toolOptions.defaultTool;
-        const canPrompt = (process.stdin.isTTY ?? true) && (process.stdout.isTTY ?? true) && !options.json;
-        if (canPrompt && toolOptions.tools.length > 1) {
-          preferredTool = await promptSelect<string>({
-            message: uiText("analyze.continueInWhichAi"),
-            choices: toolOptions.tools.map((tool) => ({
-              name: tool,
-              value: tool,
-            })),
-            default: preferredTool,
+        if (!currentTool) {
+          const toolOptions = await listAnalyzeAgentTools(cwd);
+          let preferredTool = toolOptions.defaultTool;
+          const canPrompt = (process.stdin.isTTY ?? true) && (process.stdout.isTTY ?? true) && !options.json;
+          if (canPrompt && toolOptions.tools.length > 1) {
+            preferredTool = await promptSelect<string>({
+              message: uiText("analyze.continueInWhichAi"),
+              choices: toolOptions.tools.map((tool) => ({
+                name: tool,
+                value: tool,
+              })),
+              default: preferredTool,
+            });
+          }
+
+          const handoff = await writeAnalyzeAgentHandoff({
+            cwd,
+            preferredTool,
+            availableTools: toolOptions.tools,
+            request,
+            reasons: [
+              "analyze is AI-native for deep technical and business understanding",
+              "terminal mode prepares the workspace handoff but does not complete full analysis",
+            ],
           });
-        }
 
-        const handoff = await writeAnalyzeAgentHandoff({
-          cwd,
-          preferredTool,
-          availableTools: toolOptions.tools,
-          request,
-          reasons: [
-            "analyze is AI-native for deep technical and business understanding",
-            "terminal mode prepares the workspace handoff but does not complete full analysis",
-          ],
-        });
+          const launch = options.json
+            ? null
+            : await tryLaunchAnalyzeAgentHandoff({
+                cwd,
+                preferredTool,
+                replayCommand: handoff.handoff.command,
+                handoffPath: handoff.markdownPath,
+              });
 
-        if (options.json) {
-          process.stdout.write(`${JSON.stringify({
-            status: "handoff-required",
-            preferredTool: handoff.handoff.preferredTool,
-            availableTools: handoff.handoff.availableTools,
-            command: handoff.handoff.command,
-            request: handoff.handoff.request,
-            jsonPath: handoff.jsonPath,
-            handoffPath: handoff.markdownPath,
-            reasons: handoff.handoff.reasons,
-          }, null, 2)}\n`);
+          if (options.json) {
+            process.stdout.write(
+              `${JSON.stringify(
+                {
+                  status: "handoff-required",
+                  preferredTool: handoff.handoff.preferredTool,
+                  availableTools: handoff.handoff.availableTools,
+                  command: handoff.handoff.command,
+                  request: handoff.handoff.request,
+                  jsonPath: handoff.jsonPath,
+                  handoffPath: handoff.markdownPath,
+                  reasons: handoff.handoff.reasons,
+                  launched: false,
+                },
+                null,
+                2,
+              )}\n`,
+            );
+            return;
+          }
+
+          if (launch) {
+            process.stdout.write(`${uiText("analyze.launchedInAi")}\n`);
+            process.stdout.write(`${uiText("analyze.preferredAi")}: ${launch.tool}\n`);
+            process.stdout.write(`${uiText("analyze.handoff")}: ${handoff.markdownPath}\n`);
+            process.stdout.write(`${uiText("analyze.replay")}: ${handoff.handoff.command}\n`);
+            return;
+          }
+
+          process.stdout.write(`${uiText("analyze.launchFallback")}\n`);
+          process.stdout.write(`${uiText("analyze.requiresAi")}\n`);
+          process.stdout.write(`${uiText("analyze.preferredAi")}: ${handoff.handoff.preferredTool}\n`);
+          process.stdout.write(`${uiText("analyze.replay")}: ${handoff.handoff.command}\n`);
+          process.stdout.write(`${uiText("analyze.handoff")}: ${handoff.markdownPath}\n`);
+          process.stdout.write(`${uiText("analyze.openSelectedAi")}\n`);
           return;
         }
 
-        process.stdout.write(`${uiText("analyze.requiresAi")}\n`);
-        process.stdout.write(`${uiText("analyze.preferredAi")}: ${handoff.handoff.preferredTool}\n`);
-        process.stdout.write(`${uiText("analyze.replay")}: ${handoff.handoff.command}\n`);
-        process.stdout.write(`${uiText("analyze.handoff")}: ${handoff.markdownPath}\n`);
-        process.stdout.write(`${uiText("analyze.openSelectedAi")}\n`);
-        return;
-      }
-
-      const result = await runAnalyzeCommand({
-        cwd,
-        repos: request.repos.length > 0 ? request.repos : undefined,
-        refresh: request.refresh,
-        ...(request.focus ? { focus: request.focus } : {}),
-        interview: {
-          mode: request.interviewMode,
-        },
-      });
-      if (result.status === "completed") {
-        await markAnalyzeAgentHandoffConsumed(cwd, currentTool);
-      }
-      if (options.json) {
-        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-        return;
-      }
-      process.stdout.write(`${uiText("analyze.run")}: ${result.runId}\n`);
-      process.stdout.write(`${uiText("analyze.status")}: ${result.status}\n`);
-      process.stdout.write(`${uiText("analyze.scope")}: ${result.scope}\n`);
-      process.stdout.write(`${uiText("analyze.analyzedRepos")}: ${result.analyzedRepos.join(", ")}\n`);
-      if (result.focus) {
-        process.stdout.write(`${uiText("analyze.focus")}: ${result.focus.query}\n`);
-        process.stdout.write(`${uiText("analyze.matchedRepos")}: ${result.focus.matchedRepos.join(", ") || uiText("common.none")}\n`);
-        if (result.focus.matchedSignals.length > 0) {
-          process.stdout.write(`${uiText("analyze.matchedSignals")}:\n`);
-          for (const signal of result.focus.matchedSignals) {
-            process.stdout.write(`- ${signal}\n`);
-          }
+        const result = await runAnalyzeCommand({
+          cwd,
+          repos: request.repos.length > 0 ? request.repos : undefined,
+          refresh: request.refresh,
+          ...(request.focus ? { focus: request.focus } : {}),
+          interview: {
+            mode: request.interviewMode,
+          },
+        });
+        if (result.status === "completed") {
+          await markAnalyzeAgentHandoffConsumed(cwd, currentTool);
         }
-        if (result.focus.likelyEntrypoints.length > 0) {
-          process.stdout.write(`${uiText("analyze.likelyEntrypoints")}:\n`);
-          for (const entry of result.focus.likelyEntrypoints) {
-            process.stdout.write(`- ${entry}\n`);
-          }
+        if (options.json) {
+          process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+          return;
         }
-        if (result.focus.matchedContracts.length > 0) {
-          process.stdout.write(`${uiText("analyze.matchedContracts")}:\n`);
-          for (const contract of result.focus.matchedContracts) {
-            process.stdout.write(`- ${contract}\n`);
-          }
-        }
-        if (result.focus.riskHotspots.length > 0) {
-          process.stdout.write(`${uiText("analyze.focusRisks")}:\n`);
-          for (const risk of result.focus.riskHotspots) {
-            process.stdout.write(`- ${risk}\n`);
-          }
-        }
-        if (result.focus.reviewerHints.length > 0) {
-          process.stdout.write(`${uiText("analyze.reviewerHints")}: ${result.focus.reviewerHints.join(", ")}\n`);
-        }
-        if (result.focus.rationale.length > 0) {
-          process.stdout.write(`${uiText("analyze.focusRationale")}:\n`);
-          for (const reason of result.focus.rationale) {
-            process.stdout.write(`- ${reason}\n`);
-          }
-        }
-        if (result.focusedAnalysisPath) {
-          process.stdout.write(`${uiText("analyze.focusedAnalysis")}: ${result.focusedAnalysisPath}\n`);
-        }
-      }
-      process.stdout.write(`${uiText("analyze.technicalArchitecture")}: ${result.technicalArchitecturePath}\n`);
-      process.stdout.write(`${uiText("analyze.businessArchitecture")}: ${result.businessArchitecturePath}\n`);
-      process.stdout.write(`${uiText("analyze.dependencyGraph")}: ${result.dependencyGraphPath}\n`);
-      process.stdout.write(`${uiText("analyze.capabilityMap")}: ${result.capabilityMapPath}\n`);
-      process.stdout.write(`${uiText("analyze.criticalFlows")}: ${result.criticalFlowsPath}\n`);
-      process.stdout.write(`${uiText("analyze.contracts")}: ${result.integrationContractsPath}\n`);
-      process.stdout.write(`${uiText("analyze.runtimeConstraints")}: ${result.runtimeConstraintsPath}\n`);
-      process.stdout.write(`${uiText("analyze.riskSurface")}: ${result.riskSurfacePath}\n`);
-      process.stdout.write(`${uiText("analyze.decisionHistory")}: ${result.decisionHistoryPath}\n`);
-      process.stdout.write(`${uiText("analyze.changeImpact")}: ${result.changeImpactMapPath}\n`);
-      process.stdout.write(`${uiText("analyze.phases")}:\n`);
-      for (const phase of result.phases) {
-        process.stdout.write(`- ${phase.name}: ${phase.status}`);
-        if (phase.details.length > 0) {
-          process.stdout.write(` (${phase.details.join(" | ")})`);
-        }
-        process.stdout.write("\n");
-      }
-      if (result.interview) {
-        const assumptionsByKey = new Map(result.interview.assumptionsApplied.map((assumption) => [assumption.key, assumption] as const));
-        process.stdout.write(
-          `Interview: ${result.interview.mode} (answered ${result.interview.answered}/${result.interview.asked}, unresolved: ${result.interview.unresolvedGaps.join(", ") || "none"})\n`,
-        );
-        if (result.interview.context.businessGoal) {
+        process.stdout.write(`${uiText("analyze.run")}: ${result.runId}\n`);
+        process.stdout.write(`${uiText("analyze.status")}: ${result.status}\n`);
+        process.stdout.write(`${uiText("analyze.scope")}: ${result.scope}\n`);
+        process.stdout.write(`${uiText("analyze.analyzedRepos")}: ${result.analyzedRepos.join(", ")}\n`);
+        if (result.focus) {
+          process.stdout.write(`${uiText("analyze.focus")}: ${result.focus.query}\n`);
           process.stdout.write(
-            `${uiText("analyze.businessGoal")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.businessGoal)}): ${result.interview.context.businessGoal}\n`,
+            `${uiText("analyze.matchedRepos")}: ${result.focus.matchedRepos.join(", ") || uiText("common.none")}\n`,
           );
-          const assumption = assumptionsByKey.get("businessGoal");
-          if (assumption) {
-            process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
-            if (assumption.evidence.length > 0) {
-              process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+          if (result.focus.matchedSignals.length > 0) {
+            process.stdout.write(`${uiText("analyze.matchedSignals")}:\n`);
+            for (const signal of result.focus.matchedSignals) {
+              process.stdout.write(`- ${signal}\n`);
             }
           }
-        }
-        if (result.interview.context.criticalFlows.length > 0) {
-          process.stdout.write(
-            `Critical flows (confidence ${formatConfidence(result.interview.confidenceAfter.criticalFlows)}):\n`,
-          );
-          for (const flow of result.interview.context.criticalFlows) {
-            process.stdout.write(`- ${flow}\n`);
-          }
-          const assumption = assumptionsByKey.get("criticalFlows");
-          if (assumption) {
-            process.stdout.write(`  evidence: ${assumption.rationale}\n`);
-            if (assumption.evidence.length > 0) {
-              process.stdout.write(`  signals: ${assumption.evidence.join(", ")}\n`);
+          if (result.focus.likelyEntrypoints.length > 0) {
+            process.stdout.write(`${uiText("analyze.likelyEntrypoints")}:\n`);
+            for (const entry of result.focus.likelyEntrypoints) {
+              process.stdout.write(`- ${entry}\n`);
             }
           }
-        }
-        if (result.interview.context.systemBoundaries.length > 0) {
-          process.stdout.write(
-            `${uiText("analyze.systemBoundaries")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.systemBoundaries)}):\n`,
-          );
-          for (const boundary of result.interview.context.systemBoundaries) {
-            process.stdout.write(`- ${boundary}\n`);
-          }
-          const assumption = assumptionsByKey.get("systemBoundaries");
-          if (assumption) {
-            process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
-            if (assumption.evidence.length > 0) {
-              process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+          if (result.focus.matchedContracts.length > 0) {
+            process.stdout.write(`${uiText("analyze.matchedContracts")}:\n`);
+            for (const contract of result.focus.matchedContracts) {
+              process.stdout.write(`- ${contract}\n`);
             }
           }
-        }
-        if (result.interview.context.nonNegotiableConstraints.length > 0) {
-          process.stdout.write(
-            `${uiText("analyze.nonNegotiableConstraints")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.nonNegotiableConstraints)}):\n`,
-          );
-          for (const constraint of result.interview.context.nonNegotiableConstraints) {
-            process.stdout.write(`- ${constraint}\n`);
-          }
-          const assumption = assumptionsByKey.get("nonNegotiableConstraints");
-          if (assumption) {
-            process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
-            if (assumption.evidence.length > 0) {
-              process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+          if (result.focus.riskHotspots.length > 0) {
+            process.stdout.write(`${uiText("analyze.focusRisks")}:\n`);
+            for (const risk of result.focus.riskHotspots) {
+              process.stdout.write(`- ${risk}\n`);
             }
           }
-        }
-        if (result.interview.context.decisionHistory.length > 0) {
-          process.stdout.write(
-            `${uiText("analyze.decisionHistory")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.decisionHistory)}):\n`,
-          );
-          for (const decision of result.interview.context.decisionHistory) {
-            process.stdout.write(`- ${decision}\n`);
+          if (result.focus.reviewerHints.length > 0) {
+            process.stdout.write(`${uiText("analyze.reviewerHints")}: ${result.focus.reviewerHints.join(", ")}\n`);
           }
-          const assumption = assumptionsByKey.get("decisionHistory");
-          if (assumption) {
-            process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
-            if (assumption.evidence.length > 0) {
-              process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+          if (result.focus.rationale.length > 0) {
+            process.stdout.write(`${uiText("analyze.focusRationale")}:\n`);
+            for (const reason of result.focus.rationale) {
+              process.stdout.write(`- ${reason}\n`);
             }
           }
-        }
-        if (result.interview.context.failureHotspots.length > 0) {
-          process.stdout.write(
-            `${uiText("analyze.failureHotspots")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.failureHotspots)}):\n`,
-          );
-          for (const hotspot of result.interview.context.failureHotspots) {
-            process.stdout.write(`- ${hotspot}\n`);
+          if (result.focusedAnalysisPath) {
+            process.stdout.write(`${uiText("analyze.focusedAnalysis")}: ${result.focusedAnalysisPath}\n`);
           }
-          const assumption = assumptionsByKey.get("failureHotspots");
-          if (assumption) {
-            process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
-            if (assumption.evidence.length > 0) {
-              process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+        }
+        process.stdout.write(`${uiText("analyze.technicalArchitecture")}: ${result.technicalArchitecturePath}\n`);
+        process.stdout.write(`${uiText("analyze.businessArchitecture")}: ${result.businessArchitecturePath}\n`);
+        process.stdout.write(`${uiText("analyze.dependencyGraph")}: ${result.dependencyGraphPath}\n`);
+        process.stdout.write(`${uiText("analyze.capabilityMap")}: ${result.capabilityMapPath}\n`);
+        process.stdout.write(`${uiText("analyze.criticalFlows")}: ${result.criticalFlowsPath}\n`);
+        process.stdout.write(`${uiText("analyze.contracts")}: ${result.integrationContractsPath}\n`);
+        process.stdout.write(`${uiText("analyze.runtimeConstraints")}: ${result.runtimeConstraintsPath}\n`);
+        process.stdout.write(`${uiText("analyze.riskSurface")}: ${result.riskSurfacePath}\n`);
+        process.stdout.write(`${uiText("analyze.decisionHistory")}: ${result.decisionHistoryPath}\n`);
+        process.stdout.write(`${uiText("analyze.changeImpact")}: ${result.changeImpactMapPath}\n`);
+        process.stdout.write(`${uiText("analyze.phases")}:\n`);
+        for (const phase of result.phases) {
+          process.stdout.write(`- ${phase.name}: ${phase.status}`);
+          if (phase.details.length > 0) {
+            process.stdout.write(` (${phase.details.join(" | ")})`);
+          }
+          process.stdout.write("\n");
+        }
+        if (result.interview) {
+          const assumptionsByKey = new Map(
+            result.interview.assumptionsApplied.map((assumption) => [assumption.key, assumption] as const),
+          );
+          process.stdout.write(
+            `Interview: ${result.interview.mode} (answered ${result.interview.answered}/${result.interview.asked}, unresolved: ${result.interview.unresolvedGaps.join(", ") || "none"})\n`,
+          );
+          if (result.interview.context.businessGoal) {
+            process.stdout.write(
+              `${uiText("analyze.businessGoal")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.businessGoal)}): ${result.interview.context.businessGoal}\n`,
+            );
+            const assumption = assumptionsByKey.get("businessGoal");
+            if (assumption) {
+              process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
+              if (assumption.evidence.length > 0) {
+                process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+              }
             }
           }
-        }
-        if (result.interview.assumptionsApplied.length > 0) {
-          process.stdout.write(`${uiText("analyze.aiInferredAssumptions")}:\n`);
-          for (const assumption of result.interview.assumptionsApplied) {
-            process.stdout.write(`- ${INTERVIEW_ASSUMPTION_LABELS[assumption.key] ?? assumption.key}: ${assumption.values.join(" | ")}\n`);
+          if (result.interview.context.criticalFlows.length > 0) {
+            process.stdout.write(
+              `Critical flows (confidence ${formatConfidence(result.interview.confidenceAfter.criticalFlows)}):\n`,
+            );
+            for (const flow of result.interview.context.criticalFlows) {
+              process.stdout.write(`- ${flow}\n`);
+            }
+            const assumption = assumptionsByKey.get("criticalFlows");
+            if (assumption) {
+              process.stdout.write(`  evidence: ${assumption.rationale}\n`);
+              if (assumption.evidence.length > 0) {
+                process.stdout.write(`  signals: ${assumption.evidence.join(", ")}\n`);
+              }
+            }
+          }
+          if (result.interview.context.systemBoundaries.length > 0) {
+            process.stdout.write(
+              `${uiText("analyze.systemBoundaries")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.systemBoundaries)}):\n`,
+            );
+            for (const boundary of result.interview.context.systemBoundaries) {
+              process.stdout.write(`- ${boundary}\n`);
+            }
+            const assumption = assumptionsByKey.get("systemBoundaries");
+            if (assumption) {
+              process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
+              if (assumption.evidence.length > 0) {
+                process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+              }
+            }
+          }
+          if (result.interview.context.nonNegotiableConstraints.length > 0) {
+            process.stdout.write(
+              `${uiText("analyze.nonNegotiableConstraints")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.nonNegotiableConstraints)}):\n`,
+            );
+            for (const constraint of result.interview.context.nonNegotiableConstraints) {
+              process.stdout.write(`- ${constraint}\n`);
+            }
+            const assumption = assumptionsByKey.get("nonNegotiableConstraints");
+            if (assumption) {
+              process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
+              if (assumption.evidence.length > 0) {
+                process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+              }
+            }
+          }
+          if (result.interview.context.decisionHistory.length > 0) {
+            process.stdout.write(
+              `${uiText("analyze.decisionHistory")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.decisionHistory)}):\n`,
+            );
+            for (const decision of result.interview.context.decisionHistory) {
+              process.stdout.write(`- ${decision}\n`);
+            }
+            const assumption = assumptionsByKey.get("decisionHistory");
+            if (assumption) {
+              process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
+              if (assumption.evidence.length > 0) {
+                process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+              }
+            }
+          }
+          if (result.interview.context.failureHotspots.length > 0) {
+            process.stdout.write(
+              `${uiText("analyze.failureHotspots")} (${uiText("analyze.confidence")} ${formatConfidence(result.interview.confidenceAfter.failureHotspots)}):\n`,
+            );
+            for (const hotspot of result.interview.context.failureHotspots) {
+              process.stdout.write(`- ${hotspot}\n`);
+            }
+            const assumption = assumptionsByKey.get("failureHotspots");
+            if (assumption) {
+              process.stdout.write(`  ${uiText("analyze.evidence")}: ${assumption.rationale}\n`);
+              if (assumption.evidence.length > 0) {
+                process.stdout.write(`  ${uiText("analyze.signals")}: ${assumption.evidence.join(", ")}\n`);
+              }
+            }
+          }
+          if (result.interview.assumptionsApplied.length > 0) {
+            process.stdout.write(`${uiText("analyze.aiInferredAssumptions")}:\n`);
+            for (const assumption of result.interview.assumptionsApplied) {
+              process.stdout.write(
+                `- ${INTERVIEW_ASSUMPTION_LABELS[assumption.key] ?? assumption.key}: ${assumption.values.join(" | ")}\n`,
+              );
+            }
+          }
+          if (result.interview.pendingQuestions.length > 0) {
+            process.stdout.write(`${uiText("analyze.interviewQuestionsPending")}:\n`);
+            for (const gap of result.interview.pendingQuestions) {
+              process.stdout.write(`- ${gap.question}\n`);
+            }
+            if (result.interview.pendingQuestionsPath) {
+              process.stdout.write(`${uiText("analyze.answersFile")}: ${result.interview.pendingQuestionsPath}\n`);
+            }
+            process.stdout.write(`${uiText("analyze.fillPendingAnswers")}\n`);
           }
         }
-        if (result.interview.pendingQuestions.length > 0) {
-          process.stdout.write(`${uiText("analyze.interviewQuestionsPending")}:\n`);
-          for (const gap of result.interview.pendingQuestions) {
-            process.stdout.write(`- ${gap.question}\n`);
-          }
-          if (result.interview.pendingQuestionsPath) {
-            process.stdout.write(`${uiText("analyze.answersFile")}: ${result.interview.pendingQuestionsPath}\n`);
-          }
-          process.stdout.write(`${uiText("analyze.fillPendingAnswers")}\n`);
-        }
-      }
-    });
+      },
+    );
 
   program
     .command("analyze-repo <repo>")

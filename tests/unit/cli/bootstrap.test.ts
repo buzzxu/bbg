@@ -77,6 +77,7 @@ const analyzeHandoffState = vi.hoisted(() => ({
   detectCurrentAnalyzeAgentTool: vi.fn(),
   listAnalyzeAgentTools: vi.fn(),
   readPendingAnalyzeAgentHandoff: vi.fn(),
+  tryLaunchAnalyzeAgentHandoff: vi.fn(),
   writeAnalyzeAgentHandoff: vi.fn(),
   markAnalyzeAgentHandoffConsumed: vi.fn(),
 }));
@@ -111,7 +112,7 @@ const commandState = vi.hoisted(() => {
   const version = vi.fn().mockReturnThis();
   const parse = vi.fn();
   const parseAsync = vi.fn();
-  type CommandAction = (options: Record<string, unknown>) => Promise<void>;
+  type CommandAction = (...args: unknown[]) => Promise<void> | void;
   type CommandMock = {
     description: ReturnType<typeof vi.fn>;
     option: ReturnType<typeof vi.fn>;
@@ -262,6 +263,7 @@ vi.mock("../../../src/runtime/analyze-handoff.js", () => ({
   detectCurrentAnalyzeAgentTool: analyzeHandoffState.detectCurrentAnalyzeAgentTool,
   listAnalyzeAgentTools: analyzeHandoffState.listAnalyzeAgentTools,
   readPendingAnalyzeAgentHandoff: analyzeHandoffState.readPendingAnalyzeAgentHandoff,
+  tryLaunchAnalyzeAgentHandoff: analyzeHandoffState.tryLaunchAnalyzeAgentHandoff,
   writeAnalyzeAgentHandoff: analyzeHandoffState.writeAnalyzeAgentHandoff,
   markAnalyzeAgentHandoffConsumed: analyzeHandoffState.markAnalyzeAgentHandoffConsumed,
 }));
@@ -288,12 +290,16 @@ vi.mock("../../../src/commands/upgrade.js", () => ({ runUpgrade: vi.fn() }));
 vi.mock("../../../src/commands/quality-gate.js", () => ({ runQualityGateCommand: vi.fn() }));
 vi.mock("../../../src/commands/checkpoint.js", () => ({ runCheckpointCommand: vi.fn() }));
 vi.mock("../../../src/commands/verify.js", () => ({ runVerifyCommand: runVerifyState.runVerifyCommand }));
-vi.mock("../../../src/commands/review-record.js", () => ({ runReviewRecordCommand: runReviewRecordState.runReviewRecordCommand }));
+vi.mock("../../../src/commands/review-record.js", () => ({
+  runReviewRecordCommand: runReviewRecordState.runReviewRecordCommand,
+}));
 vi.mock("../../../src/commands/sessions.js", () => ({ runSessionsCommand: vi.fn() }));
 vi.mock("../../../src/commands/eval.js", () => ({ runEvalCommand: vi.fn() }));
 vi.mock("../../../src/commands/model-route.js", () => ({ runModelRouteCommand: vi.fn() }));
 vi.mock("../../../src/commands/loop-start.js", () => ({ runLoopStartCommand: runLoopStartState.runLoopStartCommand }));
-vi.mock("../../../src/commands/loop-status.js", () => ({ runLoopStatusCommand: runLoopStatusState.runLoopStatusCommand }));
+vi.mock("../../../src/commands/loop-status.js", () => ({
+  runLoopStatusCommand: runLoopStatusState.runLoopStatusCommand,
+}));
 
 describe("cli bootstrap", () => {
   beforeEach(() => {
@@ -327,6 +333,7 @@ describe("cli bootstrap", () => {
     analyzeHandoffState.detectCurrentAnalyzeAgentTool.mockReset();
     analyzeHandoffState.listAnalyzeAgentTools.mockReset();
     analyzeHandoffState.readPendingAnalyzeAgentHandoff.mockReset();
+    analyzeHandoffState.tryLaunchAnalyzeAgentHandoff.mockReset();
     analyzeHandoffState.writeAnalyzeAgentHandoff.mockReset();
     analyzeHandoffState.markAnalyzeAgentHandoffConsumed.mockReset();
     promptState.promptSelect.mockReset();
@@ -399,7 +406,8 @@ describe("cli bootstrap", () => {
       kind: "query",
       topic: "rollout process",
       commandSpecPath: "commands/hermes-query.md",
-      summary: "Answer questions using the K8 local Hermes memory router: local canonical wiki memory before local candidate memory, and raw/runtime artifacts only when the local layers are insufficient.",
+      summary:
+        "Answer questions using the K8 local Hermes memory router: local canonical wiki memory before local candidate memory, and raw/runtime artifacts only when the local layers are insufficient.",
       references: ["AGENTS.md", "commands/hermes-query.md", "skills/hermes-memory-router/SKILL.md"],
     });
     runTaskEnvState.runTaskEnvCommand.mockResolvedValue({
@@ -459,7 +467,9 @@ describe("cli bootstrap", () => {
       commandSpecPath: "commands/plan.md",
       summary: "Create an implementation plan from canonical repo guidance before making changes.",
       references: ["AGENTS.md", "RULES.md", "skills/tdd-workflow/SKILL.md"],
-      hermesRecommendations: ["If similar work may already exist, run `bbg hermes query` before planning from scratch."],
+      hermesRecommendations: [
+        "If similar work may already exist, run `bbg hermes query` before planning from scratch.",
+      ],
       decisions: {
         taskEnv: { decision: "required", reasons: ["debug-or-stabilization-task"] },
         observe: { decision: "optional", reasons: ["runtime-evidence-useful"] },
@@ -535,7 +545,8 @@ describe("cli bootstrap", () => {
           },
           recommendation: {
             profileClass: "balanced",
-            reason: "implementation work with moderate complexity and medium context fits the balanced execution profile. Language focus: typescript.",
+            reason:
+              "implementation work with moderate complexity and medium context fits the balanced execution profile. Language focus: typescript.",
             telemetryNote: "No local telemetry feedback available.",
             reviewerAgents: ["typescript-reviewer"],
             guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
@@ -557,7 +568,9 @@ describe("cli bootstrap", () => {
         },
         commandSpecPath: "commands/plan.md",
         summary: "Create an implementation plan from canonical repo guidance before making changes.",
-        hermesRecommendations: ["If similar work may already exist, run `bbg hermes query` before planning from scratch."],
+        hermesRecommendations: [
+          "If similar work may already exist, run `bbg hermes query` before planning from scratch.",
+        ],
       },
       handoffPath: ".bbg/tasks/ship-feature/handoff.md",
       contextPath: ".bbg/tasks/ship-feature/context.json",
@@ -628,7 +641,8 @@ describe("cli bootstrap", () => {
           },
           recommendation: {
             profileClass: "balanced",
-            reason: "implementation work with moderate complexity and medium context fits the balanced execution profile. Language focus: typescript.",
+            reason:
+              "implementation work with moderate complexity and medium context fits the balanced execution profile. Language focus: typescript.",
             telemetryNote: "No local telemetry feedback available.",
             reviewerAgents: ["typescript-reviewer"],
             guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
@@ -650,7 +664,9 @@ describe("cli bootstrap", () => {
         },
         commandSpecPath: "commands/plan.md",
         summary: "Create an implementation plan from canonical repo guidance before making changes.",
-        hermesRecommendations: ["If similar work may already exist, run `bbg hermes query` before planning from scratch."],
+        hermesRecommendations: [
+          "If similar work may already exist, run `bbg hermes query` before planning from scratch.",
+        ],
       },
       handoffPath: ".bbg/tasks/ship-feature/handoff.md",
       contextPath: ".bbg/tasks/ship-feature/context.json",
@@ -735,7 +751,8 @@ describe("cli bootstrap", () => {
             },
             recommendation: {
               profileClass: "balanced",
-              reason: "implementation work with moderate complexity and medium context fits the balanced execution profile. Language focus: typescript.",
+              reason:
+                "implementation work with moderate complexity and medium context fits the balanced execution profile. Language focus: typescript.",
               telemetryNote: "No local telemetry feedback available.",
               reviewerAgents: ["typescript-reviewer"],
               guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
@@ -866,6 +883,7 @@ describe("cli bootstrap", () => {
       tools: ["claude", "codex", "gemini", "opencode", "cursor"],
     });
     analyzeHandoffState.readPendingAnalyzeAgentHandoff.mockResolvedValue(null);
+    analyzeHandoffState.tryLaunchAnalyzeAgentHandoff.mockResolvedValue(null);
     analyzeHandoffState.writeAnalyzeAgentHandoff.mockResolvedValue({
       handoff: {
         version: 1,
@@ -927,25 +945,25 @@ describe("cli bootstrap", () => {
         lint: { currentOk: true, checkpointOk: true, matchesCheckpoint: true },
         security: { currentOk: true, checkpointOk: true, matchesCheckpoint: true },
       },
-        taskVerification: {
-          taskId: "ship-feature",
-          status: "completed",
-          currentStep: "complete",
+      taskVerification: {
+        taskId: "ship-feature",
+        status: "completed",
+        currentStep: "complete",
         taskEnvId: "ship-feature",
         ok: true,
         reasons: [],
         missingEvidence: [],
         observeRequired: false,
         observationReadiness: "not-required",
-          observations: [],
-          reviewGate: {
-            level: "recommended",
-            reason: "Language-specific review is recommended to preserve architecture and implementation quality.",
-            reviewPack: ["type-boundaries", "runtime-validation"],
-            stopConditions: ["public-api-contract-change", "runtime-validation-gap"],
-          },
-          lastReviewResult: null,
-          reviewersRecommended: ["typescript-reviewer"],
+        observations: [],
+        reviewGate: {
+          level: "recommended",
+          reason: "Language-specific review is recommended to preserve architecture and implementation quality.",
+          reviewPack: ["type-boundaries", "runtime-validation"],
+          stopConditions: ["public-api-contract-change", "runtime-validation-gap"],
+        },
+        lastReviewResult: null,
+        reviewersRecommended: ["typescript-reviewer"],
         guideReferences: ["docs/architecture/languages/typescript/application-patterns.md"],
         languageReviewHint: "Prefer typescript-reviewer for language-specific design and implementation review.",
         hermesQueryExecuted: false,
@@ -1003,9 +1021,23 @@ describe("cli bootstrap", () => {
     );
     expect(evalRunCommand?.option).toHaveBeenNthCalledWith(1, "--dataset <path>", "Dataset JSON path");
     expect(evalRunCommand?.option).toHaveBeenNthCalledWith(2, "--experiment <path>", "Experiment JSON path");
-    expect(evalHistoryCommand?.option).toHaveBeenNthCalledWith(1, "--limit <count>", "Number of recent history entries to print", "5");
-    expect(evalBenchmarkCommand?.option).toHaveBeenNthCalledWith(1, "--limit <count>", "Number of recent history entries to summarize", "10");
-    expect(evalBenchmarkCommand?.option).toHaveBeenNthCalledWith(2, "--file <path>", "Optional output path for the benchmark JSON report");
+    expect(evalHistoryCommand?.option).toHaveBeenNthCalledWith(
+      1,
+      "--limit <count>",
+      "Number of recent history entries to print",
+      "5",
+    );
+    expect(evalBenchmarkCommand?.option).toHaveBeenNthCalledWith(
+      1,
+      "--limit <count>",
+      "Number of recent history entries to summarize",
+      "10",
+    );
+    expect(evalBenchmarkCommand?.option).toHaveBeenNthCalledWith(
+      2,
+      "--file <path>",
+      "Optional output path for the benchmark JSON report",
+    );
     expect(commandState.parse).not.toHaveBeenCalled();
     expect(commandState.parseAsync).toHaveBeenCalledTimes(1);
     expect(commandState.parseAsync).toHaveBeenCalledWith(process.argv);
@@ -1032,7 +1064,9 @@ describe("cli bootstrap", () => {
     expect(stdoutSpy).toHaveBeenCalledWith("Execution route: balanced (implementation/moderate)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Route reviewers: typescript-reviewer\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Review gate: recommended\n");
-    expect(stdoutSpy).toHaveBeenCalledWith("Language review: Prefer typescript-reviewer for language-specific design and implementation review.\n");
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "Language review: Prefer typescript-reviewer for language-specific design and implementation review.\n",
+    );
     expect(stdoutSpy).toHaveBeenCalledWith("Task environment: ship-feature\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Handoff: .bbg/tasks/ship-feature/handoff.md\n");
 
@@ -1084,11 +1118,15 @@ describe("cli bootstrap", () => {
     expect(stdoutSpy).toHaveBeenCalledWith("  resume: last-runner (preferred=claude, fallback=none)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  resume reason: continue with the most recent successful runner\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  recovery: retry-implement (implement, verify)\n");
-    expect(stdoutSpy).toHaveBeenCalledWith("  recovery reason: task should continue implementation and then re-run verification\n");
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "  recovery reason: task should continue implementation and then re-run verification\n",
+    );
     expect(stdoutSpy).toHaveBeenCalledWith("  execution route: balanced (implementation/moderate)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  route reviewers: typescript-reviewer\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  review gate: recommended\n");
-    expect(stdoutSpy).toHaveBeenCalledWith("  language review: Prefer typescript-reviewer for language-specific design and implementation review.\n");
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "  language review: Prefer typescript-reviewer for language-specific design and implementation review.\n",
+    );
     expect(stdoutSpy).toHaveBeenCalledWith("  next: implement, verify\n");
     expect(stdoutSpy).toHaveBeenCalledWith("  verification: pass (readiness=not-required, missing=none)\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Loops: 1\n");
@@ -1120,8 +1158,12 @@ describe("cli bootstrap", () => {
     expect(stdoutSpy).toHaveBeenCalledWith("Verify: PASS\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Task verification: PASS\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Recommended reviewers: typescript-reviewer\n");
-    expect(stdoutSpy).toHaveBeenCalledWith("Language review hint: Prefer typescript-reviewer for language-specific design and implementation review.\n");
-    expect(stdoutSpy).toHaveBeenCalledWith("Guide references: docs/architecture/languages/typescript/application-patterns.md\n");
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "Language review hint: Prefer typescript-reviewer for language-specific design and implementation review.\n",
+    );
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "Guide references: docs/architecture/languages/typescript/application-patterns.md\n",
+    );
     expect(stdoutSpy).toHaveBeenCalledWith("Review gate: recommended\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Review pack: type-boundaries, runtime-validation\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Stop conditions: public-api-contract-change, runtime-validation-gap\n");
@@ -1253,9 +1295,7 @@ describe("cli bootstrap", () => {
     expect(stdoutSpy).toHaveBeenCalledWith(
       "- runtime-telemetry: missing telemetry store: .bbg/telemetry/events.json\n",
     );
-    expect(stdoutSpy).toHaveBeenCalledWith(
-      "- runtime-policy-coverage: policy coverage gap for commands: all\n",
-    );
+    expect(stdoutSpy).toHaveBeenCalledWith("- runtime-policy-coverage: policy coverage gap for commands: all\n");
 
     stdoutSpy.mockRestore();
     cwdSpy.mockRestore();
@@ -1767,17 +1807,23 @@ describe("cli bootstrap", () => {
     );
     expect(stdoutSpy).toHaveBeenCalledWith("Critical flows (confidence 0.74):\n");
     expect(stdoutSpy).toHaveBeenCalledWith("- User opens campaign poster\n");
-    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.systemBoundaries")} (${uiText("analyze.confidence")} 0.92):\n`);
-    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.nonNegotiableConstraints")} (${uiText("analyze.confidence")} 0.82):\n`);
-    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.decisionHistory")} (${uiText("analyze.confidence")} 0.71):\n`);
-    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.failureHotspots")} (${uiText("analyze.confidence")} 0.79):\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      `${uiText("analyze.systemBoundaries")} (${uiText("analyze.confidence")} 0.92):\n`,
+    );
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      `${uiText("analyze.nonNegotiableConstraints")} (${uiText("analyze.confidence")} 0.82):\n`,
+    );
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      `${uiText("analyze.decisionHistory")} (${uiText("analyze.confidence")} 0.71):\n`,
+    );
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      `${uiText("analyze.failureHotspots")} (${uiText("analyze.confidence")} 0.79):\n`,
+    );
     expect(stdoutSpy).toHaveBeenCalledWith(`  ${uiText("analyze.evidence")}: Derived from multi-repo topology.\n`);
     expect(stdoutSpy).toHaveBeenCalledWith(
       `  ${uiText("analyze.signals")}: repo:poster-project, stack:poster-project:java/spring, dependency:poster-project:auth-sdk\n`,
     );
-    expect(stdoutSpy).toHaveBeenCalledWith(
-      "- Non-negotiable constraints: Must preserve public APIs during rollout.\n",
-    );
+    expect(stdoutSpy).toHaveBeenCalledWith("- Non-negotiable constraints: Must preserve public APIs during rollout.\n");
 
     stdoutSpy.mockRestore();
     cwdSpy.mockRestore();
@@ -1822,7 +1868,9 @@ describe("cli bootstrap", () => {
         riskHotspots: ["repo-a: checkout risk seam"],
         reviewerHints: ["typescript-reviewer"],
         likelyEntrypoints: ["repo-a: checkout service"],
-        rationale: ["Matched focus tokens against repo descriptions, structure markers, dependencies, and inferred business responsibilities in repo-a."],
+        rationale: [
+          "Matched focus tokens against repo descriptions, structure markers, dependencies, and inferred business responsibilities in repo-a.",
+        ],
       },
       interview: null,
     });
@@ -1853,7 +1901,9 @@ describe("cli bootstrap", () => {
     expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.focusRisks")}:\n`);
     expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.reviewerHints")}: typescript-reviewer\n`);
     expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.focusRationale")}:\n`);
-    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.focusedAnalysis")}: docs/workflows/focused-analysis.md\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      `${uiText("analyze.focusedAnalysis")}: docs/workflows/focused-analysis.md\n`,
+    );
 
     stdoutSpy.mockRestore();
     cwdSpy.mockRestore();

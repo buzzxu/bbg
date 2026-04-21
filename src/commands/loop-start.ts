@@ -18,6 +18,8 @@ export interface RunLoopStartCommandInput {
   idleTimeoutMs?: number;
 }
 
+const DEFAULT_LOOP_CHECKS: RuntimeCommandCheckName[] = ["build", "tests", "typecheck"];
+
 async function loadConfig(cwd: string): Promise<BbgConfig> {
   const configPath = join(cwd, ".bbg", "config.json");
   if (!(await exists(configPath))) {
@@ -36,7 +38,7 @@ export async function runLoopStartCommand(input: RunLoopStartCommandInput): Prom
   const taskId = input.taskId?.trim() || taskSession?.taskId || null;
   const taskEnvId = input.envId?.trim() || taskSession?.taskEnvId || null;
   const id = slugifyValue(input.id ?? new Date().toISOString(), "loop");
-  const checks = input.checks?.length ? input.checks : ["build", "tests", "typecheck"];
+  const checks = input.checks?.length ? input.checks : DEFAULT_LOOP_CHECKS;
 
   const loop = await runAutonomousLoop({
     cwd: input.cwd,

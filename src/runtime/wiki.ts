@@ -82,12 +82,9 @@ async function ensureWikiScaffold(cwd: string): Promise<void> {
   if (!(await exists(join(cwd, WIKI_LOG_PATH)))) {
     await writeTextFile(
       join(cwd, WIKI_LOG_PATH),
-      [
-        "# Wiki Log",
-        "",
-        "This append-only log records wiki maintenance activity in chronological order.",
-        "",
-      ].join("\n"),
+      ["# Wiki Log", "", "This append-only log records wiki maintenance activity in chronological order.", ""].join(
+        "\n",
+      ),
     );
   }
 }
@@ -101,17 +98,35 @@ async function updateWikiIndex(input: {
   let content = await readTextFile(join(input.cwd, WIKI_INDEX_PATH));
 
   if (input.generatedConcepts) {
-    const conceptLines = input.generatedConcepts.length > 0
-      ? input.generatedConcepts.map((entry) => `- [${entry.title}](./${entry.path.replace("docs/wiki/", "")}) - ${entry.summary}`)
-      : ["- (none)"];
-    content = replaceOrAppendManagedBlock(content, "Concepts", GENERATED_CONCEPTS_START, GENERATED_CONCEPTS_END, conceptLines);
+    const conceptLines =
+      input.generatedConcepts.length > 0
+        ? input.generatedConcepts.map(
+            (entry) => `- [${entry.title}](./${entry.path.replace("docs/wiki/", "")}) - ${entry.summary}`,
+          )
+        : ["- (none)"];
+    content = replaceOrAppendManagedBlock(
+      content,
+      "Concepts",
+      GENERATED_CONCEPTS_START,
+      GENERATED_CONCEPTS_END,
+      conceptLines,
+    );
   }
 
   if (input.generatedReports) {
-    const reportLines = input.generatedReports.length > 0
-      ? input.generatedReports.map((entry) => `- [${entry.title}](./${entry.path.replace("docs/wiki/", "")}) - ${entry.summary}`)
-      : ["- (none)"];
-    content = replaceOrAppendManagedBlock(content, "Reports", GENERATED_REPORTS_START, GENERATED_REPORTS_END, reportLines);
+    const reportLines =
+      input.generatedReports.length > 0
+        ? input.generatedReports.map(
+            (entry) => `- [${entry.title}](./${entry.path.replace("docs/wiki/", "")}) - ${entry.summary}`,
+          )
+        : ["- (none)"];
+    content = replaceOrAppendManagedBlock(
+      content,
+      "Reports",
+      GENERATED_REPORTS_START,
+      GENERATED_REPORTS_END,
+      reportLines,
+    );
   }
 
   await writeTextFile(join(input.cwd, WIKI_INDEX_PATH), content.endsWith("\n") ? content : `${content}\n`);
@@ -255,7 +270,9 @@ export async function writeAnalyzeWikiArtifacts(input: {
     "",
     `## ${copy.repositories}`,
     "",
-    ...input.fusion.repos.map((repo) => `- ${repo.name}: ${repo.type} (${repo.stack.language} / ${repo.stack.framework})`),
+    ...input.fusion.repos.map(
+      (repo) => `- ${repo.name}: ${repo.type} (${repo.stack.language} / ${repo.stack.framework})`,
+    ),
     "",
     `## ${copy.capabilityMap}`,
     "",
@@ -266,7 +283,9 @@ export async function writeAnalyzeWikiArtifacts(input: {
     `## ${copy.criticalFlowAnalysis}`,
     "",
     ...(input.model.criticalFlows.length > 0
-      ? input.model.criticalFlows.map((flow) => `- ${flow.summary} (${flow.participatingRepos.join(", ") || copy.none})`)
+      ? input.model.criticalFlows.map(
+          (flow) => `- ${flow.summary} (${flow.participatingRepos.join(", ") || copy.none})`,
+        )
       : [`- ${copy.none}`]),
     "",
     `## ${copy.repoEdges}`,
@@ -294,7 +313,7 @@ export async function writeAnalyzeWikiArtifacts(input: {
   for (const repo of input.fusion.repos) {
     const pathValue = `docs/wiki/concepts/repo-${repo.name}-overview.md`;
     const title = `${repo.name} Overview`;
-      const content = [
+    const content = [
       wikiFrontmatter({
         title,
         type: "concept",
@@ -395,13 +414,13 @@ export async function writeAnalyzeWikiArtifacts(input: {
     "",
     ...(input.interview?.assumptionsApplied.length
       ? input.interview.assumptionsApplied.flatMap((assumption) => [
-        `### ${assumption.key}`,
-        "",
-        ...assumption.values.map((value) => `- ${value}`),
-        `- ${copy.rationale}: ${assumption.rationale}`,
-        ...(assumption.evidence.length > 0 ? [`- ${copy.evidence}: ${assumption.evidence.join(", ")}`] : []),
-        "",
-      ])
+          `### ${assumption.key}`,
+          "",
+          ...assumption.values.map((value) => `- ${value}`),
+          `- ${copy.rationale}: ${assumption.rationale}`,
+          ...(assumption.evidence.length > 0 ? [`- ${copy.evidence}: ${assumption.evidence.join(", ")}`] : []),
+          "",
+        ])
       : [`- ${copy.none}`]),
     "",
   ].join("\n");
@@ -505,11 +524,7 @@ export async function buildWikiQueryAugmentation(input: {
     };
   }
 
-  const candidates = [
-    WORKSPACE_ANALYSIS_SUMMARY_PATH,
-    WORKFLOW_STABILITY_SUMMARY_PATH,
-    REGRESSION_RISK_SUMMARY_PATH,
-  ];
+  const candidates = [WORKSPACE_ANALYSIS_SUMMARY_PATH, WORKFLOW_STABILITY_SUMMARY_PATH, REGRESSION_RISK_SUMMARY_PATH];
   const conceptsRoot = join(input.cwd, "docs", "wiki", "concepts");
   if (await exists(conceptsRoot)) {
     const files = await readdir(conceptsRoot);
@@ -549,9 +564,10 @@ export async function buildWikiQueryAugmentation(input: {
 
   return {
     references: unique([...baseReferences, ...matched]),
-    summary: matched.length > 0
-      ? `Canonical wiki references for this task: ${matched.map((pathValue) => basename(pathValue, ".md")).join(", ")}.`
-      : "Canonical wiki index is available as the primary local memory entrypoint.",
+    summary:
+      matched.length > 0
+        ? `Canonical wiki references for this task: ${matched.map((pathValue) => basename(pathValue, ".md")).join(", ")}.`
+        : "Canonical wiki index is available as the primary local memory entrypoint.",
   };
 }
 
@@ -582,6 +598,9 @@ export async function buildAnalyzeKnowledgeQueryAugmentation(input: {
     { path: ".bbg/knowledge/workspace/risk-surface.json", dimension: "risk surface" },
     { path: ".bbg/knowledge/workspace/change-impact.json", dimension: "change impact" },
     { path: ".bbg/knowledge/workspace/decisions.json", dimension: "decision history" },
+    { path: ".bbg/knowledge/workspace/knowledge-items.json", dimension: "knowledge items" },
+    { path: ".bbg/knowledge/workspace/evidence-index.json", dimension: "evidence" },
+    { path: ".bbg/knowledge/hermes/analyze-candidates.json", dimension: "hermes candidates" },
   ];
 
   const scored: Array<{ path: string; score: number; dimension: string }> = [];
@@ -640,11 +659,7 @@ export async function writeVerifyWikiArtifacts(input: {
       title: "Workflow Stability Summary",
       type: "report",
       status: "active",
-      sources: [
-        ".bbg/telemetry/events.json",
-        ".bbg/tasks/index.json",
-        `.bbg/tasks/${input.taskId}/session.json`,
-      ],
+      sources: [".bbg/telemetry/events.json", ".bbg/tasks/index.json", `.bbg/tasks/${input.taskId}/session.json`],
       tags: ["workflow", "verification", "runtime"],
     }),
     "# Workflow Stability Summary",
@@ -671,10 +686,7 @@ export async function writeVerifyWikiArtifacts(input: {
       title: "Regression Risk Summary",
       type: "report",
       status: input.taskStatus === "completed" ? "active" : "draft",
-      sources: [
-        "evals/reports/history.json",
-        `.bbg/tasks/${input.taskId}/session.json`,
-      ],
+      sources: ["evals/reports/history.json", `.bbg/tasks/${input.taskId}/session.json`],
       tags: ["evaluation", "regression", "verification"],
     }),
     "# Regression Risk Summary",
@@ -720,12 +732,7 @@ export async function readWikiDoctorArtifacts(input: {
   repos: string[];
   hasAnalyzeState: boolean;
 }): Promise<{ missingCanonical: string[]; missingGenerated: string[] }> {
-  const canonical = [
-    WIKI_INDEX_PATH,
-    WIKI_LOG_PATH,
-    WORKFLOW_STABILITY_SUMMARY_PATH,
-    REGRESSION_RISK_SUMMARY_PATH,
-  ];
+  const canonical = [WIKI_INDEX_PATH, WIKI_LOG_PATH, WORKFLOW_STABILITY_SUMMARY_PATH, REGRESSION_RISK_SUMMARY_PATH];
   const generated = input.hasAnalyzeState
     ? [
         WORKSPACE_ANALYSIS_SUMMARY_PATH,
@@ -734,12 +741,16 @@ export async function readWikiDoctorArtifacts(input: {
       ]
     : [WORKSPACE_ANALYSIS_SUMMARY_PATH];
 
-  const missingCanonical = (await Promise.all(
-    canonical.map(async (pathValue) => ((await exists(join(input.cwd, pathValue))) ? null : pathValue)),
-  )).filter((pathValue): pathValue is string => pathValue !== null);
-  const missingGenerated = (await Promise.all(
-    generated.map(async (pathValue) => ((await exists(join(input.cwd, pathValue))) ? null : pathValue)),
-  )).filter((pathValue): pathValue is string => pathValue !== null);
+  const missingCanonical = (
+    await Promise.all(
+      canonical.map(async (pathValue) => ((await exists(join(input.cwd, pathValue))) ? null : pathValue)),
+    )
+  ).filter((pathValue): pathValue is string => pathValue !== null);
+  const missingGenerated = (
+    await Promise.all(
+      generated.map(async (pathValue) => ((await exists(join(input.cwd, pathValue))) ? null : pathValue)),
+    )
+  ).filter((pathValue): pathValue is string => pathValue !== null);
 
   return { missingCanonical, missingGenerated };
 }

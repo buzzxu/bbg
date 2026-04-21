@@ -43,20 +43,22 @@ async function initializeWorkspace(cwd: string): Promise<void> {
       projectDescription: "demo project",
       createdAt: "2026-04-17T16:00:00.000Z",
       updatedAt: "2026-04-17T16:00:00.000Z",
-      repos: [{
-        name: "app",
-        gitUrl: "git@example.com:demo/app.git",
-        branch: "main",
-        type: "backend",
-        stack: {
-          language: "typescript",
-          framework: "node",
-          buildTool: "npm",
-          testFramework: "vitest",
-          packageManager: "npm",
+      repos: [
+        {
+          name: "app",
+          gitUrl: "git@example.com:demo/app.git",
+          branch: "main",
+          type: "backend",
+          stack: {
+            language: "typescript",
+            framework: "node",
+            buildTool: "npm",
+            testFramework: "vitest",
+            packageManager: "npm",
+          },
+          description: "demo app",
         },
-        description: "demo app",
-      }],
+      ],
       governance: {
         riskThresholds: {
           high: { grade: "A", minScore: 90 },
@@ -227,14 +229,16 @@ describe("tasks runtime", () => {
       influencedRecovery: false,
       influencedVerification: false,
     });
-    expect(result.context.references).toEqual(expect.arrayContaining([
-      "AGENTS.md",
-      "RULES.md",
-      "docs/architecture/languages/README.md",
-      "docs/architecture/languages/typescript/application-patterns.md",
-      "docs/wiki/index.md",
-      "docs/wiki/concepts/fix-checkout-timeout.md",
-    ]));
+    expect(result.context.references).toEqual(
+      expect.arrayContaining([
+        "AGENTS.md",
+        "RULES.md",
+        "docs/architecture/languages/README.md",
+        "docs/architecture/languages/typescript/application-patterns.md",
+        "docs/wiki/index.md",
+        "docs/wiki/concepts/fix-checkout-timeout.md",
+      ]),
+    );
     expect(result.context.languageGuidance).toEqual({
       languages: ["typescript"],
       guideReferences: [
@@ -256,7 +260,8 @@ describe("tasks runtime", () => {
       },
       recommendation: {
         profileClass: "balanced",
-        reason: "debugging work with simple complexity and medium context fits the balanced execution profile. Language focus: typescript.",
+        reason:
+          "debugging work with simple complexity and medium context fits the balanced execution profile. Language focus: typescript.",
         telemetryNote: "No local telemetry feedback available.",
         reviewerAgents: ["typescript-reviewer"],
         guideReferences: [
@@ -336,83 +341,98 @@ describe("tasks runtime", () => {
     await writeTextFile(
       join(cwd, ".bbg", "knowledge", "workspace", "capabilities.json"),
       JSON.stringify({
-        capabilities: [{
-          name: "checkout",
-          description: "Checkout timeout recovery capability",
-          owningRepos: ["app"],
-          responsibilities: ["Handle checkout timeout retries"],
-          evidence: { summary: "Derived from flow analysis.", signals: ["repo:app"] },
-          confidence: 0.91,
-        }],
+        capabilities: [
+          {
+            name: "checkout",
+            description: "Checkout timeout recovery capability",
+            owningRepos: ["app"],
+            responsibilities: ["Handle checkout timeout retries"],
+            evidence: { summary: "Derived from flow analysis.", signals: ["repo:app"] },
+            confidence: 0.91,
+          },
+        ],
       }),
     );
     await writeTextFile(
       join(cwd, ".bbg", "knowledge", "workspace", "critical-flows.json"),
       JSON.stringify({
-        flows: [{
-          name: "flow-1",
-          summary: "checkout timeout handling",
-          participatingRepos: ["app"],
-          participatingModules: ["app"],
-          contracts: ["app HTTP/API contract surface"],
-          failurePoints: ["checkout timeout pipeline"],
-          steps: [],
-          evidence: { summary: "Traced from checkout markers.", signals: ["repo:app", "flow:checkout-timeout"] },
-          confidence: 0.84,
-        }],
+        flows: [
+          {
+            name: "flow-1",
+            summary: "checkout timeout handling",
+            participatingRepos: ["app"],
+            participatingModules: ["app"],
+            contracts: ["app HTTP/API contract surface"],
+            failurePoints: ["checkout timeout pipeline"],
+            steps: [],
+            evidence: { summary: "Traced from checkout markers.", signals: ["repo:app", "flow:checkout-timeout"] },
+            confidence: 0.84,
+          },
+        ],
       }),
     );
     await writeTextFile(
       join(cwd, ".bbg", "knowledge", "workspace", "contracts.json"),
       JSON.stringify({
-        contracts: [{
-          name: "app HTTP/API contract surface",
-          type: "http-api",
-          owners: ["app"],
-          consumers: ["web"],
-          boundary: "service and API boundary",
-          evidence: { summary: "Derived from API markers.", signals: ["repo:app", "contract:http-api"] },
-          confidence: 0.8,
-        }],
+        contracts: [
+          {
+            name: "app HTTP/API contract surface",
+            type: "http-api",
+            owners: ["app"],
+            consumers: ["web"],
+            boundary: "service and API boundary",
+            evidence: { summary: "Derived from API markers.", signals: ["repo:app", "contract:http-api"] },
+            confidence: 0.8,
+          },
+        ],
       }),
     );
     await writeTextFile(
       join(cwd, ".bbg", "knowledge", "workspace", "risk-surface.json"),
       JSON.stringify({
-        risks: [{
-          title: "checkout timeout pipeline",
-          severity: "high",
-          affectedRepos: ["app"],
-          reasons: ["Timeout handling is historically fragile."],
-          evidence: { summary: "Derived from prior flow risk analysis.", signals: ["repo:app", "risk:checkout-timeout"] },
-          confidence: 0.83,
-        }],
+        risks: [
+          {
+            title: "checkout timeout pipeline",
+            severity: "high",
+            affectedRepos: ["app"],
+            reasons: ["Timeout handling is historically fragile."],
+            evidence: {
+              summary: "Derived from prior flow risk analysis.",
+              signals: ["repo:app", "risk:checkout-timeout"],
+            },
+            confidence: 0.83,
+          },
+        ],
       }),
     );
     await writeTextFile(
       join(cwd, ".bbg", "knowledge", "workspace", "decisions.json"),
       JSON.stringify({
-        decisions: [{
-          statement: "Checkout fixes must preserve API compatibility.",
-          status: "confirmed",
-          rationale: "Existing clients depend on the current response contract.",
-          evidence: { summary: "Recorded decision history.", signals: ["repo:app", "decision:api-compatibility"] },
-          confidence: 0.74,
-        }],
+        decisions: [
+          {
+            statement: "Checkout fixes must preserve API compatibility.",
+            status: "confirmed",
+            rationale: "Existing clients depend on the current response contract.",
+            evidence: { summary: "Recorded decision history.", signals: ["repo:app", "decision:api-compatibility"] },
+            confidence: 0.74,
+          },
+        ],
       }),
     );
     await writeTextFile(
       join(cwd, ".bbg", "knowledge", "workspace", "change-impact.json"),
       JSON.stringify({
-        entries: [{
-          target: "checkout",
-          impactedRepos: ["app"],
-          impactedContracts: ["app HTTP/API contract surface"],
-          impactedTests: ["app: vitest (has tests)"],
-          reviewerHints: ["typescript-reviewer"],
-          evidence: { summary: "Computed from change impact analysis.", signals: ["repo:app", "impact:checkout"] },
-          confidence: 0.88,
-        }],
+        entries: [
+          {
+            target: "checkout",
+            impactedRepos: ["app"],
+            impactedContracts: ["app HTTP/API contract surface"],
+            impactedTests: ["app: vitest (has tests)"],
+            reviewerHints: ["typescript-reviewer"],
+            evidence: { summary: "Computed from change impact analysis.", signals: ["repo:app", "impact:checkout"] },
+            confidence: 0.88,
+          },
+        ],
       }),
     );
 
@@ -420,6 +440,7 @@ describe("tasks runtime", () => {
     const result = await startTask(cwd, "Fix checkout timeout");
 
     expect(result.context.impactGuidance).toEqual({
+      matchedKnowledgeItemIds: [],
       matchedCapabilities: ["checkout"],
       matchedFlows: ["checkout timeout handling"],
       impactedRepos: ["app"],
@@ -570,13 +591,17 @@ describe("tasks runtime", () => {
     const created = await startTask(cwd, "Fix checkout timeout");
     await writeTextFile(
       join(cwd, ".bbg", "tasks", created.session.taskId, "session.json"),
-      JSON.stringify({
-        ...created.session,
-        status: "blocked",
-        blockedReason: "runner launch failed",
-        lastError: "launcher unavailable",
-        lastErrorAt: "2026-04-17T16:10:00.000Z",
-      }, null, 2),
+      JSON.stringify(
+        {
+          ...created.session,
+          status: "blocked",
+          blockedReason: "runner launch failed",
+          lastError: "launcher unavailable",
+          lastErrorAt: "2026-04-17T16:10:00.000Z",
+        },
+        null,
+        2,
+      ),
     );
     process.env.BBG_CURRENT_TOOL = "codex";
 
@@ -605,15 +630,19 @@ describe("tasks runtime", () => {
     const created = await startTask(cwd, "Fix checkout timeout");
     await writeTextFile(
       join(cwd, ".bbg", "tasks", created.session.taskId, "session.json"),
-      JSON.stringify({
-        ...created.session,
-        status: "retrying",
-        currentStep: "verify",
-        observeSessionIds: [],
-        nextActions: ["collect-evidence", "verify"],
-        lastError: "observation-empty: no UI or log artifacts were collected",
-        lastErrorAt: "2026-04-17T16:10:00.000Z",
-      }, null, 2),
+      JSON.stringify(
+        {
+          ...created.session,
+          status: "retrying",
+          currentStep: "verify",
+          observeSessionIds: [],
+          nextActions: ["collect-evidence", "verify"],
+          lastError: "observation-empty: no UI or log artifacts were collected",
+          lastErrorAt: "2026-04-17T16:10:00.000Z",
+        },
+        null,
+        2,
+      ),
     );
     process.env.BBG_CURRENT_TOOL = "codex";
 
@@ -675,14 +704,18 @@ describe("tasks runtime", () => {
     const created = await startTask(cwd, "Fix checkout timeout");
     await writeTextFile(
       join(cwd, ".bbg", "tasks", created.session.taskId, "session.json"),
-      JSON.stringify({
-        ...created.session,
-        status: "retrying",
-        currentStep: "implement",
-        nextActions: ["investigate-failures", "implement", "verify"],
-        lastError: "checkpoint-or-runtime-verification-failed",
-        lastErrorAt: "2026-04-17T16:10:00.000Z",
-      }, null, 2),
+      JSON.stringify(
+        {
+          ...created.session,
+          status: "retrying",
+          currentStep: "implement",
+          nextActions: ["investigate-failures", "implement", "verify"],
+          lastError: "checkpoint-or-runtime-verification-failed",
+          lastErrorAt: "2026-04-17T16:10:00.000Z",
+        },
+        null,
+        2,
+      ),
     );
     process.env.BBG_CURRENT_TOOL = "codex";
 
@@ -715,20 +748,22 @@ describe("tasks runtime", () => {
         projectDescription: "demo project",
         createdAt: "2026-04-17T16:00:00.000Z",
         updatedAt: "2026-04-17T16:00:00.000Z",
-        repos: [{
-          name: "app",
-          gitUrl: "git@example.com:demo/app.git",
-          branch: "main",
-          type: "backend",
-          stack: {
-            language: "typescript",
-            framework: "node",
-            buildTool: "npm",
-            testFramework: "vitest",
-            packageManager: "npm",
+        repos: [
+          {
+            name: "app",
+            gitUrl: "git@example.com:demo/app.git",
+            branch: "main",
+            type: "backend",
+            stack: {
+              language: "typescript",
+              framework: "node",
+              buildTool: "npm",
+              testFramework: "vitest",
+              packageManager: "npm",
+            },
+            description: "demo app",
           },
-          description: "demo app",
-        }],
+        ],
         governance: {
           riskThresholds: {
             high: { grade: "A", minScore: 90 },
@@ -753,33 +788,35 @@ describe("tasks runtime", () => {
     const created = await startTask(cwd, "Fix checkout timeout");
     await writeTextFile(
       join(cwd, ".bbg", "tasks", created.session.taskId, "session.json"),
-      JSON.stringify({
-        ...created.session,
-        status: "blocked",
-        blockedReason: "runner launch failed",
-        lastError: "launcher unavailable",
-        lastErrorAt: "2026-04-17T16:10:00.000Z",
-        tool: null,
-        runner: {
-          mode: "agent",
-          tool: "codex",
-          launched: true,
-          command: "codex",
-          args: ["resume", "fix-checkout-timeout"],
-          launchedAt: "2026-04-17T16:05:00.000Z",
-          lastAttemptAt: "2026-04-17T16:10:00.000Z",
-          lastLaunchError: "launcher unavailable",
+      JSON.stringify(
+        {
+          ...created.session,
+          status: "blocked",
+          blockedReason: "runner launch failed",
+          lastError: "launcher unavailable",
+          lastErrorAt: "2026-04-17T16:10:00.000Z",
+          tool: null,
+          runner: {
+            mode: "agent",
+            tool: "codex",
+            launched: true,
+            command: "codex",
+            args: ["resume", "fix-checkout-timeout"],
+            launchedAt: "2026-04-17T16:05:00.000Z",
+            lastAttemptAt: "2026-04-17T16:10:00.000Z",
+            lastLaunchError: "launcher unavailable",
+          },
         },
-      }, null, 2),
+        null,
+        2,
+      ),
     );
     runnerState.launchConfiguredAgentRunner.mockClear();
-    runnerState.launchConfiguredAgentRunner
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        tool: "claude",
-        command: "claude",
-        args: ["resume", "fix-checkout-timeout"],
-      });
+    runnerState.launchConfiguredAgentRunner.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      tool: "claude",
+      command: "claude",
+      args: ["resume", "fix-checkout-timeout"],
+    });
 
     const resumed = await resumeTask(cwd, created.session.taskId);
 
@@ -848,9 +885,7 @@ describe("tasks runtime", () => {
       findings: ["shared-type-boundary-change", "runtime-validation-gap"],
     });
     expect(failed.lastError).toBe("review-gate-failed: typescript-reviewer");
-    expect(failed.nextActions).toEqual(
-      expect.arrayContaining(["address-review-findings", "implement", "verify"]),
-    );
+    expect(failed.nextActions).toEqual(expect.arrayContaining(["address-review-findings", "implement", "verify"]));
 
     const passed = await recordTaskReviewResult({
       cwd,
@@ -892,41 +927,49 @@ describe("tasks runtime", () => {
     });
     await writeTextFile(
       join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "manifest.json"),
-      JSON.stringify({
-        version: 1,
-        id: "fix-checkout-timeout",
-        task: "Fix checkout timeout",
-        slug: "fix-checkout-timeout",
-        createdAt: "2026-04-17T16:00:00.000Z",
-        updatedAt: "2026-04-17T16:00:00.000Z",
-        gitRoot: ".",
-        baseRef: "HEAD",
-        worktreePath: ".bbg/task-envs/fix-checkout-timeout/worktree",
-        artifactRoot: ".bbg/task-envs/fix-checkout-timeout/artifacts",
-        uiArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/ui",
-        logArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/logs",
-        metricArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/metrics",
-        traceArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/traces",
-        notesPath: ".bbg/task-envs/fix-checkout-timeout/notes.md",
-        status: "active",
-      }, null, 2),
+      JSON.stringify(
+        {
+          version: 1,
+          id: "fix-checkout-timeout",
+          task: "Fix checkout timeout",
+          slug: "fix-checkout-timeout",
+          createdAt: "2026-04-17T16:00:00.000Z",
+          updatedAt: "2026-04-17T16:00:00.000Z",
+          gitRoot: ".",
+          baseRef: "HEAD",
+          worktreePath: ".bbg/task-envs/fix-checkout-timeout/worktree",
+          artifactRoot: ".bbg/task-envs/fix-checkout-timeout/artifacts",
+          uiArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/ui",
+          logArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/logs",
+          metricArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/metrics",
+          traceArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/traces",
+          notesPath: ".bbg/task-envs/fix-checkout-timeout/notes.md",
+          status: "active",
+        },
+        null,
+        2,
+      ),
     );
     await writeTextFile(
       join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "observations", "fix-checkout-timeout", "manifest.json"),
-      JSON.stringify({
-        version: 1,
-        id: "fix-checkout-timeout",
-        topic: "Fix checkout timeout",
-        createdAt: "2026-04-17T16:00:00.000Z",
-        updatedAt: "2026-04-17T16:00:00.000Z",
-        envId: "fix-checkout-timeout",
-        rootPath: ".bbg/task-envs/fix-checkout-timeout/artifacts",
-        uiArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/ui",
-        logArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/logs",
-        metricArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/metrics",
-        traceArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/traces",
-        notesPath: ".bbg/task-envs/fix-checkout-timeout/observations/fix-checkout-timeout/notes.md",
-      }, null, 2),
+      JSON.stringify(
+        {
+          version: 1,
+          id: "fix-checkout-timeout",
+          topic: "Fix checkout timeout",
+          createdAt: "2026-04-17T16:00:00.000Z",
+          updatedAt: "2026-04-17T16:00:00.000Z",
+          envId: "fix-checkout-timeout",
+          rootPath: ".bbg/task-envs/fix-checkout-timeout/artifacts",
+          uiArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/ui",
+          logArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/logs",
+          metricArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/metrics",
+          traceArtifactsPath: ".bbg/task-envs/fix-checkout-timeout/artifacts/traces",
+          notesPath: ".bbg/task-envs/fix-checkout-timeout/observations/fix-checkout-timeout/notes.md",
+        },
+        null,
+        2,
+      ),
     );
     await writeTextFile(join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "artifacts", "ui", "screen.png"), "");
     await writeTextFile(join(cwd, ".bbg", "task-envs", "fix-checkout-timeout", "artifacts", "logs", "app.log"), "");
@@ -977,27 +1020,31 @@ describe("tasks runtime", () => {
     const created = await startTask(cwd, "Fix checkout timeout");
     await writeTextFile(
       join(cwd, ".bbg", "loops", "main-loop.json"),
-      JSON.stringify({
-        version: 1,
-        id: "main-loop",
-        taskId: created.session.taskId,
-        taskEnvId: "fix-checkout-timeout",
-        startedAt: "2026-04-17T16:00:00.000Z",
-        updatedAt: "2026-04-17T16:10:00.000Z",
-        status: "waiting-for-change",
-        checks: ["build", "tests"],
-        maxIterations: 5,
-        pollIntervalMs: 1000,
-        idleTimeoutMs: 5000,
-        iterations: [
-          {
-            iteration: 1,
-            timestamp: "2026-04-17T16:05:00.000Z",
-            changedFiles: [],
-            checks: {},
-          },
-        ],
-      }, null, 2),
+      JSON.stringify(
+        {
+          version: 1,
+          id: "main-loop",
+          taskId: created.session.taskId,
+          taskEnvId: "fix-checkout-timeout",
+          startedAt: "2026-04-17T16:00:00.000Z",
+          updatedAt: "2026-04-17T16:10:00.000Z",
+          status: "waiting-for-change",
+          checks: ["build", "tests"],
+          maxIterations: 5,
+          pollIntervalMs: 1000,
+          idleTimeoutMs: 5000,
+          iterations: [
+            {
+              iteration: 1,
+              timestamp: "2026-04-17T16:05:00.000Z",
+              changedFiles: [],
+              checks: {},
+            },
+          ],
+        },
+        null,
+        2,
+      ),
     );
 
     await assignLoopToTask({
@@ -1044,20 +1091,22 @@ describe("tasks runtime", () => {
         projectDescription: "demo project",
         createdAt: "2026-04-17T16:00:00.000Z",
         updatedAt: "2026-04-17T16:00:00.000Z",
-        repos: [{
-          name: "app",
-          gitUrl: "git@example.com:demo/app.git",
-          branch: "main",
-          type: "backend",
-          stack: {
-            language: "typescript",
-            framework: "node",
-            buildTool: "npm",
-            testFramework: "vitest",
-            packageManager: "npm",
+        repos: [
+          {
+            name: "app",
+            gitUrl: "git@example.com:demo/app.git",
+            branch: "main",
+            type: "backend",
+            stack: {
+              language: "typescript",
+              framework: "node",
+              buildTool: "npm",
+              testFramework: "vitest",
+              packageManager: "npm",
+            },
+            description: "demo app",
           },
-          description: "demo app",
-        }],
+        ],
         governance: {
           riskThresholds: {
             high: { grade: "A", minScore: 90 },
@@ -1081,20 +1130,24 @@ describe("tasks runtime", () => {
     const created = await startTask(cwd, "Fix checkout timeout");
     await writeTextFile(
       join(cwd, ".bbg", "tasks", created.session.taskId, "session.json"),
-      JSON.stringify({
-        ...created.session,
-        tool: null,
-        runner: {
-          mode: "prepare",
+      JSON.stringify(
+        {
+          ...created.session,
           tool: null,
-          launched: false,
-          command: null,
-          args: [],
-          launchedAt: null,
-          lastAttemptAt: "2026-04-17T16:10:00.000Z",
-          lastLaunchError: "claude missing",
+          runner: {
+            mode: "prepare",
+            tool: null,
+            launched: false,
+            command: null,
+            args: [],
+            launchedAt: null,
+            lastAttemptAt: "2026-04-17T16:10:00.000Z",
+            lastLaunchError: "claude missing",
+          },
         },
-      }, null, 2),
+        null,
+        2,
+      ),
     );
 
     const status = await readTaskStatusSummary(cwd);
@@ -1121,13 +1174,17 @@ describe("tasks runtime", () => {
     const created = await startTask(cwd, "Fix checkout timeout");
     await writeTextFile(
       join(cwd, ".bbg", "tasks", created.session.taskId, "session.json"),
-      JSON.stringify({
-        ...created.session,
-        attemptCount: 6,
-        status: "retrying",
-        currentStep: "implement",
-        nextActions: ["implement", "verify"],
-      }, null, 2),
+      JSON.stringify(
+        {
+          ...created.session,
+          attemptCount: 6,
+          status: "retrying",
+          currentStep: "implement",
+          nextActions: ["implement", "verify"],
+        },
+        null,
+        2,
+      ),
     );
 
     const resumed = await resumeTask(cwd, created.session.taskId);
@@ -1154,13 +1211,17 @@ describe("tasks runtime", () => {
     const created = await startTask(cwd, "Fix checkout timeout");
     await writeTextFile(
       join(cwd, ".bbg", "tasks", created.session.taskId, "session.json"),
-      JSON.stringify({
-        ...created.session,
-        autonomy: {
-          ...created.session.autonomy,
-          maxVerifyFailures: 1,
+      JSON.stringify(
+        {
+          ...created.session,
+          autonomy: {
+            ...created.session.autonomy,
+            maxVerifyFailures: 1,
+          },
         },
-      }, null, 2),
+        null,
+        2,
+      ),
     );
 
     const updated = await updateTaskSessionAfterVerify({
@@ -1188,11 +1249,15 @@ describe("tasks runtime", () => {
     await initializeWorkspace(cwd);
     await writeTextFile(
       join(cwd, ".bbg", "analyze", "latest.json"),
-      `${JSON.stringify({
-        runId: "run-1",
-        status: "partial",
-        scope: "workspace",
-      }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          runId: "run-1",
+          status: "partial",
+          scope: "workspace",
+        },
+        null,
+        2,
+      )}\n`,
     );
     await writeTextFile(join(cwd, ".bbg", "quarantine", "analyze", "invalid-handoff.json"), "{}\n");
 

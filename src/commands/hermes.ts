@@ -2,14 +2,7 @@ import { join } from "node:path";
 import { buildAnalyzeKnowledgeQueryAugmentation, buildWikiQueryAugmentation } from "../runtime/wiki.js";
 import { exists, readTextFile } from "../utils/fs.js";
 
-export type HermesKind =
-  | "query"
-  | "candidates"
-  | "distill"
-  | "draft-skill"
-  | "draft-rule"
-  | "verify"
-  | "promote";
+export type HermesKind = "query" | "candidates" | "distill" | "draft-skill" | "draft-rule" | "verify" | "promote";
 
 export interface RunHermesCommandInput {
   cwd: string;
@@ -75,20 +68,47 @@ export async function runHermesCommand(input: RunHermesCommandInput): Promise<Ru
     .split(/\n\s*\n/)
     .map((block) => block.trim())
     .find((block) => block.length > 0 && !block.startsWith("#"));
-  const wikiAugmentation = input.kind === "query"
-    ? await buildWikiQueryAugmentation({ cwd: input.cwd, topic: input.topic })
-    : { references: [] as string[], summary: null as string | null };
-  const analyzeAugmentation = input.kind === "query"
-    ? await buildAnalyzeKnowledgeQueryAugmentation({ cwd: input.cwd, topic: input.topic })
-    : { references: [] as string[], summary: null as string | null };
+  const wikiAugmentation =
+    input.kind === "query"
+      ? await buildWikiQueryAugmentation({ cwd: input.cwd, topic: input.topic })
+      : { references: [] as string[], summary: null as string | null };
+  const analyzeAugmentation =
+    input.kind === "query"
+      ? await buildAnalyzeKnowledgeQueryAugmentation({ cwd: input.cwd, topic: input.topic })
+      : { references: [] as string[], summary: null as string | null };
+  let candidateSummary: string | null = null;
+  let candidateReferences: string[] = [];
+  if (input.kind === "candidates") {
+    const analyzeCandidatesPath = join(input.cwd, ".bbg", "knowledge", "hermes", "analyze-candidates.json");
+    if (await exists(analyzeCandidatesPath)) {
+      try {
+        const parsed = JSON.parse(await readTextFile(analyzeCandidatesPath)) as { candidates?: unknown[] };
+        const count = Array.isArray(parsed.candidates) ? parsed.candidates.length : 0;
+        candidateSummary =
+          count > 0
+            ? `Analyze-origin candidate knowledge objects available: ${count}.`
+            : "Analyze-origin candidate knowledge objects available: 0.";
+      } catch {
+        candidateSummary = "Analyze-origin candidate knowledge objects are available for review.";
+      }
+      candidateReferences = [".bbg/knowledge/hermes/analyze-candidates.json"];
+    }
+  }
 
   return {
     kind: input.kind,
     topic: input.topic?.trim().length ? input.topic.trim() : null,
     commandSpecPath: hermes.commandSpecPath,
-    summary: [firstParagraph ?? hermes.summary, wikiAugmentation.summary, analyzeAugmentation.summary]
+    summary: [firstParagraph ?? hermes.summary, wikiAugmentation.summary, analyzeAugmentation.summary, candidateSummary]
       .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       .join(" "),
-    references: [...new Set([...hermes.references, ...wikiAugmentation.references, ...analyzeAugmentation.references])],
+    references: [
+      ...new Set([
+        ...hermes.references,
+        ...wikiAugmentation.references,
+        ...analyzeAugmentation.references,
+        ...candidateReferences,
+      ]),
+    ],
   };
 }

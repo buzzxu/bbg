@@ -93,6 +93,7 @@ export interface TaskExecutionRoute {
 }
 
 export interface TaskImpactGuidance {
+  matchedKnowledgeItemIds: string[];
   matchedCapabilities: string[];
   matchedFlows: string[];
   impactedRepos: string[];

@@ -3,12 +3,19 @@ import { parseConfig } from "../config/read-write.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 import { RuntimeStoreError, readJsonStore, writeJsonStore } from "./store.js";
 import { detectCurrentAgentToolFromEnv } from "./agent-tool.js";
-import { pruneAnalyzeQuarantine, quarantineAnalyzeRuntimeStore } from "./analyze-quarantine.js";
+import {
+  ANALYZE_QUARANTINE_RETENTION_DAYS,
+  pruneAnalyzeQuarantine,
+  quarantineAnalyzeRuntimeStore,
+} from "./analyze-quarantine.js";
+import { launchConfiguredAnalyzeRunner, type LaunchAgentRunnerResult } from "./agent-runner.js";
 
 const ANALYZE_HANDOFF_VERSION = 1;
 const ANALYZE_HANDOFF_JSON_PATH = [".bbg", "analyze", "handoff", "latest.json"];
 const ANALYZE_HANDOFF_MARKDOWN_PATH = [".bbg", "analyze", "handoff", "latest.md"];
 const FALLBACK_AI_TOOLS = ["claude", "codex", "gemini", "opencode", "cursor"];
+
+export { ANALYZE_QUARANTINE_RETENTION_DAYS };
 
 export interface AnalyzeAgentHandoffRequest {
   repos: string[];
@@ -51,29 +58,33 @@ function isStringArray(value: unknown): value is string[] {
 }
 
 function isAnalyzeAgentHandoffRequest(value: unknown): value is AnalyzeAgentHandoffRequest {
-  return isRecord(value)
-    && isStringArray(value.repos)
-    && typeof value.refresh === "boolean"
-    && (value.focus === null || typeof value.focus === "string")
-    && (value.interviewMode === "auto"
-      || value.interviewMode === "off"
-      || value.interviewMode === "guided"
-      || value.interviewMode === "deep");
+  return (
+    isRecord(value) &&
+    isStringArray(value.repos) &&
+    typeof value.refresh === "boolean" &&
+    (value.focus === null || typeof value.focus === "string") &&
+    (value.interviewMode === "auto" ||
+      value.interviewMode === "off" ||
+      value.interviewMode === "guided" ||
+      value.interviewMode === "deep")
+  );
 }
 
 function isAnalyzeAgentHandoff(value: unknown): value is AnalyzeAgentHandoff {
-  return isRecord(value)
-    && typeof value.version === "number"
-    && (value.status === "pending" || value.status === "consumed")
-    && typeof value.preferredTool === "string"
-    && isStringArray(value.availableTools)
-    && isStringArray(value.reasons)
-    && typeof value.command === "string"
-    && isAnalyzeAgentHandoffRequest(value.request)
-    && typeof value.createdAt === "string"
-    && typeof value.updatedAt === "string"
-    && (value.consumedAt === null || typeof value.consumedAt === "string")
-    && (value.consumedBy === null || typeof value.consumedBy === "string");
+  return (
+    isRecord(value) &&
+    typeof value.version === "number" &&
+    (value.status === "pending" || value.status === "consumed") &&
+    typeof value.preferredTool === "string" &&
+    isStringArray(value.availableTools) &&
+    isStringArray(value.reasons) &&
+    typeof value.command === "string" &&
+    isAnalyzeAgentHandoffRequest(value.request) &&
+    typeof value.createdAt === "string" &&
+    typeof value.updatedAt === "string" &&
+    (value.consumedAt === null || typeof value.consumedAt === "string") &&
+    (value.consumedBy === null || typeof value.consumedBy === "string")
+  );
 }
 
 function unique(values: string[]): string[] {
@@ -254,4 +265,29 @@ export async function markAnalyzeAgentHandoffConsumed(
   await writeJsonStore(resolveAnalyzeHandoffJsonPath(cwd), consumed);
   await writeTextFile(resolveAnalyzeHandoffMarkdownPath(cwd), renderAnalyzeAgentHandoffMarkdown(consumed));
   return consumed;
+}
+
+export async function tryLaunchAnalyzeAgentHandoff(input: {
+  cwd: string;
+  preferredTool: string;
+  replayCommand: string;
+  handoffPath: string;
+}): Promise<LaunchAgentRunnerResult | null> {
+  const configPath = join(input.cwd, ".bbg", "config.json");
+  if (!(await exists(configPath))) {
+    return null;
+  }
+
+  try {
+    const config = parseConfig(await readTextFile(configPath));
+    return await launchConfiguredAnalyzeRunner({
+      cwd: input.cwd,
+      config,
+      preferredTool: input.preferredTool,
+      replayCommand: input.replayCommand,
+      handoffPath: input.handoffPath,
+    });
+  } catch {
+    return null;
+  }
 }

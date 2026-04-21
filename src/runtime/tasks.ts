@@ -18,6 +18,7 @@ import { buildDefaultRuntimeConfig } from "./schema.js";
 import { readJsonStore, writeJsonStore } from "./store.js";
 import { listTaskEnvs } from "./task-envs.js";
 import { writeTaskWikiArtifact } from "./wiki.js";
+import type { WorkflowDecisionSet } from "../workflow/types.js";
 import type {
   StartTaskResult,
   TaskContext,
@@ -113,202 +114,207 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isExecutionRoute(value: unknown): value is TaskExecutionRoute {
-  return isRecord(value)
-    && isRecord(value.classification)
-    && typeof value.classification.domain === "string"
-    && typeof value.classification.complexity === "string"
-    && typeof value.classification.context === "string"
-    && (value.classification.targetCommand === null || typeof value.classification.targetCommand === "string")
-    && Array.isArray(value.classification.languages)
-    && isRecord(value.recommendation)
-    && typeof value.recommendation.profileClass === "string"
-    && typeof value.recommendation.reason === "string"
-    && typeof value.recommendation.telemetryNote === "string"
-    && Array.isArray(value.recommendation.reviewerAgents)
-    && Array.isArray(value.recommendation.guideReferences);
+  return (
+    isRecord(value) &&
+    isRecord(value.classification) &&
+    typeof value.classification.domain === "string" &&
+    typeof value.classification.complexity === "string" &&
+    typeof value.classification.context === "string" &&
+    (value.classification.targetCommand === null || typeof value.classification.targetCommand === "string") &&
+    Array.isArray(value.classification.languages) &&
+    isRecord(value.recommendation) &&
+    typeof value.recommendation.profileClass === "string" &&
+    typeof value.recommendation.reason === "string" &&
+    typeof value.recommendation.telemetryNote === "string" &&
+    Array.isArray(value.recommendation.reviewerAgents) &&
+    Array.isArray(value.recommendation.guideReferences)
+  );
 }
 
 function isTaskImpactGuidance(value: unknown): value is TaskImpactGuidance {
-  return isRecord(value)
-    && Array.isArray(value.matchedCapabilities)
-    && Array.isArray(value.matchedFlows)
-    && Array.isArray(value.impactedRepos)
-    && Array.isArray(value.impactedContracts)
-    && Array.isArray(value.impactedTests)
-    && Array.isArray(value.riskHotspots)
-    && Array.isArray(value.reviewerHints)
-    && Array.isArray(value.decisionNotes)
-    && Array.isArray(value.evidenceSignals)
-    && Array.isArray(value.references)
-    && (value.confidence === null || typeof value.confidence === "number")
-    && Array.isArray(value.rationale)
-    && (value.reviewHint === null || typeof value.reviewHint === "string");
+  return (
+    isRecord(value) &&
+    (value.matchedKnowledgeItemIds === undefined || Array.isArray(value.matchedKnowledgeItemIds)) &&
+    Array.isArray(value.matchedCapabilities) &&
+    Array.isArray(value.matchedFlows) &&
+    Array.isArray(value.impactedRepos) &&
+    Array.isArray(value.impactedContracts) &&
+    Array.isArray(value.impactedTests) &&
+    Array.isArray(value.riskHotspots) &&
+    Array.isArray(value.reviewerHints) &&
+    Array.isArray(value.decisionNotes) &&
+    Array.isArray(value.evidenceSignals) &&
+    Array.isArray(value.references) &&
+    (value.confidence === null || typeof value.confidence === "number") &&
+    Array.isArray(value.rationale) &&
+    (value.reviewHint === null || typeof value.reviewHint === "string")
+  );
 }
 
 function isTaskSession(value: unknown): value is TaskSession {
-  return isRecord(value)
-    && typeof value.version === "number"
-    && typeof value.taskId === "string"
-    && typeof value.task === "string"
-    && typeof value.status === "string"
-    && typeof value.entrypoint === "string"
-    && (value.tool === null || typeof value.tool === "string")
-    && typeof value.startedAt === "string"
-    && typeof value.updatedAt === "string"
-    && typeof value.workflowKind === "string"
-    && (value.currentStep === null || typeof value.currentStep === "string")
-    && typeof value.attemptCount === "number"
-    && (value.taskEnvId === null || typeof value.taskEnvId === "string")
-    && Array.isArray(value.observeSessionIds)
-    && (value.loopId === null || typeof value.loopId === "string")
-    && Array.isArray(value.nextActions)
-    && (value.lastError === null || typeof value.lastError === "string")
-    && (value.lastErrorAt === null || typeof value.lastErrorAt === "string")
-    && (value.blockedReason === null || typeof value.blockedReason === "string")
-    && isRecord(value.runner)
-    && typeof value.runner.mode === "string"
-    && (value.runner.tool === null || typeof value.runner.tool === "string")
-    && typeof value.runner.launched === "boolean"
-    && (value.runner.command === null || typeof value.runner.command === "string")
-    && Array.isArray(value.runner.args)
-    && (value.runner.launchedAt === null || typeof value.runner.launchedAt === "string")
-    && (value.runner.lastAttemptAt === null || typeof value.runner.lastAttemptAt === "string")
-    && (value.runner.lastLaunchError === null || typeof value.runner.lastLaunchError === "string")
-    && (value.lastVerification === null || (
-      isRecord(value.lastVerification)
-      && typeof value.lastVerification.ok === "boolean"
-      && typeof value.lastVerification.verifiedAt === "string"
-      && Array.isArray(value.lastVerification.reasons)
-      && Array.isArray(value.lastVerification.missingEvidence)
-      && typeof value.lastVerification.observeRequired === "boolean"
-      && typeof value.lastVerification.observationReadiness === "string"
-    ))
-    && (value.lastRecoveryAction === null || (
-      isRecord(value.lastRecoveryAction)
-      && typeof value.lastRecoveryAction.kind === "string"
-      && typeof value.lastRecoveryAction.at === "string"
-      && typeof value.lastRecoveryAction.detail === "string"
-    ))
-    && (value.lastReviewResult === null || (
-      isRecord(value.lastReviewResult)
-      && typeof value.lastReviewResult.reviewer === "string"
-      && typeof value.lastReviewResult.status === "string"
-      && typeof value.lastReviewResult.recordedAt === "string"
-      && typeof value.lastReviewResult.summary === "string"
-      && Array.isArray(value.lastReviewResult.findings)
-    ))
-    && isRecord(value.autonomy)
-    && typeof value.autonomy.maxAttempts === "number"
-    && typeof value.autonomy.maxVerifyFailures === "number"
-    && typeof value.autonomy.maxDurationMs === "number"
-    && typeof value.autonomy.verifyFailureCount === "number"
-    && typeof value.autonomy.escalated === "boolean"
-    && (value.autonomy.escalationReason === null || typeof value.autonomy.escalationReason === "string")
-    && (value.autonomy.escalatedAt === null || typeof value.autonomy.escalatedAt === "string");
+  return (
+    isRecord(value) &&
+    typeof value.version === "number" &&
+    typeof value.taskId === "string" &&
+    typeof value.task === "string" &&
+    typeof value.status === "string" &&
+    typeof value.entrypoint === "string" &&
+    (value.tool === null || typeof value.tool === "string") &&
+    typeof value.startedAt === "string" &&
+    typeof value.updatedAt === "string" &&
+    typeof value.workflowKind === "string" &&
+    (value.currentStep === null || typeof value.currentStep === "string") &&
+    typeof value.attemptCount === "number" &&
+    (value.taskEnvId === null || typeof value.taskEnvId === "string") &&
+    Array.isArray(value.observeSessionIds) &&
+    (value.loopId === null || typeof value.loopId === "string") &&
+    Array.isArray(value.nextActions) &&
+    (value.lastError === null || typeof value.lastError === "string") &&
+    (value.lastErrorAt === null || typeof value.lastErrorAt === "string") &&
+    (value.blockedReason === null || typeof value.blockedReason === "string") &&
+    isRecord(value.runner) &&
+    typeof value.runner.mode === "string" &&
+    (value.runner.tool === null || typeof value.runner.tool === "string") &&
+    typeof value.runner.launched === "boolean" &&
+    (value.runner.command === null || typeof value.runner.command === "string") &&
+    Array.isArray(value.runner.args) &&
+    (value.runner.launchedAt === null || typeof value.runner.launchedAt === "string") &&
+    (value.runner.lastAttemptAt === null || typeof value.runner.lastAttemptAt === "string") &&
+    (value.runner.lastLaunchError === null || typeof value.runner.lastLaunchError === "string") &&
+    (value.lastVerification === null ||
+      (isRecord(value.lastVerification) &&
+        typeof value.lastVerification.ok === "boolean" &&
+        typeof value.lastVerification.verifiedAt === "string" &&
+        Array.isArray(value.lastVerification.reasons) &&
+        Array.isArray(value.lastVerification.missingEvidence) &&
+        typeof value.lastVerification.observeRequired === "boolean" &&
+        typeof value.lastVerification.observationReadiness === "string")) &&
+    (value.lastRecoveryAction === null ||
+      (isRecord(value.lastRecoveryAction) &&
+        typeof value.lastRecoveryAction.kind === "string" &&
+        typeof value.lastRecoveryAction.at === "string" &&
+        typeof value.lastRecoveryAction.detail === "string")) &&
+    (value.lastReviewResult === null ||
+      (isRecord(value.lastReviewResult) &&
+        typeof value.lastReviewResult.reviewer === "string" &&
+        typeof value.lastReviewResult.status === "string" &&
+        typeof value.lastReviewResult.recordedAt === "string" &&
+        typeof value.lastReviewResult.summary === "string" &&
+        Array.isArray(value.lastReviewResult.findings))) &&
+    isRecord(value.autonomy) &&
+    typeof value.autonomy.maxAttempts === "number" &&
+    typeof value.autonomy.maxVerifyFailures === "number" &&
+    typeof value.autonomy.maxDurationMs === "number" &&
+    typeof value.autonomy.verifyFailureCount === "number" &&
+    typeof value.autonomy.escalated === "boolean" &&
+    (value.autonomy.escalationReason === null || typeof value.autonomy.escalationReason === "string") &&
+    (value.autonomy.escalatedAt === null || typeof value.autonomy.escalatedAt === "string")
+  );
 }
 
 function isTaskContext(value: unknown): value is TaskContext {
-  return isRecord(value)
-    && typeof value.version === "number"
-    && typeof value.taskId === "string"
-    && (value.analyzeRunId === null || typeof value.analyzeRunId === "string")
-    && Array.isArray(value.references)
-    && (value.executionRoute === null || isExecutionRoute(value.executionRoute))
-    && (value.impactGuidance === undefined || isTaskImpactGuidance(value.impactGuidance))
-    && isRecord(value.languageGuidance)
-    && Array.isArray(value.languageGuidance.languages)
-    && Array.isArray(value.languageGuidance.guideReferences)
-    && Array.isArray(value.languageGuidance.reviewerAgents)
-    && (value.languageGuidance.reviewHint === null || typeof value.languageGuidance.reviewHint === "string")
-    && isRecord(value.reviewGate)
-    && typeof value.reviewGate.level === "string"
-    && Array.isArray(value.reviewGate.reviewers)
-    && Array.isArray(value.reviewGate.guideReferences)
-    && Array.isArray(value.reviewGate.reviewPack)
-    && Array.isArray(value.reviewGate.stopConditions)
-    && typeof value.reviewGate.reason === "string"
-    && typeof value.commandSpecPath === "string"
-    && typeof value.summary === "string"
-    && Array.isArray(value.hermesRecommendations)
-    && isRecord(value.hermesQuery)
-    && typeof value.hermesQuery.executed === "boolean"
-    && (value.hermesQuery.strategy === "default" || value.hermesQuery.strategy === "disabled" || value.hermesQuery.strategy === "forced")
-    && (value.hermesQuery.topic === null || typeof value.hermesQuery.topic === "string")
-    && (value.hermesQuery.summary === null || typeof value.hermesQuery.summary === "string")
-    && (value.hermesQuery.commandSpecPath === null || typeof value.hermesQuery.commandSpecPath === "string")
-    && Array.isArray(value.hermesQuery.references)
-    && typeof value.hermesQuery.influencedWorkflow === "boolean"
-    && typeof value.hermesQuery.influencedRecovery === "boolean"
-    && typeof value.hermesQuery.influencedVerification === "boolean"
-    && isRecord(value.taskState)
-    && typeof value.taskState.status === "string"
-    && (value.taskState.currentStep === null || typeof value.taskState.currentStep === "string")
-    && (value.taskState.taskEnvId === null || typeof value.taskState.taskEnvId === "string")
-    && Array.isArray(value.taskState.observeSessionIds)
-    && (value.taskState.loopId === null || typeof value.taskState.loopId === "string")
-    && (value.taskState.loop === null || (
-      isRecord(value.taskState.loop)
-      && typeof value.taskState.loop.id === "string"
-      && (value.taskState.loop.taskEnvId === null || typeof value.taskState.loop.taskEnvId === "string")
-      && typeof value.taskState.loop.status === "string"
-      && typeof value.taskState.loop.iterations === "number"
-      && typeof value.taskState.loop.updatedAt === "string"
-    ))
-    && Array.isArray(value.taskState.nextActions)
-    && isRecord(value.taskState.runner)
-    && typeof value.taskState.runner.mode === "string"
-    && (value.taskState.runner.tool === null || typeof value.taskState.runner.tool === "string")
-    && typeof value.taskState.runner.launched === "boolean"
-    && (value.taskState.runner.command === null || typeof value.taskState.runner.command === "string")
-    && Array.isArray(value.taskState.runner.args)
-    && (value.taskState.runner.launchedAt === null || typeof value.taskState.runner.launchedAt === "string")
-    && (value.taskState.runner.lastAttemptAt === null || typeof value.taskState.runner.lastAttemptAt === "string")
-    && (value.taskState.runner.lastLaunchError === null || typeof value.taskState.runner.lastLaunchError === "string")
-    && (value.taskState.lastVerification === null || (
-      isRecord(value.taskState.lastVerification)
-      && typeof value.taskState.lastVerification.ok === "boolean"
-      && typeof value.taskState.lastVerification.verifiedAt === "string"
-      && Array.isArray(value.taskState.lastVerification.reasons)
-      && Array.isArray(value.taskState.lastVerification.missingEvidence)
-      && typeof value.taskState.lastVerification.observeRequired === "boolean"
-      && typeof value.taskState.lastVerification.observationReadiness === "string"
-    ))
-    && (value.taskState.lastRecoveryAction === null || (
-      isRecord(value.taskState.lastRecoveryAction)
-      && typeof value.taskState.lastRecoveryAction.kind === "string"
-      && typeof value.taskState.lastRecoveryAction.at === "string"
-      && typeof value.taskState.lastRecoveryAction.detail === "string"
-    ))
-    && (value.taskState.lastReviewResult === null || (
-      isRecord(value.taskState.lastReviewResult)
-      && typeof value.taskState.lastReviewResult.reviewer === "string"
-      && typeof value.taskState.lastReviewResult.status === "string"
-      && typeof value.taskState.lastReviewResult.recordedAt === "string"
-      && typeof value.taskState.lastReviewResult.summary === "string"
-      && Array.isArray(value.taskState.lastReviewResult.findings)
-    ))
-    && isRecord(value.taskState.autonomy)
-    && typeof value.taskState.autonomy.maxAttempts === "number"
-    && typeof value.taskState.autonomy.maxVerifyFailures === "number"
-    && typeof value.taskState.autonomy.maxDurationMs === "number"
-    && typeof value.taskState.autonomy.verifyFailureCount === "number"
-    && typeof value.taskState.autonomy.escalated === "boolean"
-    && (value.taskState.autonomy.escalationReason === null || typeof value.taskState.autonomy.escalationReason === "string")
-    && (value.taskState.autonomy.escalatedAt === null || typeof value.taskState.autonomy.escalatedAt === "string")
-    && isRecord(value.recovery)
-    && (value.recovery.resumeStrategy === null || (
-      isRecord(value.recovery.resumeStrategy)
-      && typeof value.recovery.resumeStrategy.kind === "string"
-      && (value.recovery.resumeStrategy.preferredTool === null || typeof value.recovery.resumeStrategy.preferredTool === "string")
-      && (value.recovery.resumeStrategy.fallbackTool === null || typeof value.recovery.resumeStrategy.fallbackTool === "string")
-      && typeof value.recovery.resumeStrategy.reason === "string"
-    ))
-    && (value.recovery.recoveryPlan === null || (
-      isRecord(value.recovery.recoveryPlan)
-      && typeof value.recovery.recoveryPlan.kind === "string"
-      && Array.isArray(value.recovery.recoveryPlan.actions)
-      && typeof value.recovery.recoveryPlan.reason === "string"
-    ));
+  return (
+    isRecord(value) &&
+    typeof value.version === "number" &&
+    typeof value.taskId === "string" &&
+    (value.analyzeRunId === null || typeof value.analyzeRunId === "string") &&
+    Array.isArray(value.references) &&
+    (value.executionRoute === null || isExecutionRoute(value.executionRoute)) &&
+    (value.impactGuidance === undefined || isTaskImpactGuidance(value.impactGuidance)) &&
+    isRecord(value.languageGuidance) &&
+    Array.isArray(value.languageGuidance.languages) &&
+    Array.isArray(value.languageGuidance.guideReferences) &&
+    Array.isArray(value.languageGuidance.reviewerAgents) &&
+    (value.languageGuidance.reviewHint === null || typeof value.languageGuidance.reviewHint === "string") &&
+    isRecord(value.reviewGate) &&
+    typeof value.reviewGate.level === "string" &&
+    Array.isArray(value.reviewGate.reviewers) &&
+    Array.isArray(value.reviewGate.guideReferences) &&
+    Array.isArray(value.reviewGate.reviewPack) &&
+    Array.isArray(value.reviewGate.stopConditions) &&
+    typeof value.reviewGate.reason === "string" &&
+    typeof value.commandSpecPath === "string" &&
+    typeof value.summary === "string" &&
+    Array.isArray(value.hermesRecommendations) &&
+    isRecord(value.hermesQuery) &&
+    typeof value.hermesQuery.executed === "boolean" &&
+    (value.hermesQuery.strategy === "default" ||
+      value.hermesQuery.strategy === "disabled" ||
+      value.hermesQuery.strategy === "forced") &&
+    (value.hermesQuery.topic === null || typeof value.hermesQuery.topic === "string") &&
+    (value.hermesQuery.summary === null || typeof value.hermesQuery.summary === "string") &&
+    (value.hermesQuery.commandSpecPath === null || typeof value.hermesQuery.commandSpecPath === "string") &&
+    Array.isArray(value.hermesQuery.references) &&
+    typeof value.hermesQuery.influencedWorkflow === "boolean" &&
+    typeof value.hermesQuery.influencedRecovery === "boolean" &&
+    typeof value.hermesQuery.influencedVerification === "boolean" &&
+    isRecord(value.taskState) &&
+    typeof value.taskState.status === "string" &&
+    (value.taskState.currentStep === null || typeof value.taskState.currentStep === "string") &&
+    (value.taskState.taskEnvId === null || typeof value.taskState.taskEnvId === "string") &&
+    Array.isArray(value.taskState.observeSessionIds) &&
+    (value.taskState.loopId === null || typeof value.taskState.loopId === "string") &&
+    (value.taskState.loop === null ||
+      (isRecord(value.taskState.loop) &&
+        typeof value.taskState.loop.id === "string" &&
+        (value.taskState.loop.taskEnvId === null || typeof value.taskState.loop.taskEnvId === "string") &&
+        typeof value.taskState.loop.status === "string" &&
+        typeof value.taskState.loop.iterations === "number" &&
+        typeof value.taskState.loop.updatedAt === "string")) &&
+    Array.isArray(value.taskState.nextActions) &&
+    isRecord(value.taskState.runner) &&
+    typeof value.taskState.runner.mode === "string" &&
+    (value.taskState.runner.tool === null || typeof value.taskState.runner.tool === "string") &&
+    typeof value.taskState.runner.launched === "boolean" &&
+    (value.taskState.runner.command === null || typeof value.taskState.runner.command === "string") &&
+    Array.isArray(value.taskState.runner.args) &&
+    (value.taskState.runner.launchedAt === null || typeof value.taskState.runner.launchedAt === "string") &&
+    (value.taskState.runner.lastAttemptAt === null || typeof value.taskState.runner.lastAttemptAt === "string") &&
+    (value.taskState.runner.lastLaunchError === null || typeof value.taskState.runner.lastLaunchError === "string") &&
+    (value.taskState.lastVerification === null ||
+      (isRecord(value.taskState.lastVerification) &&
+        typeof value.taskState.lastVerification.ok === "boolean" &&
+        typeof value.taskState.lastVerification.verifiedAt === "string" &&
+        Array.isArray(value.taskState.lastVerification.reasons) &&
+        Array.isArray(value.taskState.lastVerification.missingEvidence) &&
+        typeof value.taskState.lastVerification.observeRequired === "boolean" &&
+        typeof value.taskState.lastVerification.observationReadiness === "string")) &&
+    (value.taskState.lastRecoveryAction === null ||
+      (isRecord(value.taskState.lastRecoveryAction) &&
+        typeof value.taskState.lastRecoveryAction.kind === "string" &&
+        typeof value.taskState.lastRecoveryAction.at === "string" &&
+        typeof value.taskState.lastRecoveryAction.detail === "string")) &&
+    (value.taskState.lastReviewResult === null ||
+      (isRecord(value.taskState.lastReviewResult) &&
+        typeof value.taskState.lastReviewResult.reviewer === "string" &&
+        typeof value.taskState.lastReviewResult.status === "string" &&
+        typeof value.taskState.lastReviewResult.recordedAt === "string" &&
+        typeof value.taskState.lastReviewResult.summary === "string" &&
+        Array.isArray(value.taskState.lastReviewResult.findings))) &&
+    isRecord(value.taskState.autonomy) &&
+    typeof value.taskState.autonomy.maxAttempts === "number" &&
+    typeof value.taskState.autonomy.maxVerifyFailures === "number" &&
+    typeof value.taskState.autonomy.maxDurationMs === "number" &&
+    typeof value.taskState.autonomy.verifyFailureCount === "number" &&
+    typeof value.taskState.autonomy.escalated === "boolean" &&
+    (value.taskState.autonomy.escalationReason === null ||
+      typeof value.taskState.autonomy.escalationReason === "string") &&
+    (value.taskState.autonomy.escalatedAt === null || typeof value.taskState.autonomy.escalatedAt === "string") &&
+    isRecord(value.recovery) &&
+    (value.recovery.resumeStrategy === null ||
+      (isRecord(value.recovery.resumeStrategy) &&
+        typeof value.recovery.resumeStrategy.kind === "string" &&
+        (value.recovery.resumeStrategy.preferredTool === null ||
+          typeof value.recovery.resumeStrategy.preferredTool === "string") &&
+        (value.recovery.resumeStrategy.fallbackTool === null ||
+          typeof value.recovery.resumeStrategy.fallbackTool === "string") &&
+        typeof value.recovery.resumeStrategy.reason === "string")) &&
+    (value.recovery.recoveryPlan === null ||
+      (isRecord(value.recovery.recoveryPlan) &&
+        typeof value.recovery.recoveryPlan.kind === "string" &&
+        Array.isArray(value.recovery.recoveryPlan.actions) &&
+        typeof value.recovery.recoveryPlan.reason === "string"))
+  );
 }
 
 export function getTaskRoot(cwd: string, taskId: string): string {
@@ -331,12 +337,15 @@ function getHandoffPath(cwd: string, taskId: string): string {
   return join(getTaskRoot(cwd, taskId), "handoff.md");
 }
 
-function buildTaskContext(base: Omit<TaskContext, "taskState" | "recovery">, input: {
-  session: TaskSession;
-  resumeStrategy?: TaskResumeStrategy | null;
-  recoveryPlan?: TaskRecoveryPlan | null;
-  loop?: TaskContext["taskState"]["loop"];
-}): TaskContext {
+function buildTaskContext(
+  base: Omit<TaskContext, "taskState" | "recovery">,
+  input: {
+    session: TaskSession;
+    resumeStrategy?: TaskResumeStrategy | null;
+    recoveryPlan?: TaskRecoveryPlan | null;
+    loop?: TaskContext["taskState"]["loop"];
+  },
+): TaskContext {
   return {
     ...base,
     taskState: {
@@ -345,36 +354,46 @@ function buildTaskContext(base: Omit<TaskContext, "taskState" | "recovery">, inp
       taskEnvId: input.session.taskEnvId,
       observeSessionIds: [...input.session.observeSessionIds],
       loopId: input.session.loopId,
-      loop: input.loop ? {
-        ...input.loop,
-      } : null,
+      loop: input.loop
+        ? {
+            ...input.loop,
+          }
+        : null,
       nextActions: [...input.session.nextActions],
       runner: {
         ...input.session.runner,
         args: [...input.session.runner.args],
       },
-      lastVerification: input.session.lastVerification ? {
-        ...input.session.lastVerification,
-        reasons: [...input.session.lastVerification.reasons],
-        missingEvidence: [...input.session.lastVerification.missingEvidence],
-      } : null,
+      lastVerification: input.session.lastVerification
+        ? {
+            ...input.session.lastVerification,
+            reasons: [...input.session.lastVerification.reasons],
+            missingEvidence: [...input.session.lastVerification.missingEvidence],
+          }
+        : null,
       lastRecoveryAction: input.session.lastRecoveryAction ? { ...input.session.lastRecoveryAction } : null,
-      lastReviewResult: input.session.lastReviewResult ? {
-        ...input.session.lastReviewResult,
-        findings: [...input.session.lastReviewResult.findings],
-      } : null,
+      lastReviewResult: input.session.lastReviewResult
+        ? {
+            ...input.session.lastReviewResult,
+            findings: [...input.session.lastReviewResult.findings],
+          }
+        : null,
       autonomy: {
         ...input.session.autonomy,
       },
     },
     recovery: {
-      resumeStrategy: input.resumeStrategy ? {
-        ...input.resumeStrategy,
-      } : null,
-      recoveryPlan: input.recoveryPlan ? {
-        ...input.recoveryPlan,
-        actions: [...input.recoveryPlan.actions],
-      } : null,
+      resumeStrategy: input.resumeStrategy
+        ? {
+            ...input.resumeStrategy,
+          }
+        : null,
+      recoveryPlan: input.recoveryPlan
+        ? {
+            ...input.recoveryPlan,
+            actions: [...input.recoveryPlan.actions],
+          }
+        : null,
     },
   };
 }
@@ -429,6 +448,7 @@ function createEmptyTaskContext(): TaskContext {
     executionRoute: null,
     impactGuidance: {
       matchedCapabilities: [],
+      matchedKnowledgeItemIds: [],
       matchedFlows: [],
       impactedRepos: [],
       impactedContracts: [],
@@ -494,11 +514,15 @@ function createEmptyTaskContext(): TaskContext {
 }
 
 function normalizeTaskContext(value: TaskContext): TaskContext {
+  const impactGuidance = isTaskImpactGuidance((value as unknown as Record<string, unknown>).impactGuidance)
+    ? {
+        ...value.impactGuidance,
+        matchedKnowledgeItemIds: value.impactGuidance.matchedKnowledgeItemIds ?? [],
+      }
+    : createEmptyTaskContext().impactGuidance;
   return {
     ...value,
-    impactGuidance: isTaskImpactGuidance((value as Record<string, unknown>).impactGuidance)
-      ? value.impactGuidance
-      : createEmptyTaskContext().impactGuidance,
+    impactGuidance,
   };
 }
 
@@ -559,10 +583,10 @@ function prependHermesReviewAction(actions: string[]): string[] {
 
 function prependImpactReviewAction(actions: string[], impactGuidance: TaskImpactGuidance): string[] {
   if (
-    impactGuidance.matchedCapabilities.length === 0
-    && impactGuidance.matchedFlows.length === 0
-    && impactGuidance.impactedContracts.length === 0
-    && impactGuidance.riskHotspots.length === 0
+    impactGuidance.matchedCapabilities.length === 0 &&
+    impactGuidance.matchedFlows.length === 0 &&
+    impactGuidance.impactedContracts.length === 0 &&
+    impactGuidance.riskHotspots.length === 0
   ) {
     return actions;
   }
@@ -596,24 +620,21 @@ async function collectExistingLanguageGuideReferences(cwd: string): Promise<stri
 async function collectLanguageGuidance(cwd: string): Promise<TaskContext["languageGuidance"]> {
   const config = await readConfig(cwd);
   const languages = unique(
-    config.repos
-      .map((repo) => repo.stack.language)
-      .filter((language) => language !== "unknown"),
+    config.repos.map((repo) => repo.stack.language).filter((language) => language !== "unknown"),
   );
   const guideReferences = await collectExistingLanguageGuideReferences(cwd);
   const reviewerAgents = unique(
-    languages
-      .map((language) => LANGUAGE_REVIEWERS[language])
-      .filter((value): value is string => Boolean(value)),
+    languages.map((language) => LANGUAGE_REVIEWERS[language]).filter((value): value is string => Boolean(value)),
   );
 
   return {
     languages,
     guideReferences,
     reviewerAgents,
-    reviewHint: reviewerAgents.length > 0
-      ? `Prefer ${reviewerAgents.join(", ")} for language-specific design and implementation review.`
-      : null,
+    reviewHint:
+      reviewerAgents.length > 0
+        ? `Prefer ${reviewerAgents.join(", ")} for language-specific design and implementation review.`
+        : null,
   };
 }
 
@@ -645,6 +666,7 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
   ]);
 
   const matchedCapabilities: string[] = [];
+  const matchedKnowledgeItemIds: string[] = [];
   const matchedFlows: string[] = [];
   const impactedRepos: string[] = [];
   const impactedContracts: string[] = [];
@@ -677,13 +699,18 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
       const values = [
         typeof capability.name === "string" ? capability.name : "",
         typeof capability.description === "string" ? capability.description : "",
-        ...(Array.isArray(capability.responsibilities) ? capability.responsibilities.filter((v): v is string => typeof v === "string") : []),
+        ...(Array.isArray(capability.responsibilities)
+          ? capability.responsibilities.filter((v): v is string => typeof v === "string")
+          : []),
       ];
       if (!matchTextSignals(task, values)) {
         continue;
       }
       if (typeof capability.name === "string") {
         matchedCapabilities.push(capability.name);
+      }
+      if (typeof capability.id === "string") {
+        matchedKnowledgeItemIds.push(capability.id);
       }
       if (Array.isArray(capability.owningRepos)) {
         impactedRepos.push(...capability.owningRepos.filter((v): v is string => typeof v === "string"));
@@ -710,14 +737,21 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
       }
       const values = [
         typeof flow.summary === "string" ? flow.summary : "",
-        ...(Array.isArray(flow.participatingRepos) ? flow.participatingRepos.filter((v): v is string => typeof v === "string") : []),
-        ...(Array.isArray(flow.failurePoints) ? flow.failurePoints.filter((v): v is string => typeof v === "string") : []),
+        ...(Array.isArray(flow.participatingRepos)
+          ? flow.participatingRepos.filter((v): v is string => typeof v === "string")
+          : []),
+        ...(Array.isArray(flow.failurePoints)
+          ? flow.failurePoints.filter((v): v is string => typeof v === "string")
+          : []),
       ];
       if (!matchTextSignals(task, values)) {
         continue;
       }
       if (typeof flow.summary === "string") {
         matchedFlows.push(flow.summary);
+      }
+      if (typeof flow.id === "string") {
+        matchedKnowledgeItemIds.push(flow.id);
       }
       if (Array.isArray(flow.participatingRepos)) {
         impactedRepos.push(...flow.participatingRepos.filter((v): v is string => typeof v === "string"));
@@ -752,13 +786,18 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
         typeof contract.name === "string" ? contract.name : "",
         typeof contract.boundary === "string" ? contract.boundary : "",
         ...(Array.isArray(contract.owners) ? contract.owners.filter((v): v is string => typeof v === "string") : []),
-        ...(Array.isArray(contract.consumers) ? contract.consumers.filter((v): v is string => typeof v === "string") : []),
+        ...(Array.isArray(contract.consumers)
+          ? contract.consumers.filter((v): v is string => typeof v === "string")
+          : []),
       ];
       if (!matchTextSignals(task, values)) {
         continue;
       }
       if (typeof contract.name === "string") {
         impactedContracts.push(contract.name);
+      }
+      if (typeof contract.id === "string") {
+        matchedKnowledgeItemIds.push(contract.id);
       }
       if (Array.isArray(contract.owners)) {
         impactedRepos.push(...contract.owners.filter((v): v is string => typeof v === "string"));
@@ -776,7 +815,9 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
       matchedReferences.add("docs/architecture/integration-contracts.md");
     }
     if (impactedContracts.length > 0) {
-      rationale.push(`Detected ${unique(impactedContracts).length} contract surface(s) that may be touched by this task.`);
+      rationale.push(
+        `Detected ${unique(impactedContracts).length} contract surface(s) that may be touched by this task.`,
+      );
     }
   }
 
@@ -789,13 +830,18 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
       const values = [
         typeof risk.title === "string" ? risk.title : "",
         ...(Array.isArray(risk.reasons) ? risk.reasons.filter((v): v is string => typeof v === "string") : []),
-        ...(Array.isArray(risk.affectedRepos) ? risk.affectedRepos.filter((v): v is string => typeof v === "string") : []),
+        ...(Array.isArray(risk.affectedRepos)
+          ? risk.affectedRepos.filter((v): v is string => typeof v === "string")
+          : []),
       ];
       if (!matchTextSignals(task, values)) {
         continue;
       }
       if (typeof risk.title === "string") {
         riskHotspots.push(risk.title);
+      }
+      if (typeof risk.id === "string") {
+        matchedKnowledgeItemIds.push(risk.id);
       }
       if (Array.isArray(risk.affectedRepos)) {
         impactedRepos.push(...risk.affectedRepos.filter((v): v is string => typeof v === "string"));
@@ -830,6 +876,9 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
       if (typeof decision.statement === "string") {
         decisionNotes.push(decision.statement);
       }
+      if (typeof decision.id === "string") {
+        matchedKnowledgeItemIds.push(decision.id);
+      }
       const evidence = isRecord(decision.evidence) ? decision.evidence : null;
       if (evidence && Array.isArray(evidence.signals)) {
         evidenceSignals.push(...evidence.signals.filter((v): v is string => typeof v === "string"));
@@ -840,7 +889,9 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
       matchedReferences.add("docs/architecture/decision-history.md");
     }
     if (decisionNotes.length > 0) {
-      rationale.push(`Matched ${unique(decisionNotes).length} prior decision note(s) that should constrain implementation.`);
+      rationale.push(
+        `Matched ${unique(decisionNotes).length} prior decision note(s) that should constrain implementation.`,
+      );
     }
   }
 
@@ -852,14 +903,21 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
       }
       const values = [
         typeof entry.target === "string" ? entry.target : "",
-        ...(Array.isArray(entry.impactedRepos) ? entry.impactedRepos.filter((v): v is string => typeof v === "string") : []),
-        ...(Array.isArray(entry.impactedContracts) ? entry.impactedContracts.filter((v): v is string => typeof v === "string") : []),
+        ...(Array.isArray(entry.impactedRepos)
+          ? entry.impactedRepos.filter((v): v is string => typeof v === "string")
+          : []),
+        ...(Array.isArray(entry.impactedContracts)
+          ? entry.impactedContracts.filter((v): v is string => typeof v === "string")
+          : []),
       ];
       if (!matchTextSignals(task, values)) {
         continue;
       }
       if (Array.isArray(entry.impactedRepos)) {
         impactedRepos.push(...entry.impactedRepos.filter((v): v is string => typeof v === "string"));
+      }
+      if (typeof entry.id === "string") {
+        matchedKnowledgeItemIds.push(entry.id);
       }
       if (Array.isArray(entry.impactedContracts)) {
         impactedContracts.push(...entry.impactedContracts.filter((v): v is string => typeof v === "string"));
@@ -885,6 +943,7 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
   }
 
   const normalized = {
+    matchedKnowledgeItemIds: unique(matchedKnowledgeItemIds),
     matchedCapabilities: unique(matchedCapabilities),
     matchedFlows: unique(matchedFlows),
     impactedRepos: unique(impactedRepos),
@@ -895,15 +954,17 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
     decisionNotes: unique(decisionNotes),
     evidenceSignals: unique(evidenceSignals).slice(0, 12),
     references: references.filter((reference) => matchedReferences.has(reference)),
-    confidence: confidenceScores.length > 0
-      ? Number((confidenceScores.reduce((sum, value) => sum + value, 0) / confidenceScores.length).toFixed(2))
-      : null,
+    confidence:
+      confidenceScores.length > 0
+        ? Number((confidenceScores.reduce((sum, value) => sum + value, 0) / confidenceScores.length).toFixed(2))
+        : null,
     rationale: unique(rationale),
     reviewHint: null as string | null,
   };
-  normalized.reviewHint = normalized.impactedRepos.length > 0 || normalized.impactedContracts.length > 0
-    ? `Review impacted repos (${normalized.impactedRepos.join(", ") || "none"}) and contracts (${normalized.impactedContracts.join(", ") || "none"}) before implementation.`
-    : null;
+  normalized.reviewHint =
+    normalized.impactedRepos.length > 0 || normalized.impactedContracts.length > 0
+      ? `Review impacted repos (${normalized.impactedRepos.join(", ") || "none"}) and contracts (${normalized.impactedContracts.join(", ") || "none"}) before implementation.`
+      : null;
   return normalized;
 }
 
@@ -913,22 +974,18 @@ function buildReviewGate(input: {
   languageGuidance: TaskContext["languageGuidance"];
 }): TaskContext["reviewGate"] {
   const languages = input.executionRoute?.classification.languages ?? input.languageGuidance.languages;
-  const reviewers = unique(
-    [
-      ...(input.executionRoute?.recommendation.reviewerAgents.length
+  const reviewers = unique([
+    ...(input.executionRoute?.recommendation.reviewerAgents.length
       ? input.executionRoute.recommendation.reviewerAgents
       : input.languageGuidance.reviewerAgents),
-      ...input.impactGuidance.reviewerHints,
-    ],
-  );
-  const guideReferences = unique(
-    [
-      ...(input.executionRoute?.recommendation.guideReferences.length
+    ...input.impactGuidance.reviewerHints,
+  ]);
+  const guideReferences = unique([
+    ...(input.executionRoute?.recommendation.guideReferences.length
       ? input.executionRoute.recommendation.guideReferences
       : input.languageGuidance.guideReferences),
-      ...input.impactGuidance.references,
-    ],
-  );
+    ...input.impactGuidance.references,
+  ]);
 
   if (reviewers.length === 0) {
     return {
@@ -941,15 +998,17 @@ function buildReviewGate(input: {
     };
   }
 
-  const requiresStrictGate = languages.some((language) => ["java", "rust"].includes(language))
-    || input.executionRoute?.recommendation.profileClass === "premium"
-    || input.impactGuidance.riskHotspots.length > 0
-    || input.impactGuidance.impactedContracts.length > 0;
-  const recommendsGate = requiresStrictGate
-    || input.executionRoute?.classification.complexity !== "simple"
-    || languages.some((language) => ["typescript", "python", "go", "golang", "kotlin"].includes(language))
-    || input.impactGuidance.matchedCapabilities.length > 0
-    || input.impactGuidance.matchedFlows.length > 0;
+  const requiresStrictGate =
+    languages.some((language) => ["java", "rust"].includes(language)) ||
+    input.executionRoute?.recommendation.profileClass === "premium" ||
+    input.impactGuidance.riskHotspots.length > 0 ||
+    input.impactGuidance.impactedContracts.length > 0;
+  const recommendsGate =
+    requiresStrictGate ||
+    input.executionRoute?.classification.complexity !== "simple" ||
+    languages.some((language) => ["typescript", "python", "go", "golang", "kotlin"].includes(language)) ||
+    input.impactGuidance.matchedCapabilities.length > 0 ||
+    input.impactGuidance.matchedFlows.length > 0;
   const level: TaskContext["reviewGate"]["level"] = requiresStrictGate
     ? "required"
     : recommendsGate
@@ -968,15 +1027,16 @@ function buildReviewGate(input: {
       ...(input.impactGuidance.matchedFlows.length > 0 ? ["critical-flow-regression-risk"] : []),
       ...(input.impactGuidance.decisionNotes.length > 0 ? ["decision-history-conflict"] : []),
     ]),
-    reason: level === "required"
-      ? input.impactGuidance.rationale.length > 0
-        ? `Language and analyzed impact risk require a dedicated reviewer gate before considering the task complete. ${input.impactGuidance.rationale.join(" ")}`
-        : "Language and route risk require a dedicated reviewer gate before considering the task complete."
-      : level === "recommended"
+    reason:
+      level === "required"
         ? input.impactGuidance.rationale.length > 0
-          ? `Language-specific review is recommended to preserve architecture and implementation quality. ${input.impactGuidance.rationale.join(" ")}`
-          : "Language-specific review is recommended to preserve architecture and implementation quality."
-        : "No explicit language-specific review gate configured.",
+          ? `Language and analyzed impact risk require a dedicated reviewer gate before considering the task complete. ${input.impactGuidance.rationale.join(" ")}`
+          : "Language and route risk require a dedicated reviewer gate before considering the task complete."
+        : level === "recommended"
+          ? input.impactGuidance.rationale.length > 0
+            ? `Language-specific review is recommended to preserve architecture and implementation quality. ${input.impactGuidance.rationale.join(" ")}`
+            : "Language-specific review is recommended to preserve architecture and implementation quality."
+          : "No explicit language-specific review gate configured.",
   };
 }
 
@@ -1062,9 +1122,11 @@ function deriveRetryPlan(failureReason: string | null | undefined): {
   nextActions: string[];
 } {
   const normalizedReason = failureReason?.toLowerCase() ?? "";
-  if (normalizedReason.includes("observation-empty")
-    || normalizedReason.includes("observation-partial")
-    || normalizedReason.includes("observation-evidence")) {
+  if (
+    normalizedReason.includes("observation-empty") ||
+    normalizedReason.includes("observation-partial") ||
+    normalizedReason.includes("observation-evidence")
+  ) {
     return {
       currentStep: "verify",
       nextActions: ["collect-evidence", "verify"],
@@ -1087,13 +1149,18 @@ function deriveRetryPlan(failureReason: string | null | undefined): {
 function needsObservationRecovery(session: TaskSession): boolean {
   const normalizedReason = session.lastError?.toLowerCase() ?? "";
   const missingEvidence = session.lastVerification?.missingEvidence ?? [];
-  return missingEvidence.includes("observation-evidence")
-    || normalizedReason.includes("observation-empty")
-    || normalizedReason.includes("observation-partial")
-    || normalizedReason.includes("observation-evidence");
+  return (
+    missingEvidence.includes("observation-evidence") ||
+    normalizedReason.includes("observation-empty") ||
+    normalizedReason.includes("observation-partial") ||
+    normalizedReason.includes("observation-evidence")
+  );
 }
 
-function deriveAutonomyEscalation(session: TaskSession, now = new Date()): {
+function deriveAutonomyEscalation(
+  session: TaskSession,
+  now = new Date(),
+): {
   exceeded: boolean;
   reason: string | null;
 } {
@@ -1165,9 +1232,10 @@ function deriveResumeStrategy(session: TaskSession, defaultTool: string | null):
       kind: "last-runner",
       preferredTool: lastRunnerTool,
       fallbackTool: defaultTool && defaultTool !== lastRunnerTool ? defaultTool : null,
-      reason: session.status === "blocked"
-        ? "retry the most recent successful runner before falling back"
-        : "continue with the most recent successful runner",
+      reason:
+        session.status === "blocked"
+          ? "retry the most recent successful runner before falling back"
+          : "continue with the most recent successful runner",
     };
   }
 
@@ -1221,8 +1289,10 @@ function deriveRecoveryPlan(session: TaskSession, resumeStrategy: TaskResumeStra
     };
   }
 
-  if ((session.status === "retrying" || session.status === "verifying")
-    && session.nextActions.includes("collect-evidence")) {
+  if (
+    (session.status === "retrying" || session.status === "verifying") &&
+    session.nextActions.includes("collect-evidence")
+  ) {
     return {
       kind: "collect-evidence",
       actions: session.nextActions,
@@ -1231,8 +1301,10 @@ function deriveRecoveryPlan(session: TaskSession, resumeStrategy: TaskResumeStra
   }
 
   const missingEvidence = session.lastVerification?.missingEvidence ?? [];
-  if ((session.status === "retrying" || session.status === "verifying")
-    && missingEvidence.includes("observation-evidence")) {
+  if (
+    (session.status === "retrying" || session.status === "verifying") &&
+    missingEvidence.includes("observation-evidence")
+  ) {
     return {
       kind: "collect-evidence",
       actions: ["collect-evidence", "verify"],
@@ -1311,33 +1383,37 @@ async function allocateTaskId(cwd: string, task: string): Promise<string> {
   return candidate;
 }
 
-async function writeHandoff(cwd: string, taskId: string, input: {
-  task: string;
-  summary: string;
-  commandSpecPath: string;
-  references: string[];
-  executionRoute: TaskContext["executionRoute"];
-  impactGuidance: TaskContext["impactGuidance"];
-  languageGuidance: TaskContext["languageGuidance"];
-  reviewGate: TaskContext["reviewGate"];
-  decisions: Record<string, { decision: string; reasons: string[] }>;
-  taskEnvId: string | null;
-  observeSessionIds: string[];
-  hermesRecommendations: string[];
-  hermesQuery: TaskContext["hermesQuery"];
-  status: TaskSession["status"];
-  currentStep: TaskSession["currentStep"];
-  runner: TaskSession["runner"];
-  loopId: TaskSession["loopId"];
-  loop: TaskContext["taskState"]["loop"];
-  lastVerification: TaskSession["lastVerification"];
-  lastRecoveryAction: TaskSession["lastRecoveryAction"];
-  lastReviewResult: TaskSession["lastReviewResult"];
-  autonomy: TaskSession["autonomy"];
-  resumeStrategy?: TaskResumeStrategy;
-  recoveryPlan?: TaskRecoveryPlan;
-  nextActions: string[];
-}): Promise<void> {
+async function writeHandoff(
+  cwd: string,
+  taskId: string,
+  input: {
+    task: string;
+    summary: string;
+    commandSpecPath: string;
+    references: string[];
+    executionRoute: TaskContext["executionRoute"];
+    impactGuidance: TaskContext["impactGuidance"];
+    languageGuidance: TaskContext["languageGuidance"];
+    reviewGate: TaskContext["reviewGate"];
+    decisions: WorkflowDecisionSet;
+    taskEnvId: string | null;
+    observeSessionIds: string[];
+    hermesRecommendations: string[];
+    hermesQuery: TaskContext["hermesQuery"];
+    status: TaskSession["status"];
+    currentStep: TaskSession["currentStep"];
+    runner: TaskSession["runner"];
+    loopId: TaskSession["loopId"];
+    loop: TaskContext["taskState"]["loop"];
+    lastVerification: TaskSession["lastVerification"];
+    lastRecoveryAction: TaskSession["lastRecoveryAction"];
+    lastReviewResult: TaskSession["lastReviewResult"];
+    autonomy: TaskSession["autonomy"];
+    resumeStrategy?: TaskResumeStrategy;
+    recoveryPlan?: TaskRecoveryPlan;
+    nextActions: string[];
+  },
+): Promise<void> {
   const impactGuidance = input.impactGuidance ?? emptyImpactGuidance();
   const lines = [
     "# Task Handoff",
@@ -1382,6 +1458,7 @@ async function writeHandoff(cwd: string, taskId: string, input: {
     "",
     "## Impact Guidance",
     "",
+    `- Knowledge Items: ${impactGuidance.matchedKnowledgeItemIds.length > 0 ? impactGuidance.matchedKnowledgeItemIds.join(", ") : "(none)"}`,
     `- Capabilities: ${impactGuidance.matchedCapabilities.length > 0 ? impactGuidance.matchedCapabilities.join(", ") : "(none)"}`,
     `- Critical Flows: ${impactGuidance.matchedFlows.length > 0 ? impactGuidance.matchedFlows.join(", ") : "(none)"}`,
     `- Impacted Repos: ${impactGuidance.impactedRepos.length > 0 ? impactGuidance.impactedRepos.join(", ") : "(none)"}`,
@@ -1424,7 +1501,10 @@ async function writeHandoff(cwd: string, taskId: string, input: {
           `- Telemetry Note: ${input.executionRoute.recommendation.telemetryNote}`,
           `- Route Reviewers: ${input.executionRoute.recommendation.reviewerAgents.length > 0 ? input.executionRoute.recommendation.reviewerAgents.join(", ") : "(none)"}`,
           ...(input.executionRoute.recommendation.guideReferences.length > 0
-            ? ["- Route Guides:", ...input.executionRoute.recommendation.guideReferences.map((reference) => `  - ${reference}`)]
+            ? [
+                "- Route Guides:",
+                ...input.executionRoute.recommendation.guideReferences.map((reference) => `  - ${reference}`),
+              ]
             : ["- Route Guides: (none)"]),
         ]
       : ["- (none)"]),
@@ -1446,13 +1526,17 @@ async function writeHandoff(cwd: string, taskId: string, input: {
     "",
     "## Decisions",
     "",
-    ...Object.entries(input.decisions).flatMap(([name, decision]) => [
-      `### ${name}`,
-      "",
-      `- Decision: ${decision.decision}`,
-      ...(decision.reasons.length > 0 ? decision.reasons.map((reason) => `- Reason: ${reason}`) : ["- Reason: (none)"]),
-      "",
-    ]),
+    ...(Object.entries(input.decisions) as Array<[string, { decision: string; reasons: string[] }]>).flatMap(
+      ([name, decision]) => [
+        `### ${name}`,
+        "",
+        `- Decision: ${decision.decision}`,
+        ...(decision.reasons.length > 0
+          ? decision.reasons.map((reason) => `- Reason: ${reason}`)
+          : ["- Reason: (none)"]),
+        "",
+      ],
+    ),
     "## Hermes Recommendations",
     "",
     ...(input.hermesRecommendations.length > 0
@@ -1469,11 +1553,9 @@ async function writeHandoff(cwd: string, taskId: string, input: {
     `- Influenced Workflow: ${input.hermesQuery.influencedWorkflow ? "yes" : "no"}`,
     `- Influenced Recovery: ${input.hermesQuery.influencedRecovery ? "yes" : "no"}`,
     `- Influenced Verification: ${input.hermesQuery.influencedVerification ? "yes" : "no"}`,
-    ...(
-      input.hermesQuery.references.length > 0
-        ? ["- References:", ...input.hermesQuery.references.map((reference) => `  - ${reference}`)]
-        : ["- References: (none)"]
-    ),
+    ...(input.hermesQuery.references.length > 0
+      ? ["- References:", ...input.hermesQuery.references.map((reference) => `  - ${reference}`)]
+      : ["- References: (none)"]),
     "",
     "## Verification State",
     "",
@@ -1489,7 +1571,13 @@ async function writeHandoff(cwd: string, taskId: string, input: {
             ? ["- Missing Evidence:", ...input.lastVerification.missingEvidence.map((item) => `  - ${item}`)]
             : ["- Missing Evidence: (none)"]),
         ]
-      : ["- Verified At: (none)", "- OK: (none)", "- Observation Readiness: (none)", "- Reasons: (none)", "- Missing Evidence: (none)"]),
+      : [
+          "- Verified At: (none)",
+          "- OK: (none)",
+          "- Observation Readiness: (none)",
+          "- Reasons: (none)",
+          "- Missing Evidence: (none)",
+        ]),
     "",
     "## Recovery",
     "",
@@ -1634,7 +1722,10 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
     influencedRecovery: false,
     influencedVerification: false,
   };
-  if (hermesStrategy !== "disabled" && (workflow.decisions.hermesQuery.decision === "recommended" || hermesStrategy === "forced")) {
+  if (
+    hermesStrategy !== "disabled" &&
+    (workflow.decisions.hermesQuery.decision === "recommended" || hermesStrategy === "forced")
+  ) {
     session.currentStep = "hermes-query";
     session.updatedAt = new Date().toISOString();
     await writeJsonStore(sessionPath, session);
@@ -1659,34 +1750,39 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
   session.workflowKind = workflow.kind;
   session.taskEnvId = taskEnvId;
   session.observeSessionIds = observeSessionIds;
-  const [languageGuideReferences, languageGuidance, executionRoute, impactGuidance, latestAnalyzeSummary] = await Promise.all([
-    collectExistingLanguageGuideReferences(cwd),
-    collectLanguageGuidance(cwd),
-    collectExecutionRoute(cwd, taskText),
-    collectImpactGuidance(cwd, taskText),
-    readLatestAnalyzeSummary(cwd),
-  ]);
+  const [languageGuideReferences, languageGuidance, executionRoute, impactGuidance, latestAnalyzeSummary] =
+    await Promise.all([
+      collectExistingLanguageGuideReferences(cwd),
+      collectLanguageGuidance(cwd),
+      collectExecutionRoute(cwd, taskText),
+      collectImpactGuidance(cwd, taskText),
+      readLatestAnalyzeSummary(cwd),
+    ]);
   session.nextActions = hermesQuery.executed ? prependHermesReviewAction(workflow.nextActions) : workflow.nextActions;
   session.nextActions = prependImpactReviewAction(session.nextActions, impactGuidance);
   session.status = tool ? "implementing" : "prepared";
   clearTaskError(session);
   const reviewGate = buildReviewGate({ executionRoute, impactGuidance, languageGuidance });
-  let context: TaskContext = await buildTaskContextWithRuntime(cwd, {
-    version: TASK_STORE_VERSION,
-    taskId,
-    analyzeRunId: latestAnalyzeSummary.runId,
-    references: unique([...workflow.references, ...languageGuideReferences, ...impactGuidance.references]),
-    executionRoute,
-    impactGuidance,
-    languageGuidance,
-    reviewGate,
-    commandSpecPath: workflow.commandSpecPath,
-    summary: workflow.summary,
-    hermesRecommendations,
-    hermesQuery,
-  }, {
-    session,
-  });
+  let context: TaskContext = await buildTaskContextWithRuntime(
+    cwd,
+    {
+      version: TASK_STORE_VERSION,
+      taskId,
+      analyzeRunId: latestAnalyzeSummary.runId,
+      references: unique([...workflow.references, ...languageGuideReferences, ...impactGuidance.references]),
+      executionRoute,
+      impactGuidance,
+      languageGuidance,
+      reviewGate,
+      commandSpecPath: workflow.commandSpecPath,
+      summary: workflow.summary,
+      hermesRecommendations,
+      hermesQuery,
+    },
+    {
+      session,
+    },
+  );
   const wikiArtifact = await writeTaskWikiArtifact({
     cwd,
     taskId,
@@ -1846,33 +1942,37 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
 }
 
 export async function readTaskSession(cwd: string, taskId: string): Promise<TaskSession> {
-  const session = await readJsonStore(getSessionPath(cwd, taskId), {
-    version: TASK_STORE_VERSION,
-    taskId: "",
-    task: "",
-    status: "prepared",
-    entrypoint: "start",
-    tool: null,
-    startedAt: "",
-    updatedAt: "",
-    workflowKind: "plan",
-    currentStep: null,
-    attemptCount: 0,
-    taskEnvId: null,
-    observeSessionIds: [],
-    loopId: null,
-    nextActions: [],
-    lastError: null,
-    lastErrorAt: null,
-    blockedReason: null,
-    runner: {
-      ...createRunnerState(),
-    },
-    lastVerification: null,
-    lastRecoveryAction: null,
-    lastReviewResult: null,
-    autonomy: createAutonomyState(),
-  } satisfies TaskSession, isTaskSession);
+  const session = await readJsonStore(
+    getSessionPath(cwd, taskId),
+    {
+      version: TASK_STORE_VERSION,
+      taskId: "",
+      task: "",
+      status: "prepared",
+      entrypoint: "start",
+      tool: null,
+      startedAt: "",
+      updatedAt: "",
+      workflowKind: "plan",
+      currentStep: null,
+      attemptCount: 0,
+      taskEnvId: null,
+      observeSessionIds: [],
+      loopId: null,
+      nextActions: [],
+      lastError: null,
+      lastErrorAt: null,
+      blockedReason: null,
+      runner: {
+        ...createRunnerState(),
+      },
+      lastVerification: null,
+      lastRecoveryAction: null,
+      lastReviewResult: null,
+      autonomy: createAutonomyState(),
+    } satisfies TaskSession,
+    isTaskSession,
+  );
   if (session.taskId.length === 0) {
     throw new Error(`Task '${taskId}' not found.`);
   }
@@ -1898,14 +1998,18 @@ export async function updateTaskSessionAfterVerify(input: {
     updatedAt,
     nextActions: input.ok
       ? []
-      : (input.hermesQueryExecuted ? prependHermesReviewAction(retryPlan.nextActions) : retryPlan.nextActions),
+      : input.hermesQueryExecuted
+        ? prependHermesReviewAction(retryPlan.nextActions)
+        : retryPlan.nextActions,
     lastError: input.ok ? null : (input.failureReason ?? "verification incomplete"),
     lastErrorAt: input.ok ? null : updatedAt,
     blockedReason: null,
-    lastVerification: input.summary ? {
-      ...input.summary,
-      verifiedAt: updatedAt,
-    } : session.lastVerification,
+    lastVerification: input.summary
+      ? {
+          ...input.summary,
+          verifiedAt: updatedAt,
+        }
+      : session.lastVerification,
     lastRecoveryAction: session.lastRecoveryAction,
     autonomy: {
       ...session.autonomy,
@@ -1916,9 +2020,10 @@ export async function updateTaskSessionAfterVerify(input: {
     },
   };
   const autonomy = deriveAutonomyEscalation(updatedSession, new Date(updatedAt));
-  const finalSession = autonomy.exceeded && autonomy.reason
-    ? applyAutonomyEscalation(updatedSession, autonomy.reason, updatedAt)
-    : updatedSession;
+  const finalSession =
+    autonomy.exceeded && autonomy.reason
+      ? applyAutonomyEscalation(updatedSession, autonomy.reason, updatedAt)
+      : updatedSession;
 
   await writeJsonStore(getSessionPath(input.cwd, input.taskId), finalSession);
   return finalSession;
@@ -1946,9 +2051,10 @@ export async function recordTaskReviewResult(input: {
     },
     lastError: input.status === "failed" ? `review-gate-failed: ${input.reviewer}` : session.lastError,
     lastErrorAt: input.status === "failed" ? updatedAt : session.lastErrorAt,
-    nextActions: input.status === "failed"
-      ? unique(["address-review-findings", "implement", "verify", ...session.nextActions])
-      : session.nextActions.filter((action) => action !== "address-review-findings"),
+    nextActions:
+      input.status === "failed"
+        ? unique(["address-review-findings", "implement", "verify", ...session.nextActions])
+        : session.nextActions.filter((action) => action !== "address-review-findings"),
   };
   await writeJsonStore(getSessionPath(input.cwd, input.taskId), updatedSession);
   return updatedSession;
@@ -1964,39 +2070,34 @@ export async function syncTaskContextFromSession(input: {
   const current = await readTaskContext(input.cwd, input.taskId);
   const resumeStrategy = deriveResumeStrategy(input.session, input.defaultTool?.trim() || null);
   const recoveryPlan = deriveRecoveryPlan(input.session, resumeStrategy);
-  const updated = await buildTaskContextWithRuntime(input.cwd, {
-    ...current,
-    hermesQuery: {
-      ...current.hermesQuery,
-      ...input.hermesQueryPatch,
+  const updated = await buildTaskContextWithRuntime(
+    input.cwd,
+    {
+      ...current,
+      hermesQuery: {
+        ...current.hermesQuery,
+        ...input.hermesQueryPatch,
+      },
     },
-  }, {
-    session: input.session,
-    resumeStrategy,
-    recoveryPlan,
-  });
+    {
+      session: input.session,
+      resumeStrategy,
+      recoveryPlan,
+    },
+  );
   await writeTaskContextStore(input.cwd, input.taskId, updated);
   return updated;
 }
 
-export async function assignLoopToTask(input: {
-  cwd: string;
-  taskId: string;
-  loopId: string;
-}): Promise<TaskSession> {
+export async function assignLoopToTask(input: { cwd: string; taskId: string; loopId: string }): Promise<TaskSession> {
   await assertInitialized(input.cwd);
-  const [config, session] = await Promise.all([
-    readConfig(input.cwd),
-    readTaskSession(input.cwd, input.taskId),
-  ]);
+  const [config, session] = await Promise.all([readConfig(input.cwd), readTaskSession(input.cwd, input.taskId)]);
   const updatedSession: TaskSession = {
     ...session,
     loopId: input.loopId,
     status: session.status === "completed" || session.status === "blocked" ? session.status : "verifying",
     currentStep: session.status === "completed" ? "complete" : "verify",
-    nextActions: session.nextActions.includes("verify")
-      ? session.nextActions
-      : [...session.nextActions, "verify"],
+    nextActions: session.nextActions.includes("verify") ? session.nextActions : [...session.nextActions, "verify"],
     updatedAt: new Date().toISOString(),
   };
   const resumeStrategy = deriveResumeStrategy(updatedSession, config.agentRunner?.defaultTool?.trim() || null);
@@ -2007,14 +2108,18 @@ export async function assignLoopToTask(input: {
     resumeStrategy,
     recoveryPlan,
   });
-  const decisions = await readJsonStore(getDecisionsPath(input.cwd, input.taskId), {
-    taskEnv: { decision: "not-required", reasons: [] },
-    observe: { decision: "not-required", reasons: [] },
-    tdd: { decision: "optional", reasons: [] },
-    security: { decision: "not-required", reasons: [] },
-    loop: { decision: "not-required", reasons: [] },
-    hermesQuery: { decision: "not-required", reasons: [] },
-  }, (value): value is StartTaskResult["decisions"] => isRecord(value));
+  const decisions = await readJsonStore(
+    getDecisionsPath(input.cwd, input.taskId),
+    {
+      taskEnv: { decision: "not-required", reasons: [] },
+      observe: { decision: "not-required", reasons: [] },
+      tdd: { decision: "optional", reasons: [] },
+      security: { decision: "not-required", reasons: [] },
+      loop: { decision: "not-required", reasons: [] },
+      hermesQuery: { decision: "not-required", reasons: [] },
+    },
+    (value): value is StartTaskResult["decisions"] => isRecord(value),
+  );
 
   await Promise.all([
     writeJsonStore(getSessionPath(input.cwd, input.taskId), updatedSession),
@@ -2025,6 +2130,7 @@ export async function assignLoopToTask(input: {
       commandSpecPath: current.commandSpecPath,
       references: current.references,
       executionRoute: current.executionRoute,
+      impactGuidance: current.impactGuidance,
       languageGuidance: current.languageGuidance,
       reviewGate: current.reviewGate,
       decisions,
@@ -2073,26 +2179,34 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
   if (session.status === "completed") {
     throw new Error(`Task '${taskId}' is already completed and cannot be resumed.`);
   }
-  const decisions = await readJsonStore(getDecisionsPath(cwd, taskId), {
-    taskEnv: { decision: "not-required", reasons: [] },
-    observe: { decision: "not-required", reasons: [] },
-    tdd: { decision: "optional", reasons: [] },
-    security: { decision: "not-required", reasons: [] },
-    loop: { decision: "not-required", reasons: [] },
-    hermesQuery: { decision: "not-required", reasons: [] },
-  }, (value): value is StartTaskResult["decisions"] => isRecord(value));
+  const decisions = await readJsonStore(
+    getDecisionsPath(cwd, taskId),
+    {
+      taskEnv: { decision: "not-required", reasons: [] },
+      observe: { decision: "not-required", reasons: [] },
+      tdd: { decision: "optional", reasons: [] },
+      security: { decision: "not-required", reasons: [] },
+      loop: { decision: "not-required", reasons: [] },
+      hermesQuery: { decision: "not-required", reasons: [] },
+    },
+    (value): value is StartTaskResult["decisions"] => isRecord(value),
+  );
   const context = await readTaskContext(cwd, taskId);
 
   const now = new Date().toISOString();
   const currentTool = detectCurrentTool();
   const autonomyExceededBeforeResume = deriveAutonomyEscalation(session, new Date(now));
   if (autonomyExceededBeforeResume.exceeded && autonomyExceededBeforeResume.reason) {
-    const escalatedSession = applyAutonomyEscalation({
-      ...session,
-      entrypoint: "resume",
-      updatedAt: now,
-      attemptCount: session.attemptCount + 1,
-    }, autonomyExceededBeforeResume.reason, now);
+    const escalatedSession = applyAutonomyEscalation(
+      {
+        ...session,
+        entrypoint: "resume",
+        updatedAt: now,
+        attemptCount: session.attemptCount + 1,
+      },
+      autonomyExceededBeforeResume.reason,
+      now,
+    );
     const resumeStrategy = deriveResumeStrategy(escalatedSession, config.agentRunner?.defaultTool?.trim() || null);
     const recoveryPlan = deriveRecoveryPlan(escalatedSession, resumeStrategy);
     const updatedContext = await buildTaskContextWithRuntime(cwd, context, {
@@ -2105,13 +2219,13 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
       writeTaskContextStore(cwd, taskId, updatedContext),
       writeHandoff(cwd, taskId, {
         task: escalatedSession.task,
-      summary: context.summary,
-      commandSpecPath: context.commandSpecPath,
-      references: context.references,
-      executionRoute: context.executionRoute,
-      impactGuidance: context.impactGuidance,
-      languageGuidance: context.languageGuidance,
-      reviewGate: context.reviewGate,
+        summary: context.summary,
+        commandSpecPath: context.commandSpecPath,
+        references: context.references,
+        executionRoute: context.executionRoute,
+        impactGuidance: context.impactGuidance,
+        languageGuidance: context.languageGuidance,
+        reviewGate: context.reviewGate,
         decisions,
         taskEnvId: escalatedSession.taskEnvId,
         observeSessionIds: escalatedSession.observeSessionIds,
@@ -2143,7 +2257,8 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
   }
 
   let tool = currentTool;
-  let status = session.status === "failed" || session.status === "blocked" ? "retrying" : session.status;
+  let status: TaskSession["status"] =
+    session.status === "failed" || session.status === "blocked" ? "retrying" : session.status;
   let lastError = session.lastError;
   let lastErrorAt = session.lastErrorAt;
   let blockedReason = session.blockedReason;
@@ -2183,8 +2298,14 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
         taskStatus: status,
         currentStep: retryPlan.currentStep,
         resumeStrategyKind: deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null).kind,
-        recoveryPlanKind: deriveRecoveryPlan(session, deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null)).kind,
-        recoveryActions: deriveRecoveryPlan(session, deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null)).actions,
+        recoveryPlanKind: deriveRecoveryPlan(
+          session,
+          deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null),
+        ).kind,
+        recoveryActions: deriveRecoveryPlan(
+          session,
+          deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null),
+        ).actions,
         reviewGateLevel: context.reviewGate.level,
         reviewGateReviewers: context.reviewGate.reviewers,
         reviewGatePack: context.reviewGate.reviewPack,
@@ -2201,7 +2322,12 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
       if (launched) {
         const launchedAt = launched.launchedAt ?? now;
         tool = launched.tool;
-        status = session.status === "retrying" ? (retryPlan.currentStep === "verify" ? "verifying" : "implementing") : "implementing";
+        status =
+          session.status === "retrying"
+            ? retryPlan.currentStep === "verify"
+              ? "verifying"
+              : "implementing"
+            : "implementing";
         lastError = null;
         lastErrorAt = null;
         blockedReason = null;
@@ -2214,9 +2340,10 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
         runner.lastAttemptAt = launchedAt;
         runner.lastLaunchError = null;
       } else {
-        const fallbackTool = preferredRunnerTool && preferredRunnerTool !== config.agentRunner?.defaultTool?.trim()
-          ? config.agentRunner?.defaultTool?.trim() ?? null
-          : null;
+        const fallbackTool =
+          preferredRunnerTool && preferredRunnerTool !== config.agentRunner?.defaultTool?.trim()
+            ? (config.agentRunner?.defaultTool?.trim() ?? null)
+            : null;
         if (fallbackTool) {
           const fallbackLaunched = await launchConfiguredAgentRunner({
             cwd,
@@ -2229,8 +2356,14 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
             taskStatus: status,
             currentStep: retryPlan.currentStep,
             resumeStrategyKind: deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null).kind,
-            recoveryPlanKind: deriveRecoveryPlan(session, deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null)).kind,
-            recoveryActions: deriveRecoveryPlan(session, deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null)).actions,
+            recoveryPlanKind: deriveRecoveryPlan(
+              session,
+              deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null),
+            ).kind,
+            recoveryActions: deriveRecoveryPlan(
+              session,
+              deriveResumeStrategy(session, config.agentRunner?.defaultTool?.trim() || null),
+            ).actions,
             reviewGateLevel: context.reviewGate.level,
             reviewGateReviewers: context.reviewGate.reviewers,
             reviewGatePack: context.reviewGate.reviewPack,
@@ -2247,7 +2380,12 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
           if (fallbackLaunched) {
             const launchedAt = fallbackLaunched.launchedAt ?? now;
             tool = fallbackLaunched.tool;
-            status = session.status === "retrying" ? (retryPlan.currentStep === "verify" ? "verifying" : "implementing") : "implementing";
+            status =
+              session.status === "retrying"
+                ? retryPlan.currentStep === "verify"
+                  ? "verifying"
+                  : "implementing"
+                : "implementing";
             lastError = null;
             lastErrorAt = null;
             blockedReason = null;
@@ -2292,7 +2430,12 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
       runner.lastLaunchError = message;
     }
   } else if (currentTool) {
-    status = session.status === "retrying" ? (retryPlan.currentStep === "verify" ? "verifying" : "implementing") : "implementing";
+    status =
+      session.status === "retrying"
+        ? retryPlan.currentStep === "verify"
+          ? "verifying"
+          : "implementing"
+        : "implementing";
     lastError = null;
     lastErrorAt = null;
     blockedReason = null;
@@ -2308,10 +2451,12 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
 
   let observeSessionIds = [...session.observeSessionIds];
   let lastRecoveryAction = session.lastRecoveryAction;
-  if (status !== "blocked"
-    && session.taskEnvId
-    && observeSessionIds.length === 0
-    && needsObservationRecovery(session)) {
+  if (
+    status !== "blocked" &&
+    session.taskEnvId &&
+    observeSessionIds.length === 0 &&
+    needsObservationRecovery(session)
+  ) {
     try {
       const observe = await runObserveCommand({
         cwd,
@@ -2338,7 +2483,12 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
     tool,
     status,
     updatedAt: now,
-    currentStep: status === "blocked" ? session.currentStep : (status === "verifying" || status === "implementing" ? retryPlan.currentStep : "implement"),
+    currentStep:
+      status === "blocked"
+        ? session.currentStep
+        : status === "verifying" || status === "implementing"
+          ? retryPlan.currentStep
+          : "implement",
     attemptCount: session.attemptCount + 1,
     observeSessionIds,
     nextActions: status === "verifying" || status === "implementing" ? retryPlan.nextActions : session.nextActions,
@@ -2350,9 +2500,10 @@ export async function resumeTask(cwd: string, taskId: string): Promise<StartTask
     autonomy: session.autonomy,
   };
   const autonomy = deriveAutonomyEscalation(resumedSession, new Date(now));
-  const finalResumedSession = autonomy.exceeded && autonomy.reason
-    ? applyAutonomyEscalation(resumedSession, autonomy.reason, now)
-    : resumedSession;
+  const finalResumedSession =
+    autonomy.exceeded && autonomy.reason
+      ? applyAutonomyEscalation(resumedSession, autonomy.reason, now)
+      : resumedSession;
   const resumeStrategy = deriveResumeStrategy(finalResumedSession, config.agentRunner?.defaultTool?.trim() || null);
   const recoveryPlan = deriveRecoveryPlan(finalResumedSession, resumeStrategy);
   const updatedContext = await buildTaskContextWithRuntime(cwd, context, {
@@ -2413,33 +2564,37 @@ export async function listTaskSessions(cwd: string): Promise<TaskSession[]> {
     entries
       .filter((entry) => entry.isDirectory())
       .map((entry) =>
-        readJsonStore(getSessionPath(cwd, entry.name), {
-          version: TASK_STORE_VERSION,
-          taskId: "",
-          task: "",
-          status: "prepared",
-          entrypoint: "start",
-          tool: null,
-          startedAt: "",
-          updatedAt: "",
-          workflowKind: "plan",
-          currentStep: null,
-          attemptCount: 0,
-          taskEnvId: null,
-          observeSessionIds: [],
-          loopId: null,
-          nextActions: [],
-          lastError: null,
-          lastErrorAt: null,
-          blockedReason: null,
-          runner: {
-            ...createRunnerState(),
-          },
-          lastVerification: null,
-          lastRecoveryAction: null,
-          lastReviewResult: null,
-          autonomy: createAutonomyState(),
-        } satisfies TaskSession, isTaskSession),
+        readJsonStore(
+          getSessionPath(cwd, entry.name),
+          {
+            version: TASK_STORE_VERSION,
+            taskId: "",
+            task: "",
+            status: "prepared",
+            entrypoint: "start",
+            tool: null,
+            startedAt: "",
+            updatedAt: "",
+            workflowKind: "plan",
+            currentStep: null,
+            attemptCount: 0,
+            taskEnvId: null,
+            observeSessionIds: [],
+            loopId: null,
+            nextActions: [],
+            lastError: null,
+            lastErrorAt: null,
+            blockedReason: null,
+            runner: {
+              ...createRunnerState(),
+            },
+            lastVerification: null,
+            lastRecoveryAction: null,
+            lastReviewResult: null,
+            autonomy: createAutonomyState(),
+          } satisfies TaskSession,
+          isTaskSession,
+        ),
       ),
   );
 
@@ -2450,21 +2605,27 @@ export async function listTaskSessions(cwd: string): Promise<TaskSession[]> {
 
 export async function readTaskStatusSummary(cwd: string): Promise<TaskStatusSummary> {
   await assertInitialized(cwd);
-  const [config, taskSessions, loopStates] = await Promise.all([readConfig(cwd), listTaskSessions(cwd), listLoopStates(cwd)]);
+  const [config, taskSessions, loopStates] = await Promise.all([
+    readConfig(cwd),
+    listTaskSessions(cwd),
+    listLoopStates(cwd),
+  ]);
   const defaultTool = config.agentRunner?.defaultTool?.trim() || null;
-  const tasks: TaskStatusEntry[] = await Promise.all(taskSessions.map(async (task) => {
-    const resumeStrategy = deriveResumeStrategy(task, defaultTool);
-    const context = await readTaskContext(cwd, task.taskId);
-    return {
-      ...task,
-      resumeStrategy,
-      recoveryPlan: deriveRecoveryPlan(task, resumeStrategy),
-      executionRoute: context.executionRoute,
-      impactGuidance: context.impactGuidance,
-      languageGuidance: context.languageGuidance,
-      reviewGate: context.reviewGate,
-    };
-  }));
+  const tasks: TaskStatusEntry[] = await Promise.all(
+    taskSessions.map(async (task) => {
+      const resumeStrategy = deriveResumeStrategy(task, defaultTool);
+      const context = await readTaskContext(cwd, task.taskId);
+      return {
+        ...task,
+        resumeStrategy,
+        recoveryPlan: deriveRecoveryPlan(task, resumeStrategy),
+        executionRoute: context.executionRoute,
+        impactGuidance: context.impactGuidance,
+        languageGuidance: context.languageGuidance,
+        reviewGate: context.reviewGate,
+      };
+    }),
+  );
   const observationIds = [...new Set(tasks.flatMap((task) => task.observeSessionIds))];
   const observations = (
     await Promise.all(

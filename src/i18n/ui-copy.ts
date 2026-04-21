@@ -1,6 +1,8 @@
 import { inferUiLanguageFromEnv, type UiLanguage } from "./ui-language.js";
 
-type CopyTree = Record<string, string | CopyTree>;
+interface CopyTree {
+  [key: string]: string | CopyTree;
+}
 
 const UI_COPY = {
   "zh-CN": {
@@ -56,6 +58,8 @@ const UI_COPY = {
       replay: "重放命令",
       handoff: "交接文件",
       openSelectedAi: "请在当前工作区打开选定的 AI，然后再次运行重放命令继续。",
+      launchedInAi: "已在选定 AI 中启动 analyze。",
+      launchFallback: "无法自动启动 AI，改为手动重放。",
       run: "运行 ID",
       status: "状态",
       scope: "范围",
@@ -173,6 +177,8 @@ const UI_COPY = {
       replay: "Replay",
       handoff: "Handoff",
       openSelectedAi: "Open the selected AI in this workspace and run the replay command again to continue.",
+      launchedInAi: "Analyze was launched in the selected AI.",
+      launchFallback: "Unable to auto-launch AI; falling back to manual replay.",
       run: "Run",
       status: "Status",
       scope: "Scope",

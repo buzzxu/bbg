@@ -5,8 +5,16 @@ import { assertPolicyAllowsCommand } from "../policy/engine.js";
 import { verifyCheckpoint, type VerifyResult } from "../runtime/checkpoints.js";
 import { summarizeObserveSession } from "../runtime/observe.js";
 import { buildDefaultRuntimeConfig } from "../runtime/schema.js";
-import { getTaskRoot, listTaskSessions, readTaskContext, readTaskSession, syncTaskContextFromSession, updateTaskSessionAfterVerify } from "../runtime/tasks.js";
+import {
+  getTaskRoot,
+  listTaskSessions,
+  readTaskContext,
+  readTaskSession,
+  syncTaskContextFromSession,
+  updateTaskSessionAfterVerify,
+} from "../runtime/tasks.js";
 import { writeVerifyWikiArtifacts } from "../runtime/wiki.js";
+import { appendAnalyzeKnowledgeValidationEvents } from "../analyze/knowledge-validation.js";
 import { exists, readTextFile } from "../utils/fs.js";
 import type { WorkflowDecisionSet } from "../workflow/types.js";
 
@@ -48,6 +56,8 @@ export interface RunVerifyCommandResult extends VerifyResult {
     guideReferences: string[];
     languageReviewHint: string | null;
     hermesQueryExecuted: boolean;
+    matchedKnowledgeItemIds: string[];
+    validationEventsPath: string | null;
   } | null;
 }
 
@@ -95,9 +105,8 @@ async function buildTaskVerificationContext(cwd: string): Promise<RunVerifyComma
     readTaskDecisions(cwd, taskId),
     readTaskContext(cwd, taskId),
   ]);
-  const hermesQueryExecuted = process.env.BBG_DISABLE_HERMES?.trim() === "1"
-    ? false
-    : session.nextActions.includes("review-hermes-context");
+  const hermesQueryExecuted =
+    process.env.BBG_DISABLE_HERMES?.trim() === "1" ? false : session.nextActions.includes("review-hermes-context");
   const observations = (
     await Promise.all(
       session.observeSessionIds.map(async (id) => {
@@ -169,16 +178,20 @@ async function buildTaskVerificationContext(cwd: string): Promise<RunVerifyComma
       reviewPack: [...context.reviewGate.reviewPack],
       stopConditions: [...context.reviewGate.stopConditions],
     },
-    lastReviewResult: session.lastReviewResult ? {
-      reviewer: session.lastReviewResult.reviewer,
-      status: session.lastReviewResult.status,
-      summary: session.lastReviewResult.summary,
-      findings: [...session.lastReviewResult.findings],
-    } : null,
+    lastReviewResult: session.lastReviewResult
+      ? {
+          reviewer: session.lastReviewResult.reviewer,
+          status: session.lastReviewResult.status,
+          summary: session.lastReviewResult.summary,
+          findings: [...session.lastReviewResult.findings],
+        }
+      : null,
     reviewersRecommended: executionRoute?.recommendation.reviewerAgents ?? context.languageGuidance.reviewerAgents,
     guideReferences: executionRoute?.recommendation.guideReferences ?? context.languageGuidance.guideReferences,
     languageReviewHint: context.languageGuidance.reviewHint,
     hermesQueryExecuted,
+    matchedKnowledgeItemIds: context.impactGuidance.matchedKnowledgeItemIds,
+    validationEventsPath: null,
   };
 }
 
@@ -189,53 +202,71 @@ export async function runVerifyCommand(input: RunVerifyCommandInput): Promise<Ru
   const result = await verifyCheckpoint({ cwd: input.cwd, runtime, repos: config.repos, checkpoint: input.checkpoint });
   let taskVerification = await buildTaskVerificationContext(input.cwd);
   if (taskVerification) {
-    const sourceSession = await readTaskSession(input.cwd, taskVerification.taskId);
-    const reasons = [
-      ...(result.ok ? [] : ["checkpoint-or-runtime-verification-failed"]),
-      ...taskVerification.reasons,
-    ];
+    const tv = taskVerification;
+    const sourceSession = await readTaskSession(input.cwd, tv.taskId);
+    const reasons = [...(result.ok ? [] : ["checkpoint-or-runtime-verification-failed"]), ...tv.reasons];
     const updatedSession = await updateTaskSessionAfterVerify({
       cwd: input.cwd,
-      taskId: taskVerification.taskId,
-      ok: result.ok && taskVerification.ok,
+      taskId: tv.taskId,
+      ok: result.ok && tv.ok,
       failureReason: reasons.length > 0 ? reasons.join(", ") : null,
       summary: {
-        ok: result.ok && taskVerification.ok,
+        ok: result.ok && tv.ok,
         reasons,
-        missingEvidence: taskVerification.missingEvidence,
-        observeRequired: taskVerification.observeRequired,
-        observationReadiness: taskVerification.observationReadiness,
+        missingEvidence: tv.missingEvidence,
+        observeRequired: tv.observeRequired,
+        observationReadiness: tv.observationReadiness,
       },
-      hermesQueryExecuted: taskVerification.hermesQueryExecuted,
+      hermesQueryExecuted: tv.hermesQueryExecuted,
     });
     await syncTaskContextFromSession({
       cwd: input.cwd,
-      taskId: taskVerification.taskId,
+      taskId: tv.taskId,
       session: updatedSession,
       defaultTool: config.agentRunner?.defaultTool?.trim() || null,
-      hermesQueryPatch: taskVerification.hermesQueryExecuted
+      hermesQueryPatch: tv.hermesQueryExecuted
         ? {
             influencedVerification: true,
-            influencedRecovery: !result.ok || !taskVerification.ok,
+            influencedRecovery: !result.ok || !tv.ok,
           }
         : undefined,
     });
     await writeVerifyWikiArtifacts({
       cwd: input.cwd,
-      taskId: taskVerification.taskId,
+      taskId: tv.taskId,
       task: sourceSession.task,
       taskStatus: updatedSession.status,
-      observationReadiness: taskVerification.observationReadiness,
+      observationReadiness: tv.observationReadiness,
       reasons,
-      missingEvidence: taskVerification.missingEvidence,
+      missingEvidence: tv.missingEvidence,
       recoveryPlanKind: updatedSession.status === "completed" ? "none" : "retry-implement",
       recoveryActions: updatedSession.nextActions,
-      hermesQueryExecuted: taskVerification.hermesQueryExecuted,
+      hermesQueryExecuted: tv.hermesQueryExecuted,
     });
+
+    const validationEventsPath = await appendAnalyzeKnowledgeValidationEvents({
+      cwd: input.cwd,
+      events: tv.matchedKnowledgeItemIds.map((knowledgeItemId, index) => ({
+        id: `verify:${tv.taskId}:${knowledgeItemId}:${result.ok && tv.ok ? "confirmed" : "contradicted"}`,
+        knowledgeItemId,
+        source: "verify" as const,
+        runId: null,
+        recordedAt: new Date().toISOString(),
+        outcome: result.ok && tv.ok ? ("confirmed" as const) : ("contradicted" as const),
+        confidenceDelta: result.ok && tv.ok ? 0.08 : -0.12,
+        notes:
+          result.ok && tv.ok
+            ? `Verification confirmed task alignment (${tv.taskId}).`
+            : `Verification found unresolved signals for task ${tv.taskId}.`,
+        evidenceRefs: [`verify:task:${tv.taskId}`, `verify:index:${index}`],
+      })),
+    });
+
     taskVerification = {
-      ...taskVerification,
+      ...tv,
       status: updatedSession.status,
       currentStep: updatedSession.currentStep,
+      validationEventsPath,
     };
   }
   return {

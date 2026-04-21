@@ -35,6 +35,14 @@ export interface LaunchAgentRunnerResult {
   launchedAt: string;
 }
 
+export interface LaunchAnalyzeAgentRunnerInput {
+  cwd: string;
+  config: BbgConfig;
+  replayCommand: string;
+  handoffPath: string;
+  preferredTool?: string | null;
+}
+
 function applyTemplate(value: string, input: LaunchAgentRunnerInput): string {
   return value
     .replaceAll("{taskId}", input.taskId)
@@ -46,7 +54,10 @@ function applyTemplate(value: string, input: LaunchAgentRunnerInput): string {
     .replaceAll("{currentStep}", input.currentStep ?? "")
     .replaceAll("{loopId}", input.loopId ?? "")
     .replaceAll("{loopStatus}", input.loopStatus ?? "")
-    .replaceAll("{loopIterations}", input.loopIterations === null || input.loopIterations === undefined ? "" : String(input.loopIterations))
+    .replaceAll(
+      "{loopIterations}",
+      input.loopIterations === null || input.loopIterations === undefined ? "" : String(input.loopIterations),
+    )
     .replaceAll("{resumeStrategyKind}", input.resumeStrategyKind ?? "")
     .replaceAll("{recoveryPlanKind}", input.recoveryPlanKind ?? "")
     .replaceAll("{recoveryActions}", (input.recoveryActions ?? []).join(","))
@@ -54,9 +65,20 @@ function applyTemplate(value: string, input: LaunchAgentRunnerInput): string {
     .replaceAll("{reviewGateReviewers}", (input.reviewGateReviewers ?? []).join(","))
     .replaceAll("{reviewGatePack}", (input.reviewGatePack ?? []).join(","))
     .replaceAll("{reviewGateStopConditions}", (input.reviewGateStopConditions ?? []).join(","))
-    .replaceAll("{attemptCount}", input.attemptCount === null || input.attemptCount === undefined ? "" : String(input.attemptCount))
-    .replaceAll("{verifyFailureCount}", input.verifyFailureCount === null || input.verifyFailureCount === undefined ? "" : String(input.verifyFailureCount))
-    .replaceAll("{autonomyEscalated}", input.autonomyEscalated === null || input.autonomyEscalated === undefined ? "" : String(input.autonomyEscalated))
+    .replaceAll(
+      "{attemptCount}",
+      input.attemptCount === null || input.attemptCount === undefined ? "" : String(input.attemptCount),
+    )
+    .replaceAll(
+      "{verifyFailureCount}",
+      input.verifyFailureCount === null || input.verifyFailureCount === undefined
+        ? ""
+        : String(input.verifyFailureCount),
+    )
+    .replaceAll(
+      "{autonomyEscalated}",
+      input.autonomyEscalated === null || input.autonomyEscalated === undefined ? "" : String(input.autonomyEscalated),
+    )
     .replaceAll("{autonomyEscalationReason}", input.autonomyEscalationReason ?? "");
 }
 
@@ -70,7 +92,7 @@ export async function launchConfiguredAgentRunner(
     return null;
   }
 
-  const toolConfig = agentRunner.tools?.[tool];
+  const toolConfig = agentRunner?.tools?.[tool];
   if (!toolConfig || toolConfig.command.trim().length === 0) {
     return null;
   }
@@ -91,7 +113,8 @@ export async function launchConfiguredAgentRunner(
     BBG_TASK_STEP: input.currentStep ?? "",
     BBG_LOOP_ID: input.loopId ?? "",
     BBG_LOOP_STATUS: input.loopStatus ?? "",
-    BBG_LOOP_ITERATIONS: input.loopIterations === null || input.loopIterations === undefined ? "" : String(input.loopIterations),
+    BBG_LOOP_ITERATIONS:
+      input.loopIterations === null || input.loopIterations === undefined ? "" : String(input.loopIterations),
     BBG_RESUME_STRATEGY: input.resumeStrategyKind ?? "",
     BBG_RECOVERY_PLAN: input.recoveryPlanKind ?? "",
     BBG_RECOVERY_ACTIONS: (input.recoveryActions ?? []).join(","),
@@ -99,10 +122,64 @@ export async function launchConfiguredAgentRunner(
     BBG_REVIEW_GATE_REVIEWERS: (input.reviewGateReviewers ?? []).join(","),
     BBG_REVIEW_GATE_PACK: (input.reviewGatePack ?? []).join(","),
     BBG_REVIEW_GATE_STOP_CONDITIONS: (input.reviewGateStopConditions ?? []).join(","),
-    BBG_ATTEMPT_COUNT: input.attemptCount === null || input.attemptCount === undefined ? "" : String(input.attemptCount),
-    BBG_VERIFY_FAILURE_COUNT: input.verifyFailureCount === null || input.verifyFailureCount === undefined ? "" : String(input.verifyFailureCount),
-    BBG_AUTONOMY_ESCALATED: input.autonomyEscalated === null || input.autonomyEscalated === undefined ? "" : String(input.autonomyEscalated),
+    BBG_ATTEMPT_COUNT:
+      input.attemptCount === null || input.attemptCount === undefined ? "" : String(input.attemptCount),
+    BBG_VERIFY_FAILURE_COUNT:
+      input.verifyFailureCount === null || input.verifyFailureCount === undefined
+        ? ""
+        : String(input.verifyFailureCount),
+    BBG_AUTONOMY_ESCALATED:
+      input.autonomyEscalated === null || input.autonomyEscalated === undefined ? "" : String(input.autonomyEscalated),
     BBG_AUTONOMY_ESCALATION_REASON: input.autonomyEscalationReason ?? "",
+  };
+
+  const child = spawn(toolConfig.command, args, {
+    cwd: input.cwd,
+    env,
+    detached: toolConfig.detached ?? true,
+    stdio: "ignore",
+  });
+
+  child.unref();
+
+  return {
+    tool,
+    command: toolConfig.command,
+    args,
+    launchedAt: new Date().toISOString(),
+  };
+}
+
+function applyAnalyzeTemplate(value: string, input: LaunchAnalyzeAgentRunnerInput): string {
+  return value
+    .replaceAll("{analyzeCommand}", input.replayCommand)
+    .replaceAll("{analyzeHandoffPath}", input.handoffPath);
+}
+
+export async function launchConfiguredAnalyzeRunner(
+  input: LaunchAnalyzeAgentRunnerInput,
+): Promise<LaunchAgentRunnerResult | null> {
+  const agentRunner = input.config.agentRunner;
+  const preferredTool = input.preferredTool?.trim();
+  const tool = preferredTool || agentRunner?.defaultTool?.trim();
+  if (!tool) {
+    return null;
+  }
+
+  const toolConfig = agentRunner?.tools?.[tool];
+  if (!toolConfig || toolConfig.command.trim().length === 0) {
+    return null;
+  }
+
+  const args = (toolConfig.args ?? []).map((arg) => applyAnalyzeTemplate(arg, input));
+  const env = {
+    ...process.env,
+    ...Object.fromEntries(
+      Object.entries(toolConfig.env ?? {}).map(([key, value]) => [key, applyAnalyzeTemplate(value, input)]),
+    ),
+    BBG_CURRENT_TOOL: tool,
+    BBG_ANALYZE_COMMAND: input.replayCommand,
+    BBG_ANALYZE_HANDOFF_PATH: input.handoffPath,
   };
 
   const child = spawn(toolConfig.command, args, {
