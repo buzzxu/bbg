@@ -9,8 +9,10 @@ import { discoverAnalyzeSelection } from "./discovery.js";
 import { writeAnalyzeDocs } from "./emit-docs.js";
 import { writeAnalyzeKnowledge } from "./emit-knowledge.js";
 import { deriveAnalyzeFocusSummary, enrichAnalyzeFocusSummary } from "./focus-analysis.js";
+import { writeAnalyzeHermesIntake } from "./hermes-intake.js";
 import { pruneStaleAnalyzeArtifacts } from "./prune-stale.js";
 import { analyzeSelectedRepos } from "./repo-analysis.js";
+import { runAnalyzeSocraticInterview } from "./socratic-engine.js";
 import type { AnalyzeOrchestratorResult, AnalyzePhaseSummary, RunAnalyzeCommandInput } from "./types.js";
 import { fuseWorkspaceAnalysis } from "./workspace-fusion.js";
 
@@ -38,7 +40,9 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
   phases.push({
     name: "business-analysis" as const,
     status: "completed" as const,
-    details: business.map((repo) => `${repo.repoName}: ${repo.responsibilities.join("; ") || "no responsibilities inferred"}`),
+    details: business.map(
+      (repo) => `${repo.repoName}: ${repo.responsibilities.join("; ") || "no responsibilities inferred"}`,
+    ),
   });
   const fusion = fuseWorkspaceAnalysis({
     scope: selection.scope,
@@ -71,13 +75,24 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
         ]
       : ["none"],
   });
-  const interview = await runAnalyzeDeepInterview({
-    cwd: input.cwd,
-    technical,
-    business,
-    fusion,
-    command: input,
-  });
+  const useLegacyInterview =
+    process.env.BBG_ANALYZE_LEGACY_INTERVIEW === "1" || process.env.BBG_ANALYZE_INTERVIEW_V2 === "0";
+  const interview = useLegacyInterview
+    ? await runAnalyzeDeepInterview({
+        cwd: input.cwd,
+        technical,
+        business,
+        fusion,
+        command: input,
+      })
+    : await runAnalyzeSocraticInterview({
+        cwd: input.cwd,
+        technical,
+        business,
+        fusion,
+        command: input,
+        focus,
+      });
   phases.push(interview.phase);
   const model = buildAnalyzeKnowledgeModel({
     technical,
@@ -104,7 +119,11 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
   phases.push({
     name: "risk-impact-analysis",
     status: "completed",
-    details: [`risks=${model.riskSurface.length}`, `changes=${model.changeImpact.length}`, `decisions=${model.decisionRecords.length}`],
+    details: [
+      `risks=${model.riskSurface.length}`,
+      `changes=${model.changeImpact.length}`,
+      `decisions=${model.decisionRecords.length}`,
+    ],
   });
   const pruned = await pruneStaleAnalyzeArtifacts({
     cwd: input.cwd,
@@ -138,6 +157,9 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
   });
   const knowledge = await writeAnalyzeKnowledge({
     cwd: input.cwd,
+    runId,
+    scope: selection.scope,
+    repos: selection.selectedRepos.map((repo) => repo.name),
     technical,
     business,
     fusion,
@@ -150,6 +172,28 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
     status: "completed" as const,
     details: knowledge.knowledgeUpdated.slice(0, 8),
   });
+  if (knowledge.snapshotPath) {
+    const hermes = await writeAnalyzeHermesIntake({
+      cwd: input.cwd,
+      runId,
+      snapshotPath: knowledge.snapshotPath,
+    });
+    knowledge.knowledgeUpdated.push(hermes.artifactsPath, hermes.candidatesPath);
+    phases.push({
+      name: "emit-hermes-intake",
+      status: "completed",
+      details: [
+        `${hermes.artifactsPath} (+${hermes.artifactsAdded})`,
+        `${hermes.candidatesPath} (+${hermes.candidatesAdded})`,
+      ],
+    });
+  } else {
+    phases.push({
+      name: "emit-hermes-intake",
+      status: "skipped",
+      details: ["no snapshot"],
+    });
+  }
   const wiki = await writeAnalyzeWikiArtifacts({
     cwd: input.cwd,
     fusion,
@@ -181,6 +225,12 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
         ".bbg/knowledge/workspace/risk-surface.json",
         ".bbg/knowledge/workspace/decisions.json",
         ".bbg/knowledge/workspace/change-impact.json",
+        ".bbg/knowledge/workspace/knowledge-items.json",
+        ".bbg/knowledge/workspace/evidence-index.json",
+        ".bbg/knowledge/workspace/lifecycle.json",
+        ".bbg/knowledge/workspace/run-diff.json",
+        ".bbg/knowledge/hermes/analyze-artifacts.json",
+        ".bbg/knowledge/hermes/analyze-candidates.json",
         "docs/business/project-context.md",
         "docs/business/analysis-dimensions.md",
         "docs/business/capability-map.md",
@@ -192,6 +242,7 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
         "docs/architecture/decision-history.md",
         "docs/architecture/change-impact-map.md",
         "docs/wiki/concepts/project-context.md",
+        ...(knowledge.snapshotPath ? [knowledge.snapshotPath] : []),
         ...(interview.summary.pendingQuestionsPath ? [interview.summary.pendingQuestionsPath] : []),
       ],
     },

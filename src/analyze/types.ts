@@ -12,6 +12,164 @@ export interface RunAnalyzeCommandInput {
   };
 }
 
+export type AnalyzeKnowledgeStatus =
+  | "observed"
+  | "inferred"
+  | "candidate"
+  | "confirmed-local"
+  | "promoted-local"
+  | "eligible-global"
+  | "promoted-global"
+  | "stale"
+  | "superseded";
+
+export type AnalyzeKnowledgeProvenanceSource =
+  | "static-analysis"
+  | "business-signal"
+  | "interview-answer"
+  | "llm-inference"
+  | "task-runtime"
+  | "verification"
+  | "incident-review"
+  | "human-confirmation";
+
+export interface AnalyzeCodeReference {
+  repo: string;
+  file: string;
+  lineRange: [number, number];
+  symbolName?: string;
+  snippet?: string;
+}
+
+export interface AnalyzeKnowledgeProvenance {
+  source: AnalyzeKnowledgeProvenanceSource;
+  ref: string;
+  description: string;
+  confidenceImpact: number;
+  codeRefs: AnalyzeCodeReference[];
+}
+
+export interface AnalyzeKnowledgeFreshness {
+  createdAt: string;
+  updatedAt: string;
+  lastValidatedAt: string | null;
+  lastSourceChangeAt: string | null;
+  freshnessStatus: "fresh" | "needs-review" | "stale";
+}
+
+export interface AnalyzeKnowledgeHistory {
+  firstSeenRunId: string;
+  lastSeenRunId: string;
+  changeKind: "new" | "unchanged" | "strengthened" | "weakened" | "replaced";
+  supersedes: string[];
+  supersededBy: string | null;
+}
+
+export interface AnalyzeKnowledgeItem {
+  id: string;
+  runId: string;
+  scope: "workspace" | "repo";
+  repo: string | null;
+  kind:
+    | "capability"
+    | "critical-flow"
+    | "contract-surface"
+    | "domain-context"
+    | "runtime-constraint"
+    | "risk-item"
+    | "decision-record"
+    | "change-impact"
+    | "analysis-dimension";
+  title: string;
+  summary: string;
+  payloadPath: string;
+  payloadPointer: string;
+  confidence: number;
+  status: AnalyzeKnowledgeStatus;
+  tags: string[];
+  relatedIds: string[];
+  provenance: AnalyzeKnowledgeProvenance[];
+  freshness: AnalyzeKnowledgeFreshness;
+  history: AnalyzeKnowledgeHistory;
+}
+
+export interface AnalyzeEvidenceItem {
+  id: string;
+  runId: string;
+  type:
+    | "code-structure"
+    | "route-entrypoint"
+    | "api-entrypoint"
+    | "domain-term"
+    | "entity-term"
+    | "integration-signal"
+    | "risk-marker"
+    | "interview-answer"
+    | "llm-reasoning"
+    | "verification-result"
+    | "task-confirmation";
+  summary: string;
+  sourceRefs: string[];
+  codeRefs: AnalyzeCodeReference[];
+  clarity: number;
+  relatedKnowledgeIds: string[];
+  contradictions: string[];
+}
+
+export interface AnalyzeKnowledgeLifecycleState {
+  knowledgeItemId: string;
+  status: AnalyzeKnowledgeStatus;
+  confidence: number;
+  freshnessStatus: AnalyzeKnowledgeFreshness["freshnessStatus"];
+  reviewRequired: boolean;
+  supersededBy: string | null;
+}
+
+export interface AnalyzeRunDiffSummary {
+  newItems: number;
+  unchangedItems: number;
+  strengthenedItems: number;
+  weakenedItems: number;
+  supersededItems: number;
+  removedItems: number;
+}
+
+export interface AnalyzeRunDiffEntry {
+  knowledgeItemId: string;
+  changeKind: AnalyzeKnowledgeHistory["changeKind"] | "removed";
+  previousConfidence: number | null;
+  currentConfidence: number | null;
+  note: string;
+}
+
+export interface AnalyzeKnowledgeSnapshot {
+  version: 1;
+  runId: string;
+  createdAt: string;
+  scope: "repo" | "workspace";
+  repos: string[];
+  focusQuery: string | null;
+  interviewMode: string;
+  paths: {
+    knowledgeItems: string;
+    evidenceIndex: string;
+    lifecycle: string;
+    runDiff: string;
+    wikiSummaryPaths: string[];
+    domainFiles: string[];
+  };
+  counts: {
+    knowledgeItems: number;
+    evidenceItems: number;
+    candidateEligibleItems: number;
+  };
+  confidenceProfile: {
+    high: number;
+    medium: number;
+    low: number;
+  };
+}
+
 export interface RunAnalyzeCommandResult {
   runId: string;
   status: "completed" | "partial" | "failed";
@@ -20,6 +178,7 @@ export interface RunAnalyzeCommandResult {
   technicalArchitecturePath: string;
   businessArchitecturePath: string;
   dependencyGraphPath: string;
+  analysisDimensionsPath: string;
   capabilityMapPath: string;
   criticalFlowsPath: string;
   integrationContractsPath: string;
@@ -33,6 +192,7 @@ export interface RunAnalyzeCommandResult {
   integrationMapPath: string;
   moduleMapPath: string;
   coreFlowsPath: string;
+  projectContextPath: string;
   docsUpdated: string[];
   knowledgeUpdated: string[];
   phases: AnalyzePhaseSummary[];
@@ -84,12 +244,16 @@ export interface AnalyzeEvidenceNote {
 }
 
 export interface AnalyzeCapability {
+  id?: string;
   name: string;
   description: string;
   owningRepos: string[];
   responsibilities: string[];
   evidence: AnalyzeEvidenceNote;
   confidence: number;
+  status?: AnalyzeKnowledgeStatus;
+  provenance?: AnalyzeKnowledgeProvenance[];
+  relatedIds?: string[];
 }
 
 export interface AnalyzeWorkflowStep {
@@ -101,6 +265,7 @@ export interface AnalyzeWorkflowStep {
 }
 
 export interface AnalyzeCriticalFlow {
+  id?: string;
   name: string;
   summary: string;
   participatingRepos: string[];
@@ -110,9 +275,13 @@ export interface AnalyzeCriticalFlow {
   steps: AnalyzeWorkflowStep[];
   evidence: AnalyzeEvidenceNote;
   confidence: number;
+  status?: AnalyzeKnowledgeStatus;
+  provenance?: AnalyzeKnowledgeProvenance[];
+  relatedIds?: string[];
 }
 
 export interface AnalyzeContractSurface {
+  id?: string;
   name: string;
   type: "ui" | "http-api" | "integration" | "async-job" | "shared-schema";
   owners: string[];
@@ -120,42 +289,62 @@ export interface AnalyzeContractSurface {
   boundary: string;
   evidence: AnalyzeEvidenceNote;
   confidence: number;
+  status?: AnalyzeKnowledgeStatus;
+  provenance?: AnalyzeKnowledgeProvenance[];
+  relatedIds?: string[];
 }
 
 export interface AnalyzeDomainContext {
+  id?: string;
   name: string;
   ownerRepo: string;
   summary: string;
   coreConcepts: string[];
   evidence: AnalyzeEvidenceNote;
   confidence: number;
+  status?: AnalyzeKnowledgeStatus;
+  provenance?: AnalyzeKnowledgeProvenance[];
+  relatedIds?: string[];
 }
 
 export interface AnalyzeRuntimeConstraint {
+  id?: string;
   statement: string;
   category: "security" | "compatibility" | "release" | "latency" | "consistency" | "operational";
   evidence: AnalyzeEvidenceNote;
   confidence: number;
+  status?: AnalyzeKnowledgeStatus;
+  provenance?: AnalyzeKnowledgeProvenance[];
+  relatedIds?: string[];
 }
 
 export interface AnalyzeRiskItem {
+  id?: string;
   title: string;
   severity: "high" | "medium";
   affectedRepos: string[];
   reasons: string[];
   evidence: AnalyzeEvidenceNote;
   confidence: number;
+  status?: AnalyzeKnowledgeStatus;
+  provenance?: AnalyzeKnowledgeProvenance[];
+  relatedIds?: string[];
 }
 
 export interface AnalyzeDecisionRecord {
+  id?: string;
   statement: string;
   status: "confirmed" | "assumed";
   rationale: string;
   evidence: AnalyzeEvidenceNote;
   confidence: number;
+  lifecycleStatus?: AnalyzeKnowledgeStatus;
+  provenance?: AnalyzeKnowledgeProvenance[];
+  relatedIds?: string[];
 }
 
 export interface AnalyzeChangeImpactEntry {
+  id?: string;
   target: string;
   impactedRepos: string[];
   impactedContracts: string[];
@@ -163,15 +352,22 @@ export interface AnalyzeChangeImpactEntry {
   reviewerHints: string[];
   evidence: AnalyzeEvidenceNote;
   confidence: number;
+  status?: AnalyzeKnowledgeStatus;
+  provenance?: AnalyzeKnowledgeProvenance[];
+  relatedIds?: string[];
 }
 
 export interface AnalyzeBusinessDimension {
+  id?: string;
   name: string;
   description: string;
   rationale: string;
   supportingRepos: string[];
   evidence: AnalyzeEvidenceNote;
   confidence: number;
+  status?: AnalyzeKnowledgeStatus;
+  provenance?: AnalyzeKnowledgeProvenance[];
+  relatedIds?: string[];
 }
 
 export interface AnalyzeKnowledgeModel {
@@ -207,6 +403,17 @@ export interface AnalyzeInterviewSummary {
   confidenceAfter: AnalyzeConfidenceScores;
   context: AnalyzeProjectContext;
   artifactsUpdated: string[];
+  socratic?: {
+    enabled: boolean;
+    dimensions: Array<{
+      id: string;
+      name: string;
+      weight: number;
+      score: number;
+      tier: 1 | 2;
+    }>;
+    ambiguitySignals: string[];
+  };
 }
 
 export interface AnalyzePhaseSummary {
@@ -224,6 +431,7 @@ export interface AnalyzePhaseSummary {
     | "prune-stale"
     | "emit-docs"
     | "emit-knowledge"
+    | "emit-hermes-intake"
     | "emit-wiki"
     | "write-state";
   status: "completed" | "skipped" | "pending";
@@ -333,6 +541,7 @@ export interface AnalyzeDocArtifacts {
 
 export interface AnalyzeKnowledgeArtifacts {
   knowledgeUpdated: string[];
+  snapshotPath?: string;
 }
 
 export interface AnalyzeEmitArtifacts extends AnalyzeDocArtifacts, AnalyzeKnowledgeArtifacts {}

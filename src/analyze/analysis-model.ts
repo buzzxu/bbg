@@ -64,7 +64,10 @@ function inferRepoBoundary(technical: RepoTechnicalAnalysis): string {
   if (/(react|vue|next|taro)/.test(framework) || /frontend/.test(technical.repo.type)) {
     return "client application boundary";
   }
-  if (/(spring|express|fastify|fastapi|django|laravel|rails|node)/.test(framework) || technical.repo.type === "backend") {
+  if (
+    /(spring|express|fastify|fastapi|django|laravel|rails|node)/.test(framework) ||
+    technical.repo.type === "backend"
+  ) {
     return "service and API boundary";
   }
   return "repository ownership boundary";
@@ -100,10 +103,7 @@ function businessByRepoMap(entries: RepoBusinessAnalysis[]): Map<string, RepoBus
   return new Map(entries.map((entry) => [entry.repoName, entry] as const));
 }
 
-function deriveCapabilities(
-  technical: RepoTechnicalAnalysis[],
-  business: RepoBusinessAnalysis[],
-): AnalyzeCapability[] {
+function deriveCapabilities(technical: RepoTechnicalAnalysis[], business: RepoBusinessAnalysis[]): AnalyzeCapability[] {
   const grouped = new Map<string, AnalyzeCapability>();
   const businessByRepo = businessByRepoMap(business);
 
@@ -114,8 +114,14 @@ function deriveCapabilities(
       const existing = grouped.get(key);
       if (existing) {
         existing.owningRepos = unique([...existing.owningRepos, technicalRepo.repo.name]);
-        existing.responsibilities = unique([...existing.responsibilities, ...(businessRepo?.responsibilities ?? [])]).slice(0, 8);
-        existing.evidence.signals = unique([...existing.evidence.signals, ...repoSignals(technicalRepo, businessRepo)]).slice(0, 10);
+        existing.responsibilities = unique([
+          ...existing.responsibilities,
+          ...(businessRepo?.responsibilities ?? []),
+        ]).slice(0, 8);
+        existing.evidence.signals = unique([
+          ...existing.evidence.signals,
+          ...repoSignals(technicalRepo, businessRepo),
+        ]).slice(0, 10);
         existing.confidence = clampConfidence(existing.confidence + 0.05);
         continue;
       }
@@ -124,18 +130,22 @@ function deriveCapabilities(
         name: capability,
         description: capability,
         owningRepos: [technicalRepo.repo.name],
-        responsibilities: (businessRepo?.responsibilities ?? [technicalRepo.repo.description || technicalRepo.repo.type]).slice(0, 6),
+        responsibilities: (
+          businessRepo?.responsibilities ?? [technicalRepo.repo.description || technicalRepo.repo.type]
+        ).slice(0, 6),
         evidence: makeEvidence(
           "Derived from route, API, controller, DTO, and domain-term signals collected from the repository.",
           repoSignals(technicalRepo, businessRepo),
         ),
-        confidence: clampConfidence(0.72 + Math.min((businessRepo?.entrypoints.length ?? 0), 3) * 0.05),
+        confidence: clampConfidence(0.72 + Math.min(businessRepo?.entrypoints.length ?? 0, 3) * 0.05),
       });
     }
   }
 
   if (grouped.size > 0) {
-    return [...grouped.values()].sort((left, right) => right.owningRepos.length - left.owningRepos.length || left.name.localeCompare(right.name));
+    return [...grouped.values()].sort(
+      (left, right) => right.owningRepos.length - left.owningRepos.length || left.name.localeCompare(right.name),
+    );
   }
 
   return technical.map((technicalRepo) => ({
@@ -161,9 +171,7 @@ function deriveAnalysisDimensions(input: {
 }): AnalyzeBusinessDimension[] {
   const businessByRepo = businessByRepoMap(input.business);
   const dimensions: AnalyzeBusinessDimension[] = [];
-  const allSignals = unique(
-    input.technical.flatMap((repo) => repoSignals(repo, businessByRepo.get(repo.repo.name))),
-  );
+  const allSignals = unique(input.technical.flatMap((repo) => repoSignals(repo, businessByRepo.get(repo.repo.name))));
 
   const addDimension = (
     name: string,
@@ -188,7 +196,9 @@ function deriveAnalysisDimensions(input: {
 
   const clientRepos = input.technical.filter((repo) => /frontend/.test(repo.repo.type)).map((repo) => repo.repo.name);
   const adminRepos = input.technical.filter((repo) => repo.repo.type === "frontend-web").map((repo) => repo.repo.name);
-  const userFacingRepos = input.technical.filter((repo) => repo.repo.type === "frontend-h5" || repo.repo.type === "frontend").map((repo) => repo.repo.name);
+  const userFacingRepos = input.technical
+    .filter((repo) => repo.repo.type === "frontend-h5")
+    .map((repo) => repo.repo.name);
   const backendRepos = input.technical.filter((repo) => repo.repo.type === "backend").map((repo) => repo.repo.name);
   if (userFacingRepos.length > 0) {
     addDimension(
@@ -269,7 +279,9 @@ function deriveContractSurfaces(
 
   for (const technicalRepo of technical) {
     const businessRepo = businessByRepo.get(technicalRepo.repo.name);
-    const consumers = fusion.integrationEdges.filter((edge) => edge.to === technicalRepo.repo.name).map((edge) => edge.from);
+    const consumers = fusion.integrationEdges
+      .filter((edge) => edge.to === technicalRepo.repo.name)
+      .map((edge) => edge.from);
 
     if ((businessRepo?.entrypoints.length ?? 0) > 0) {
       surfaces.push({
@@ -308,10 +320,10 @@ function deriveContractSurfaces(
         owners: [technicalRepo.repo.name],
         consumers: [],
         boundary: "external integration boundary",
-        evidence: makeEvidence(
-          "Derived from API routes, dependency names, and repository integration markers.",
-          [integration, ...(businessRepo?.apiSignals.slice(0, 2) ?? [])],
-        ),
+        evidence: makeEvidence("Derived from API routes, dependency names, and repository integration markers.", [
+          integration,
+          ...(businessRepo?.apiSignals.slice(0, 2) ?? []),
+        ]),
         confidence: clampConfidence(0.7),
       });
     }
@@ -345,7 +357,11 @@ function deriveContractSurfaces(
   return surfaces;
 }
 
-function matchReposForFlow(query: string, technical: RepoTechnicalAnalysis[], business: RepoBusinessAnalysis[]): string[] {
+function matchReposForFlow(
+  query: string,
+  technical: RepoTechnicalAnalysis[],
+  business: RepoBusinessAnalysis[],
+): string[] {
   const businessByRepo = businessByRepoMap(business);
   const tokens = tokenize(query);
   if (tokens.length === 0) {
@@ -376,16 +392,19 @@ function deriveInferredFlows(
     const target = technical.find((entry) => entry.repo.name === edge.to);
     const sourceBusiness = businessByRepo.get(edge.from);
     const targetBusiness = businessByRepo.get(edge.to);
-    const sharedTerms = unique(overlap(
-      [...(sourceBusiness?.domainTerms ?? []), ...(sourceBusiness?.capabilities ?? [])],
-      [...(targetBusiness?.domainTerms ?? []), ...(targetBusiness?.capabilities ?? [])],
-    ));
+    const sharedTerms = unique(
+      overlap(
+        [...(sourceBusiness?.domainTerms ?? []), ...(sourceBusiness?.capabilities ?? [])],
+        [...(targetBusiness?.domainTerms ?? []), ...(targetBusiness?.capabilities ?? [])],
+      ),
+    );
     const label = sharedTerms.length > 0 ? sharedTerms.slice(0, 2).join(" and ") : "cross-repo business data";
-    const flowSummary = source?.repo.type === "frontend-web"
-      ? `Admin configures ${label} through ${edge.from} and ${edge.to} persists and validates the change.`
-      : source?.repo.type === "frontend-h5" || source?.repo.type === "frontend"
-        ? `User-facing ${label} flow moves through ${edge.from} UI and ${edge.to} APIs.`
-        : `${edge.from} collaborates with ${edge.to} around ${label}.`;
+    const flowSummary =
+      source?.repo.type === "frontend-web"
+        ? `Admin configures ${label} through ${edge.from} and ${edge.to} persists and validates the change.`
+        : source?.repo.type === "frontend-h5"
+          ? `User-facing ${label} flow moves through ${edge.from} UI and ${edge.to} APIs.`
+          : `${edge.from} collaborates with ${edge.to} around ${label}.`;
     inferred.push(flowSummary);
   }
 
@@ -444,7 +463,9 @@ function deriveCriticalFlows(
       name: `flow-${index + 1}`,
       summary: flow,
       participatingRepos: repos,
-      participatingModules: unique(repos.flatMap((repo) => businessByRepo.get(repo)?.capabilities.slice(0, 2) ?? [repo])),
+      participatingModules: unique(
+        repos.flatMap((repo) => businessByRepo.get(repo)?.capabilities.slice(0, 2) ?? [repo]),
+      ),
       contracts: unique(
         fusion.integrationEdges
           .filter((edge) => repos.includes(edge.from) || repos.includes(edge.to))
@@ -457,10 +478,7 @@ function deriveCriticalFlows(
       steps,
       evidence: makeEvidence(
         "Built from interview-confirmed flows or inferred user/admin/API journeys, then traced across matching repos.",
-        unique([
-          ...repos.map((repo) => `repo:${repo}`),
-          ...steps.flatMap((step) => step.evidence.signals),
-        ]),
+        unique([...repos.map((repo) => `repo:${repo}`), ...steps.flatMap((step) => step.evidence.signals)]),
       ),
       confidence: clampConfidence(
         (interview?.context.criticalFlows.includes(flow) ? 0.84 : 0.73) + Math.min(repos.length, 3) * 0.03,
@@ -471,26 +489,22 @@ function deriveCriticalFlows(
 
 function deriveRuntimeConstraints(interview: AnalyzeInterviewSummary | null): AnalyzeRuntimeConstraint[] {
   const assumptions = interview?.assumptionsApplied.find((entry) => entry.key === "nonNegotiableConstraints");
-  const values = unique([
-    ...(interview?.context.nonNegotiableConstraints ?? []),
-    ...(assumptions?.values ?? []),
-  ]);
+  const values = unique([...(interview?.context.nonNegotiableConstraints ?? []), ...(assumptions?.values ?? [])]);
 
   return values.map((statement) => {
     const lowered = statement.toLowerCase();
-    const category: AnalyzeRuntimeConstraint["category"] = lowered.includes("security")
-      || lowered.includes("auth")
-      || lowered.includes("tenant")
-      ? "security"
-      : lowered.includes("compatib")
-        ? "compatibility"
-        : lowered.includes("release") || lowered.includes("rollout")
-          ? "release"
-          : lowered.includes("latency") || lowered.includes("performance")
-            ? "latency"
-            : lowered.includes("transaction") || lowered.includes("consisten")
-              ? "consistency"
-              : "operational";
+    const category: AnalyzeRuntimeConstraint["category"] =
+      lowered.includes("security") || lowered.includes("auth") || lowered.includes("tenant")
+        ? "security"
+        : lowered.includes("compatib")
+          ? "compatibility"
+          : lowered.includes("release") || lowered.includes("rollout")
+            ? "release"
+            : lowered.includes("latency") || lowered.includes("performance")
+              ? "latency"
+              : lowered.includes("transaction") || lowered.includes("consisten")
+                ? "consistency"
+                : "operational";
 
     return {
       statement,
@@ -513,16 +527,15 @@ function deriveRiskSurface(
   const assumption = interview?.assumptionsApplied.find((entry) => entry.key === "failureHotspots");
   const businessByRepo = businessByRepoMap(business);
 
-  for (const hotspot of unique([
-    ...(interview?.context.failureHotspots ?? []),
-    ...(assumption?.values ?? []),
-  ])) {
+  for (const hotspot of unique([...(interview?.context.failureHotspots ?? []), ...(assumption?.values ?? [])])) {
     const affectedRepos = technical
       .filter((entry) => hotspot.toLowerCase().includes(entry.repo.name.toLowerCase()))
       .map((entry) => entry.repo.name);
     items.push({
       title: hotspot,
-      severity: /(auth|payment|tenant|security|checkout|share|template|poster|permission)/i.test(hotspot) ? "high" : "medium",
+      severity: /(auth|payment|tenant|security|checkout|share|template|poster|permission)/i.test(hotspot)
+        ? "high"
+        : "medium",
       affectedRepos: affectedRepos.length > 0 ? affectedRepos : technical.slice(0, 1).map((entry) => entry.repo.name),
       reasons: ["Flagged by analyze interview as a failure-prone or sensitive area."],
       evidence: makeEvidence(
@@ -541,10 +554,11 @@ function deriveRiskSurface(
         severity: "medium",
         affectedRepos: [technicalRepo.repo.name],
         reasons: ["Repository lacks a dedicated test directory, increasing change risk."],
-        evidence: makeEvidence(
-          "Derived from testing markers gathered during repository analysis.",
-          [`repo:${technicalRepo.repo.name}`, `testing:${technicalRepo.testing.framework}`, "testing:missing-test-dir"],
-        ),
+        evidence: makeEvidence("Derived from testing markers gathered during repository analysis.", [
+          `repo:${technicalRepo.repo.name}`,
+          `testing:${technicalRepo.testing.framework}`,
+          "testing:missing-test-dir",
+        ]),
         confidence: 0.79,
       });
     }
@@ -577,13 +591,15 @@ function deriveDecisionRecords(interview: AnalyzeInterviewSummary | null): Analy
     evidence: makeEvidence("Confirmed by explicit interview answer.", []),
     confidence: clampConfidence(interview?.confidenceAfter.decisionHistory ?? 0.82),
   }));
-  const assumed = (assumption?.values ?? []).map((statement) => ({
-    statement,
-    status: "assumed" as const,
-    rationale: assumption.rationale,
-    evidence: makeEvidence(assumption.rationale, assumption.evidence),
-    confidence: clampConfidence((interview?.confidenceAfter.decisionHistory ?? 0.64) - 0.05),
-  }));
+  const assumed = assumption
+    ? assumption.values.map((statement) => ({
+        statement,
+        status: "assumed" as const,
+        rationale: assumption.rationale,
+        evidence: makeEvidence(assumption.rationale, assumption.evidence),
+        confidence: clampConfidence((interview?.confidenceAfter.decisionHistory ?? 0.64) - 0.05),
+      }))
+    : [];
   return [...confirmed, ...assumed];
 }
 
@@ -600,17 +616,25 @@ function deriveDomainContexts(
       const existing = grouped.get(concept);
       if (existing) {
         existing.coreConcepts = unique([...existing.coreConcepts, ...(businessRepo?.entityTerms ?? [])]).slice(0, 8);
-        existing.evidence.signals = unique([...existing.evidence.signals, ...repoSignals(technicalRepo, businessRepo)]).slice(0, 10);
+        existing.evidence.signals = unique([
+          ...existing.evidence.signals,
+          ...repoSignals(technicalRepo, businessRepo),
+        ]).slice(0, 10);
         existing.confidence = clampConfidence(existing.confidence + 0.04);
         continue;
       }
       grouped.set(concept, {
         name: concept,
         ownerRepo: technicalRepo.repo.name,
-        summary: businessRepo?.capabilities.find((capability) => capability.toLowerCase().includes(concept.toLowerCase()))
-          ?? technicalRepo.repo.description
-          ?? technicalRepo.repo.type,
-        coreConcepts: unique([concept, ...(businessRepo?.entityTerms ?? []), ...(businessRepo?.capabilities ?? [])]).slice(0, 8),
+        summary:
+          businessRepo?.capabilities.find((capability) => capability.toLowerCase().includes(concept.toLowerCase())) ??
+          technicalRepo.repo.description ??
+          technicalRepo.repo.type,
+        coreConcepts: unique([
+          concept,
+          ...(businessRepo?.entityTerms ?? []),
+          ...(businessRepo?.capabilities ?? []),
+        ]).slice(0, 8),
         evidence: makeEvidence(
           "Inferred from controller, DTO, entity, page, and route naming signals.",
           repoSignals(technicalRepo, businessRepo),
@@ -621,7 +645,9 @@ function deriveDomainContexts(
   }
 
   if (grouped.size > 0) {
-    return [...grouped.values()].sort((left, right) => right.confidence - left.confidence || left.name.localeCompare(right.name));
+    return [...grouped.values()].sort(
+      (left, right) => right.confidence - left.confidence || left.name.localeCompare(right.name),
+    );
   }
 
   return technical.map((technicalRepo) => {
@@ -678,12 +704,20 @@ function deriveChangeImpact(
     const impactedRepos = unique([
       ...capability.owningRepos,
       ...flows
-        .filter((flow) => flow.participatingRepos.some((repo) => capability.owningRepos.includes(repo)) || flow.summary.toLowerCase().includes(capability.name.toLowerCase()))
+        .filter(
+          (flow) =>
+            flow.participatingRepos.some((repo) => capability.owningRepos.includes(repo)) ||
+            flow.summary.toLowerCase().includes(capability.name.toLowerCase()),
+        )
         .flatMap((flow) => flow.participatingRepos),
     ]);
     const impactedContracts = unique(
       contracts
-        .filter((contract) => contract.owners.some((repo) => impactedRepos.includes(repo)) || contract.consumers.some((repo) => impactedRepos.includes(repo)))
+        .filter(
+          (contract) =>
+            contract.owners.some((repo) => impactedRepos.includes(repo)) ||
+            contract.consumers.some((repo) => impactedRepos.includes(repo)),
+        )
         .map((contract) => contract.name),
     ).slice(0, 6);
     const impactedTests = impactedRepos.map((repo) => {

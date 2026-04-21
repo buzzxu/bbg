@@ -1,6 +1,6 @@
 import type { RepoBusinessAnalysis, RepoTechnicalAnalysis } from "./types.js";
 
-function unique(values: string[]): string[] {
+function unique(values: Array<string | null | undefined>): string[] {
   return [
     ...new Set(
       values
@@ -21,7 +21,7 @@ function frameworkResponsibility(technical: RepoTechnicalAnalysis): string | nul
     return `${framework} admin experience`;
   }
 
-  if (technical.repo.type === "frontend-h5" || technical.repo.type === "frontend") {
+  if (technical.repo.type === "frontend-h5") {
     return `${framework} user journey`;
   }
 
@@ -45,10 +45,7 @@ export function deriveRepoBusinessAnalysis(technicalAnalyses: RepoTechnicalAnaly
       signals.externalIntegrations.length > 0 ? `integrates with ${signals.externalIntegrations.join(", ")}` : "",
     ]);
 
-    const flowHints = unique([
-      ...signals.workflowHints,
-      ...routeSummary(signals),
-    ]);
+    const flowHints = unique([...signals.workflowHints, ...routeSummary(signals)]);
 
     return {
       repoName: technical.repo.name,

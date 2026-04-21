@@ -272,10 +272,7 @@ const LANGUAGE_SPECS: Record<LanguageKey, LanguageDocSpec> = {
         ],
       },
     ],
-    sources: [
-      "https://go.dev/doc/effective_go",
-      "https://go.dev/wiki/CodeReviewComments",
-    ],
+    sources: ["https://go.dev/doc/effective_go", "https://go.dev/wiki/CodeReviewComments"],
   },
   python: {
     directory: "python",
@@ -532,7 +529,9 @@ function frontmatter(input: {
     "frameworks:",
     ...(input.frameworks.length > 0 ? input.frameworks.map((framework) => `  - ${framework}`) : ["  - unknown"]),
     "framework_versions:",
-    ...(input.frameworkVersions.length > 0 ? input.frameworkVersions.map((version) => `  - ${version}`) : ["  - unknown"]),
+    ...(input.frameworkVersions.length > 0
+      ? input.frameworkVersions.map((version) => `  - ${version}`)
+      : ["  - unknown"]),
     `last_reviewed: ${new Date().toISOString().slice(0, 10)}`,
     "sources:",
     ...input.sources.map((source) => `  - ${source}`),
@@ -542,17 +541,14 @@ function frontmatter(input: {
 }
 
 function renderBulletSection(title: string, values: string[]): string[] {
-  return [
-    `## ${title}`,
-    "",
-    ...(values.length > 0 ? values.map((value) => `- ${value}`) : ["- (none)"]),
-    "",
-  ];
+  return [`## ${title}`, "", ...(values.length > 0 ? values.map((value) => `- ${value}`) : ["- (none)"]), ""];
 }
 
 function versionUpgradeCandidates(language: LanguageKey, detectedVersion: string | undefined): string[] {
   if (!detectedVersion) {
-    return ["Version was not detected automatically. Re-run `bbg analyze --refresh` after build metadata is available."];
+    return [
+      "Version was not detected automatically. Re-run `bbg analyze --refresh` after build metadata is available.",
+    ];
   }
 
   switch (language) {
@@ -564,7 +560,9 @@ function versionUpgradeCandidates(language: LanguageKey, detectedVersion: string
       if (compareVersions(detectedVersion, "21") < 0) {
         candidates.push("Upgrade to Java 21+ before adopting virtual-thread-first concurrency guidance.");
       }
-      return candidates.length > 0 ? candidates : ["Current Java baseline already supports the documented modern features."];
+      return candidates.length > 0
+        ? candidates
+        : ["Current Java baseline already supports the documented modern features."];
     }
     case "typescript": {
       const candidates: string[] = [];
@@ -574,7 +572,9 @@ function versionUpgradeCandidates(language: LanguageKey, detectedVersion: string
       if (compareVersions(detectedVersion, "5.0") < 0) {
         candidates.push("Upgrade to TypeScript 5.x for current project-reference and narrowing ergonomics.");
       }
-      return candidates.length > 0 ? candidates : ["Current TypeScript baseline already supports the documented modern features."];
+      return candidates.length > 0
+        ? candidates
+        : ["Current TypeScript baseline already supports the documented modern features."];
     }
     case "golang":
       return compareVersions(detectedVersion, "1.18") < 0
@@ -583,12 +583,16 @@ function versionUpgradeCandidates(language: LanguageKey, detectedVersion: string
     case "python": {
       const candidates: string[] = [];
       if (compareVersions(detectedVersion, "3.10") < 0) {
-        candidates.push("Upgrade to Python 3.10+ before standardizing on `X | Y` unions and dataclass keyword-only guidance.");
+        candidates.push(
+          "Upgrade to Python 3.10+ before standardizing on `X | Y` unions and dataclass keyword-only guidance.",
+        );
       }
       if (compareVersions(detectedVersion, "3.11") < 0) {
         candidates.push("Upgrade to Python 3.11+ before relying on dataclass `slots=True` as a default pattern.");
       }
-      return candidates.length > 0 ? candidates : ["Current Python baseline already supports the documented modern features."];
+      return candidates.length > 0
+        ? candidates
+        : ["Current Python baseline already supports the documented modern features."];
     }
     case "rust":
       return compareVersions(detectedVersion, "2021") < 0
@@ -636,22 +640,18 @@ function displayLanguage(language: LanguageKey): string {
   return LANGUAGE_SPECS[language].displayName;
 }
 
-function buildLanguageReadme(input: {
-  groupedRepos: Map<LanguageKey, RepoTechnicalAnalysis[]>;
-}): string {
+function buildLanguageReadme(input: { groupedRepos: Map<LanguageKey, RepoTechnicalAnalysis[]> }): string {
   const minimumSupportedVersion = minVersion(
     [...input.groupedRepos.values()].flatMap((repos) => repos.map((repo) => repo.stack.languageVersion)),
   );
-  const sources = unique(
-    [...input.groupedRepos.keys()].flatMap((language) => LANGUAGE_SPECS[language].sources),
-  );
+  const sources = unique([...input.groupedRepos.keys()].flatMap((language) => LANGUAGE_SPECS[language].sources));
   const lines = [
     frontmatter({
       title: "Language Architecture Guides",
       language: "multi",
       category: "index",
       minimumSupportedVersion,
-      detectedVersion: null,
+      detectedVersion: undefined,
       frameworks: [],
       frameworkVersions: [],
       sources,
@@ -667,16 +667,12 @@ function buildLanguageReadme(input: {
   for (const [language, repos] of input.groupedRepos.entries()) {
     const frameworks = unique(repos.map((repo) => repo.stack.framework).filter((value) => value !== "unknown"));
     lines.push(
-      `- ${displayLanguage(language)}: ${repos.map((repo) => repo.repo.name).join(", ")}`
-        + (frameworks.length > 0 ? ` (${frameworks.join(", ")})` : ""),
+      `- ${displayLanguage(language)}: ${repos.map((repo) => repo.repo.name).join(", ")}` +
+        (frameworks.length > 0 ? ` (${frameworks.join(", ")})` : ""),
     );
   }
 
-  lines.push(
-    "",
-    "## Default Documents",
-    "",
-  );
+  lines.push("", "## Default Documents", "");
 
   for (const [language, spec] of Object.entries(LANGUAGE_SPECS) as Array<[LanguageKey, LanguageDocSpec]>) {
     if (!input.groupedRepos.has(language)) {
@@ -695,23 +691,20 @@ function buildLanguageReadme(input: {
 
 export function getLanguageGuidePathsForLanguages(languages: string[]): string[] {
   const normalized = unique(
-    languages
-      .map((language) => normalizeLanguageKey(language))
-      .filter((value): value is LanguageKey => value !== null),
+    languages.map((language) => normalizeLanguageKey(language)).filter((value): value is LanguageKey => value !== null),
   );
   const paths = normalized.flatMap((language) => {
     const spec = LANGUAGE_SPECS[language];
     return spec.categories.map((category) => `docs/architecture/languages/${spec.directory}/${category.fileName}`);
   });
 
-  return normalized.length > 0
-    ? ["docs/architecture/languages/README.md", ...paths]
-    : [];
+  return normalized.length > 0 ? ["docs/architecture/languages/README.md", ...paths] : [];
 }
 
 export function getAllManagedLanguageGuidePaths(): string[] {
-  const paths = (Object.entries(LANGUAGE_SPECS) as Array<[LanguageKey, LanguageDocSpec]>)
-    .flatMap(([, spec]) => spec.categories.map((category) => `docs/architecture/languages/${spec.directory}/${category.fileName}`));
+  const paths = (Object.entries(LANGUAGE_SPECS) as Array<[LanguageKey, LanguageDocSpec]>).flatMap(([, spec]) =>
+    spec.categories.map((category) => `docs/architecture/languages/${spec.directory}/${category.fileName}`),
+  );
 
   return ["docs/architecture/languages/README.md", ...paths];
 }
@@ -748,9 +741,7 @@ export async function writeLanguageGuideDocs(input: {
     const minimumSupportedVersion = minVersion(repos.map((repo) => repo.stack.languageVersion));
     const frameworks = unique(repos.map((repo) => repo.stack.framework).filter((value) => value !== "unknown"));
     const frameworkVersions = unique(
-      repos
-        .map((repo) => repo.stack.frameworkVersion)
-        .filter((value): value is string => Boolean(value)),
+      repos.map((repo) => repo.stack.frameworkVersion).filter((value): value is string => Boolean(value)),
     );
 
     for (const category of spec.categories) {
@@ -777,12 +768,18 @@ export async function writeLanguageGuideDocs(input: {
           `Minimum supported version seen across analyzed repos: ${minimumSupportedVersion ?? "unknown"}.`,
           `Detected framework versions: ${frameworkVersions.length > 0 ? frameworkVersions.join(", ") : "unknown"}.`,
         ]),
-        ...renderBulletSection("Modern Features We Prefer", modernFeaturePreferences(language, detectedLanguageVersion)),
+        ...renderBulletSection(
+          "Modern Features We Prefer",
+          modernFeaturePreferences(language, detectedLanguageVersion),
+        ),
         ...renderBulletSection("Must", category.must),
         ...renderBulletSection("Recommended", category.recommended),
         ...renderBulletSection("Avoid", category.avoid),
         ...renderBulletSection("Review Checklist", category.checklist),
-        ...renderBulletSection("Version Upgrade Candidates", versionUpgradeCandidates(language, detectedLanguageVersion)),
+        ...renderBulletSection(
+          "Version Upgrade Candidates",
+          versionUpgradeCandidates(language, detectedLanguageVersion),
+        ),
         ...renderBulletSection("Sources", spec.sources),
       ].join("\n");
 

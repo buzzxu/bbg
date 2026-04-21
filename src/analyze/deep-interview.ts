@@ -38,7 +38,8 @@ const QUESTION_TEXT: Record<AnalyzeInterviewQuestionKey, string> = {
   nonNegotiableConstraints:
     "What non-negotiable constraints must future changes respect (security, compliance, latency, compatibility, release windows)?",
   failureHotspots: "Which modules or workflows are most failure-prone or risky today?",
-  decisionHistory: "Are there historical design decisions, legacy constraints, or repeated mistakes we should remember?",
+  decisionHistory:
+    "Are there historical design decisions, legacy constraints, or repeated mistakes we should remember?",
 };
 
 function splitStructuredAnswer(answer: string): string[] {
@@ -71,12 +72,16 @@ function inferProjectContext(input: {
   const failureHotspots = input.technical
     .flatMap((technical) => {
       const hotspots: string[] = [];
-      const combinedSignals = [technical.repo.description, ...technical.structure, ...technical.deps].join(" ").toLowerCase();
+      const combinedSignals = [technical.repo.description, ...technical.structure, ...technical.deps]
+        .join(" ")
+        .toLowerCase();
       if (!technical.testing.hasTestDir) {
         hotspots.push(`${technical.repo.name}: missing dedicated test directory`);
       }
       if (/(auth|tenant|billing|payment|checkout|transaction|security)/.test(combinedSignals)) {
-        hotspots.push(`${technical.repo.name}: sensitive domain boundary (${technical.repo.description || technical.repo.type})`);
+        hotspots.push(
+          `${technical.repo.name}: sensitive domain boundary (${technical.repo.description || technical.repo.type})`,
+        );
       }
       return hotspots;
     })
@@ -95,13 +100,13 @@ function inferProjectContext(input: {
 function scoreProjectContext(context: AnalyzeProjectContext, fusion: WorkspaceFusionResult): AnalyzeConfidenceScores {
   return {
     businessGoal: clampConfidence(context.businessGoal ? 0.78 : 0.28),
-    criticalFlows: clampConfidence(0.2 + (Math.min(context.criticalFlows.length, 5) * 0.14)),
+    criticalFlows: clampConfidence(0.2 + Math.min(context.criticalFlows.length, 5) * 0.14),
     systemBoundaries: clampConfidence(
-      0.3 + (Math.min(context.systemBoundaries.length, Math.max(fusion.repos.length, 1)) * 0.16),
+      0.3 + Math.min(context.systemBoundaries.length, Math.max(fusion.repos.length, 1)) * 0.16,
     ),
-    nonNegotiableConstraints: clampConfidence(0.18 + (Math.min(context.nonNegotiableConstraints.length, 5) * 0.16)),
-    failureHotspots: clampConfidence(0.25 + (Math.min(context.failureHotspots.length, 5) * 0.14)),
-    decisionHistory: clampConfidence(0.12 + (Math.min(context.decisionHistory.length, 4) * 0.18)),
+    nonNegotiableConstraints: clampConfidence(0.18 + Math.min(context.nonNegotiableConstraints.length, 5) * 0.16),
+    failureHotspots: clampConfidence(0.25 + Math.min(context.failureHotspots.length, 5) * 0.14),
+    decisionHistory: clampConfidence(0.12 + Math.min(context.decisionHistory.length, 4) * 0.18),
   };
 }
 
@@ -142,16 +147,29 @@ function inferAssumptions(input: {
   const combinedSignals = input.technical
     .map((technical) => [technical.repo.description, ...technical.structure, ...technical.deps].join(" ").toLowerCase())
     .join(" ");
-  const hasSensitiveBoundary = /(auth|tenant|payment|billing|checkout|security|transaction|permission|token)/.test(combinedSignals);
-  const hasFrontendAndBackend = input.fusion.repos.some((repo) => /(react|vue|next|taro|frontend|web)/i.test(repo.stack.framework) || repo.type === "frontend")
-    && input.fusion.repos.some((repo) => /(spring|backend|service|api|java|node|fastapi|django)/i.test(repo.stack.framework) || repo.type === "backend");
+  const hasSensitiveBoundary = /(auth|tenant|payment|billing|checkout|security|transaction|permission|token)/.test(
+    combinedSignals,
+  );
+  const hasFrontendAndBackend =
+    input.fusion.repos.some(
+      (repo) => /(react|vue|next|taro|frontend|web)/i.test(repo.stack.framework) || repo.type === "frontend",
+    ) &&
+    input.fusion.repos.some(
+      (repo) =>
+        /(spring|backend|service|api|java|node|fastapi|django)/i.test(repo.stack.framework) || repo.type === "backend",
+    );
   const multiRepo = input.fusion.repos.length > 1;
   const hasWeakTesting = input.technical.some((technical) => !technical.testing.hasTestDir);
   const flowCandidates = uniqueValues(
-    input.business.flatMap((entry) => [...entry.flowHints, ...entry.responsibilities, ...entry.entrypoints, ...entry.apiSignals]).slice(0, 8),
+    input.business
+      .flatMap((entry) => [...entry.flowHints, ...entry.responsibilities, ...entry.entrypoints, ...entry.apiSignals])
+      .slice(0, 8),
   );
   const boundaryCandidates = uniqueValues(
-    input.fusion.repos.map((repo) => `${repo.name}: ${repo.description?.trim().length ? repo.description.trim() : `${repo.type} responsibility`}`),
+    input.fusion.repos.map(
+      (repo) =>
+        `${repo.name}: ${repo.description?.trim().length ? repo.description.trim() : `${repo.type} responsibility`}`,
+    ),
   );
   const hotspotCandidates = uniqueValues(
     input.technical.flatMap((technical) => {
@@ -159,9 +177,11 @@ function inferAssumptions(input: {
       if (!technical.testing.hasTestDir) {
         hotspots.push(`${technical.repo.name}: limited dedicated test coverage`);
       }
-      if (/(auth|tenant|payment|billing|checkout|security|transaction|permission|token)/.test(
-        [technical.repo.description, ...technical.structure, ...technical.deps].join(" ").toLowerCase(),
-      )) {
+      if (
+        /(auth|tenant|payment|billing|checkout|security|transaction|permission|token)/.test(
+          [technical.repo.description, ...technical.structure, ...technical.deps].join(" ").toLowerCase(),
+        )
+      ) {
         hotspots.push(`${technical.repo.name}: sensitive business and security boundary`);
       }
       return hotspots;
@@ -183,7 +203,9 @@ function inferAssumptions(input: {
           key: gap.key,
           values: [values[0]],
           rationale: "Derived from repository descriptions and overall workspace topology.",
-          evidence: evidenceSignals.filter((signal) => signal.startsWith("repo:") || signal.startsWith("stack:")).slice(0, 4),
+          evidence: evidenceSignals
+            .filter((signal) => signal.startsWith("repo:") || signal.startsWith("stack:"))
+            .slice(0, 4),
         });
       }
       continue;
@@ -218,7 +240,9 @@ function inferAssumptions(input: {
           key: gap.key,
           values,
           rationale: "Built from repo-level descriptions and workspace ownership boundaries.",
-          evidence: evidenceSignals.filter((signal) => signal.startsWith("repo:") || signal.startsWith("stack:")).slice(0, 5),
+          evidence: evidenceSignals
+            .filter((signal) => signal.startsWith("repo:") || signal.startsWith("stack:"))
+            .slice(0, 5),
         });
       }
       continue;
@@ -227,17 +251,24 @@ function inferAssumptions(input: {
     if (gap.key === "nonNegotiableConstraints") {
       const values = uniqueValues([
         multiRepo ? "Must preserve existing cross-repo contracts and coordinate client/server changes together." : "",
-        hasSensitiveBoundary ? "Must not weaken authentication, authorization, tenant isolation, or other security-sensitive controls." : "",
-        hasFrontendAndBackend ? "Must keep production-facing user journeys compatible across frontend and backend boundaries during rollout." : "",
+        hasSensitiveBoundary
+          ? "Must not weaken authentication, authorization, tenant isolation, or other security-sensitive controls."
+          : "",
+        hasFrontendAndBackend
+          ? "Must keep production-facing user journeys compatible across frontend and backend boundaries during rollout."
+          : "",
         "Must avoid breaking externally visible behavior without explicit versioning or coordinated migration.",
       ]);
       if (values.length > 0) {
         assumptions.push({
           key: gap.key,
           values,
-          rationale: "Inferred from multi-repo topology, client/server separation, and security-sensitive dependency signals.",
+          rationale:
+            "Inferred from multi-repo topology, client/server separation, and security-sensitive dependency signals.",
           evidence: evidenceSignals
-            .filter((signal) => signal.startsWith("repo:") || signal.startsWith("dependency:") || signal.startsWith("stack:"))
+            .filter(
+              (signal) => signal.startsWith("repo:") || signal.startsWith("dependency:") || signal.startsWith("stack:"),
+            )
             .slice(0, 6),
         });
       }
@@ -256,7 +287,10 @@ function inferAssumptions(input: {
           values,
           rationale: "Inferred from testing signals, sensitive dependency markers, and integration boundaries.",
           evidence: evidenceSignals
-            .filter((signal) => signal.startsWith("testing:") || signal.startsWith("dependency:") || signal.startsWith("repo:"))
+            .filter(
+              (signal) =>
+                signal.startsWith("testing:") || signal.startsWith("dependency:") || signal.startsWith("repo:"),
+            )
             .slice(0, 6),
         });
       }
@@ -265,18 +299,28 @@ function inferAssumptions(input: {
 
     if (gap.key === "decisionHistory") {
       const values = uniqueValues([
-        multiRepo ? "This workspace is intentionally split across multiple repos, so contract drift and unsynchronized changes are a recurring risk to avoid." : "",
-        hasSensitiveBoundary ? "Sensitive domain boundaries should be regression-tested before refactors because auth, checkout, or permission flows are historically brittle." : "",
-        hasWeakTesting ? "Areas without dedicated tests should be treated cautiously during refactors and require stronger verification before rollout." : "",
+        multiRepo
+          ? "This workspace is intentionally split across multiple repos, so contract drift and unsynchronized changes are a recurring risk to avoid."
+          : "",
+        hasSensitiveBoundary
+          ? "Sensitive domain boundaries should be regression-tested before refactors because auth, checkout, or permission flows are historically brittle."
+          : "",
+        hasWeakTesting
+          ? "Areas without dedicated tests should be treated cautiously during refactors and require stronger verification before rollout."
+          : "",
         "Until explicit project history is documented, preserve current module boundaries and avoid broad refactors that change behavior across integration seams.",
       ]);
       if (values.length > 0) {
         assumptions.push({
           key: gap.key,
           values,
-          rationale: "Derived from repository boundaries, sensitive domain markers, and observed testing coverage gaps.",
+          rationale:
+            "Derived from repository boundaries, sensitive domain markers, and observed testing coverage gaps.",
           evidence: evidenceSignals
-            .filter((signal) => signal.startsWith("repo:") || signal.startsWith("testing:") || signal.startsWith("dependency:"))
+            .filter(
+              (signal) =>
+                signal.startsWith("repo:") || signal.startsWith("testing:") || signal.startsWith("dependency:"),
+            )
             .slice(0, 6),
         });
       }
@@ -287,14 +331,12 @@ function inferAssumptions(input: {
 }
 
 function detectKnowledgeGaps(confidence: AnalyzeConfidenceScores): AnalyzeKnowledgeGap[] {
-  return QUESTION_ORDER
-    .filter((key) => confidence[key] < CONFIDENCE_THRESHOLD)
-    .map((key, index) => ({
-      key,
-      question: QUESTION_TEXT[key],
-      reason: `confidence ${confidence[key]} is below ${CONFIDENCE_THRESHOLD}`,
-      priority: index + 1,
-    }));
+  return QUESTION_ORDER.filter((key) => confidence[key] < CONFIDENCE_THRESHOLD).map((key, index) => ({
+    key,
+    question: QUESTION_TEXT[key],
+    reason: `confidence ${confidence[key]} is below ${CONFIDENCE_THRESHOLD}`,
+    priority: index + 1,
+  }));
 }
 
 function applyAnswer(
@@ -401,7 +443,9 @@ export async function runAnalyzeDeepInterview(input: {
     ...pendingAnswers,
     ...explicitAnswers,
   };
-  const hasProvidedAnswers = Object.values(providedAnswers).some((value) => sanitizePromptValue(value ?? "", "").length > 0);
+  const hasProvidedAnswers = Object.values(providedAnswers).some(
+    (value) => sanitizePromptValue(value ?? "", "").length > 0,
+  );
   let context = inferProjectContext(input);
   const confidenceBefore = scoreProjectContext(context, input.fusion);
   const gaps = detectKnowledgeGaps(confidenceBefore);
@@ -468,7 +512,7 @@ export async function runAnalyzeDeepInterview(input: {
 
   const confidenceAfter = scoreProjectContext(context, input.fusion);
   const unresolvedGaps = detectKnowledgeGaps(confidenceAfter).map((gap) => gap.key);
-  if (pendingQuestions.length > 0) {
+  if (pendingQuestions.length > 0 && (mode === "guided" || mode === "deep")) {
     const now = new Date().toISOString();
     await writeAnalyzeInterviewPendingState(input.cwd, {
       version: 1,
