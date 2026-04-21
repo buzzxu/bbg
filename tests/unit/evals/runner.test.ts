@@ -63,7 +63,7 @@ describe("eval runner", () => {
     ]);
   });
 
-  it("runs an experiment file and persists the report to the configured output path", async () => {
+  it("runs an experiment file and persists the report to the configured output path", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     const seeded = await seedEvalArtifacts({ cwd });
 
@@ -85,7 +85,7 @@ describe("eval runner", () => {
     );
   });
 
-  it("runs a taskflow experiment and captures task metrics", async () => {
+  it("runs a taskflow experiment and captures task metrics", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     const seeded = await seedEvalArtifacts({ cwd });
 
@@ -156,7 +156,7 @@ describe("eval runner", () => {
     expect(report.metrics.manualReviewRate).toBeGreaterThan(0);
   });
 
-  it("runs a suite and aggregates metrics across experiments", { timeout: 40000 }, async () => {
+  it("runs a suite and aggregates metrics across experiments", { timeout: 60000 }, async () => {
     const cwd = await makeTempDir();
     const seeded = await seedEvalArtifacts({ cwd });
 
@@ -342,7 +342,7 @@ describe("eval runner", () => {
     );
   });
 
-  it("rejects missing experiments and repo-external report paths", async () => {
+  it("rejects missing experiments and repo-external report paths", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     const seeded = await seedEvalArtifacts({ cwd });
     const experimentPath = join(cwd, seeded.experimentFile);

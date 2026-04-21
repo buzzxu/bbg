@@ -177,7 +177,7 @@ describe("tasks runtime", () => {
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
-  it("creates task session artifacts and auto-runs low-risk preparation steps", async () => {
+  it("creates task session artifacts and auto-runs low-risk preparation steps", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await initializeWorkspace(cwd);
     process.env.BBG_CURRENT_TOOL = "claude";

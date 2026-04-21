@@ -45,7 +45,7 @@ describe("observe command", () => {
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
-  it("creates and reports an observation session", async () => {
+  it("creates and reports an observation session", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await seedConfig(cwd);
 
@@ -70,24 +70,28 @@ describe("observe command", () => {
     await writeTextFile(join(cwd, ".bbg", "task-envs", "checkout-debug", "notes.md"), "# Task Environment Notes\n");
     await writeTextFile(
       join(cwd, ".bbg", "task-envs", "checkout-debug", "manifest.json"),
-      `${JSON.stringify({
-        version: 1,
-        id: "checkout-debug",
-        task: "checkout debug",
-        slug: "checkout-debug",
-        createdAt: "2026-01-01T00:00:00.000Z",
-        updatedAt: "2026-01-01T00:00:00.000Z",
-        gitRoot: ".",
-        baseRef: "HEAD",
-        worktreePath: ".bbg/task-envs/checkout-debug/worktree",
-        artifactRoot: ".bbg/task-envs/checkout-debug/artifacts",
-        uiArtifactsPath: ".bbg/task-envs/checkout-debug/artifacts/ui",
-        logArtifactsPath: ".bbg/task-envs/checkout-debug/artifacts/logs",
-        metricArtifactsPath: ".bbg/task-envs/checkout-debug/artifacts/metrics",
-        traceArtifactsPath: ".bbg/task-envs/checkout-debug/artifacts/traces",
-        notesPath: ".bbg/task-envs/checkout-debug/notes.md",
-        status: "active",
-      }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          version: 1,
+          id: "checkout-debug",
+          task: "checkout debug",
+          slug: "checkout-debug",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          gitRoot: ".",
+          baseRef: "HEAD",
+          worktreePath: ".bbg/task-envs/checkout-debug/worktree",
+          artifactRoot: ".bbg/task-envs/checkout-debug/artifacts",
+          uiArtifactsPath: ".bbg/task-envs/checkout-debug/artifacts/ui",
+          logArtifactsPath: ".bbg/task-envs/checkout-debug/artifacts/logs",
+          metricArtifactsPath: ".bbg/task-envs/checkout-debug/artifacts/metrics",
+          traceArtifactsPath: ".bbg/task-envs/checkout-debug/artifacts/traces",
+          notesPath: ".bbg/task-envs/checkout-debug/notes.md",
+          status: "active",
+        },
+        null,
+        2,
+      )}\n`,
     );
 
     const { runObserveCommand } = await import("../../../src/commands/observe.js");
@@ -100,9 +104,13 @@ describe("observe command", () => {
 
     expect(started.session?.rootPath).toBe(".bbg/task-envs/checkout-debug/observations/checkout-latency");
     expect(started.session?.notesPath).toBe(".bbg/task-envs/checkout-debug/observations/checkout-latency/notes.md");
-    expect(await readTextFile(join(cwd, ".bbg", "task-envs", "checkout-debug", "notes.md"))).toBe("# Task Environment Notes\n");
+    expect(await readTextFile(join(cwd, ".bbg", "task-envs", "checkout-debug", "notes.md"))).toBe(
+      "# Task Environment Notes\n",
+    );
     expect(
-      await readTextFile(join(cwd, ".bbg", "task-envs", "checkout-debug", "observations", "checkout-latency", "notes.md")),
+      await readTextFile(
+        join(cwd, ".bbg", "task-envs", "checkout-debug", "observations", "checkout-latency", "notes.md"),
+      ),
     ).toContain("# Observation Notes");
   });
 

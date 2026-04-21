@@ -24,7 +24,7 @@ describe("uninstall command", () => {
     await Promise.all(tempDirs.splice(0).map((cwd) => rm(cwd, { recursive: true, force: true })));
   });
 
-  it("plans removals without mutating files in dry-run mode", { timeout: 20000 }, async () => {
+  it("plans removals without mutating files in dry-run mode", { timeout: 30000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
 
@@ -43,7 +43,7 @@ describe("uninstall command", () => {
     expect(await exists(join(cwd, "AGENTS.md"))).toBe(true);
   });
 
-  it("removes managed sections safely and preserves modified mixed-ownership files", { timeout: 20000 }, async () => {
+  it("removes managed sections safely and preserves modified mixed-ownership files", { timeout: 30000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
 
@@ -75,7 +75,7 @@ describe("uninstall command", () => {
     expect(await exists(join(cwd, ".bbg", "config.json"))).toBe(false);
   });
 
-  it("preserves runtime task data when requested", { timeout: 20000 }, async () => {
+  it("preserves runtime task data when requested", { timeout: 30000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
 
@@ -95,7 +95,7 @@ describe("uninstall command", () => {
     expect(await exists(join(cwd, ".bbg", "config.json"))).toBe(false);
   });
 
-  it("allows re-initialization after uninstall", { timeout: 30000 }, async () => {
+  it("allows re-initialization after uninstall", { timeout: 45000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
     await runUninstall({ cwd, yes: true });

@@ -275,6 +275,13 @@ describe("init command", () => {
         maxVerifyFailures: 3,
         maxDurationMs: 3600000,
       },
+      analysisAi: {
+        enabled: true,
+        mode: "provider",
+        provider: "local-synthesis",
+        modelClass: "premium",
+        timeoutMs: 45000,
+      },
     });
 
     expect(JSON.parse(await readFile(join(cwd, ".bbg", "sessions", "history.json"), "utf8"))).toEqual({
@@ -772,7 +779,9 @@ describe("init command", () => {
     const result = await runInit({ cwd, yes: false, dryRun: false });
 
     const configText = await readFile(join(cwd, ".bbg", "config.json"), "utf8");
-    const config = JSON.parse(configText) as { repos: Array<{ name: string; gitUrl: string; branch: string; type: string; description: string }> };
+    const config = JSON.parse(configText) as {
+      repos: Array<{ name: string; gitUrl: string; branch: string; type: string; description: string }>;
+    };
     expect(config.repos).toEqual([
       {
         name: "frontend",

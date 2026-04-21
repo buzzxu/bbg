@@ -31,6 +31,13 @@ describe("runtime schema", () => {
         maxVerifyFailures: 3,
         maxDurationMs: 3600000,
       },
+      analysisAi: {
+        enabled: true,
+        mode: "provider",
+        provider: "local-synthesis",
+        modelClass: "premium",
+        timeoutMs: 45000,
+      },
     });
   });
 

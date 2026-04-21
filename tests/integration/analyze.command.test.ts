@@ -50,14 +50,14 @@ async function seedWorkspace(cwd: string): Promise<void> {
           branch: "main",
           type: "backend",
           description: "repo a",
-        stack: {
-          language: "typescript",
-          framework: "node",
-          buildTool: "npm",
-          testFramework: "vitest",
-          packageManager: "npm",
-          languageVersion: "5.8.2",
-        },
+          stack: {
+            language: "typescript",
+            framework: "node",
+            buildTool: "npm",
+            testFramework: "vitest",
+            packageManager: "npm",
+            languageVersion: "5.8.2",
+          },
         },
       ],
       governance: {
@@ -118,6 +118,7 @@ describe("analyze command", () => {
     expect(result.docsUpdated).toContain("docs/business/analysis-dimensions.md");
     expect(result.docsUpdated).toContain("docs/business/capability-map.md");
     expect(result.docsUpdated).toContain("docs/business/critical-flows.md");
+    expect(result.docsUpdated).toContain("docs/business/business-chains.md");
     expect(result.docsUpdated).toContain("docs/business/domain-model.md");
     expect(result.docsUpdated).toContain("docs/architecture/integration-map.md");
     expect(result.docsUpdated).toContain("docs/architecture/integration-contracts.md");
@@ -135,13 +136,20 @@ describe("analyze command", () => {
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/analysis-dimensions.json");
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/capabilities.json");
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/critical-flows.json");
+    expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/business-chains.json");
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/contracts.json");
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/domain-model.json");
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/risk-surface.json");
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/change-impact.json");
+    expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/ai-analysis.json");
+    expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/reconciliation-report.json");
     expect(result.phases.some((phase) => phase.name === "deep-interview")).toBe(true);
     expect(result.interview?.mode).toBeTruthy();
-    const latest = JSON.parse(await import("node:fs/promises").then(({ readFile }) => readFile(join(cwd, ".bbg", "analyze", "latest.json"), "utf8"))) as {
+    const latest = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "analyze", "latest.json"), "utf8"),
+      ),
+    ) as {
       runId: string;
       repos: string[];
       phases?: Array<{ name: string }>;
@@ -187,18 +195,27 @@ describe("analyze command", () => {
         readFile(join(cwd, ".bbg", "knowledge", "workspace", "capabilities.json"), "utf8"),
       ),
     ) as { capabilities: Array<{ name: string; evidence: { summary: string } }> };
-    expect(capabilities.capabilities).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        name: "Checkout",
-        evidence: expect.objectContaining({ summary: expect.stringContaining("route, API, controller, DTO, and domain-term signals") }),
-      }),
-    ]));
+    expect(capabilities.capabilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Checkout",
+          evidence: expect.objectContaining({
+            summary: expect.stringContaining("route, API, controller, DTO, and domain-term signals"),
+          }),
+        }),
+      ]),
+    );
     const criticalFlowsDoc = await import("node:fs/promises").then(({ readFile }) =>
       readFile(join(cwd, "docs", "business", "critical-flows.md"), "utf8"),
     );
     expect(criticalFlowsDoc).toContain("# 关键流程分析");
     expect(criticalFlowsDoc).toContain("推定流程路径");
     expect(criticalFlowsDoc).toContain("```mermaid");
+    const businessChainsDoc = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(join(cwd, "docs", "business", "business-chains.md"), "utf8"),
+    );
+    expect(businessChainsDoc).toContain("# 业务链");
+    expect(businessChainsDoc).toContain("主要触发角色");
     const contractsDoc = await import("node:fs/promises").then(({ readFile }) =>
       readFile(join(cwd, "docs", "architecture", "integration-contracts.md"), "utf8"),
     );
@@ -208,6 +225,12 @@ describe("analyze command", () => {
       readFile(join(cwd, "docs", "business", "analysis-dimensions.md"), "utf8"),
     );
     expect(analysisDimensionsDoc).toContain("# 分析维度");
+    const aiAnalysis = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "knowledge", "workspace", "ai-analysis.json"), "utf8"),
+      ),
+    ) as { analysis: { businessArchitectureNarrative: string[] } };
+    expect(aiAnalysis.analysis.businessArchitectureNarrative.length).toBeGreaterThan(0);
   });
 
   it("captures guided interview answers into analyze knowledge and wiki artifacts", async () => {
@@ -284,6 +307,7 @@ describe("analyze command", () => {
     expect(result.docsUpdated).toContain("docs/workflows/focused-analysis.md");
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/focused-analysis.json");
     expect(result.focus?.matchedRepos).toContain("repo-a");
+    expect(result.focus?.intent).toBe("general");
     const focusedDoc = await import("node:fs/promises").then(({ readFile }) =>
       readFile(join(cwd, "docs", "workflows", "focused-analysis.md"), "utf8"),
     );
@@ -317,7 +341,9 @@ describe("analyze command", () => {
     expect(await exists(join(cwd, ".bbg", "knowledge", "repos", "repo-old"))).toBe(false);
     expect(await exists(join(cwd, "docs", "wiki", "concepts", "repo-repo-old-overview.md"))).toBe(false);
     expect(await exists(join(cwd, "docs", "architecture", "languages", "rust", "application-patterns.md"))).toBe(false);
-    expect(await exists(join(cwd, "docs", "architecture", "languages", "typescript", "application-patterns.md"))).toBe(true);
+    expect(await exists(join(cwd, "docs", "architecture", "languages", "typescript", "application-patterns.md"))).toBe(
+      true,
+    );
   });
 
   it("applies AI-inferred interview assumptions in AI context without blocking completion", async () => {
@@ -362,20 +388,15 @@ describe("analyze command", () => {
 
     expect(result.focus?.query).toBe("zod node");
     expect(result.focus?.matchedRepos).toEqual(["repo-a"]);
-    expect(result.focus?.matchedSignals).toEqual(expect.arrayContaining(["repo-a: node", "repo-a: node service layer"]));
-    expect(result.focus?.matchedContracts).toEqual(
-      expect.arrayContaining([
-        "repo-a UI routes",
-        "repo-a API surface",
-      ]),
+    expect(result.focus?.matchedSignals).toEqual(
+      expect.arrayContaining(["repo-a: node", "repo-a: node service layer"]),
     );
+    expect(result.focus?.matchedContracts).toEqual(expect.arrayContaining(["repo-a UI routes", "repo-a API surface"]));
     expect(result.focus?.reviewerHints).toEqual(expect.arrayContaining(["typescript-reviewer"]));
     expect(result.focus?.likelyEntrypoints).toEqual(expect.arrayContaining([expect.stringContaining("repo-a:")]));
     expect(result.focus?.riskHotspots?.length).toBeGreaterThan(0);
     expect(result.focus?.rationale).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("Matched focus tokens against repo descriptions"),
-      ]),
+      expect.arrayContaining([expect.stringContaining("Matched focus tokens against repo descriptions")]),
     );
     expect(result.phases.some((phase) => phase.name === "focus-analysis" && phase.status === "completed")).toBe(true);
   });

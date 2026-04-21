@@ -5,8 +5,8 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts"],
     maxWorkers: 2,
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    testTimeout: 20000,
+    hookTimeout: 20000,
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

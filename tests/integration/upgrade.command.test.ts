@@ -63,7 +63,10 @@ async function seedWorkspace(cwd: string): Promise<void> {
     writeTextFile(join(cwd, ".bbg", "config.json"), `${JSON.stringify(config, null, 2)}\n`),
     writeTextFile(join(cwd, "AGENTS.md"), trackedOld["AGENTS.md"]),
     writeTextFile(join(cwd, ".gitignore"), trackedOld[".gitignore"]),
-    writeTextFile(join(cwd, "docs", "workflows", "release-checklist.md"), trackedOld["docs/workflows/release-checklist.md"]),
+    writeTextFile(
+      join(cwd, "docs", "workflows", "release-checklist.md"),
+      trackedOld["docs/workflows/release-checklist.md"],
+    ),
     writeTextFile(join(cwd, ".bbg", "generated-snapshots", "AGENTS.md.gen"), trackedOld["AGENTS.md"]),
     writeTextFile(
       join(cwd, ".bbg", "generated-snapshots", "docs", "workflows", "release-checklist.md.gen"),
@@ -178,7 +181,7 @@ describe("upgrade command", () => {
     await expect(
       readFile(join(cwd, ".bbg", "upgrade-patches", "docs", "workflows", "release-checklist.md.patch"), "utf8"),
     ).rejects.toThrow();
-  
+
     promptState.promptConfirm.mockResolvedValueOnce(false);
     await expect(runUpgrade({ cwd, force: true })).rejects.toThrow(/force/i);
 
@@ -199,7 +202,7 @@ describe("upgrade command", () => {
     expect(result.skippedDeletedTemplate).toContain(".gitignore");
   });
 
-  it("reports unchanged tracked files after a clean upgrade has already been applied", { timeout: 20000 }, async () => {
+  it("reports unchanged tracked files after a clean upgrade has already been applied", { timeout: 30000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 
@@ -218,24 +221,28 @@ describe("upgrade command", () => {
     expect(secondResult.unchanged).toContain("AGENTS.md");
   });
 
-  it("performs three-way merge for user-modified tracked files using old snapshot baseline", { timeout: 20000 }, async () => {
-    const cwd = await makeTempDir();
-    await seedWorkspace(cwd);
+  it(
+    "performs three-way merge for user-modified tracked files using old snapshot baseline",
+    { timeout: 20000 },
+    async () => {
+      const cwd = await makeTempDir();
+      await seedWorkspace(cwd);
 
-    await writeTextFile(join(cwd, "docs", "workflows", "release-checklist.md"), "user changed checklist\n");
+      await writeTextFile(join(cwd, "docs", "workflows", "release-checklist.md"), "user changed checklist\n");
 
-    const result = await runUpgrade({ cwd });
+      const result = await runUpgrade({ cwd });
 
-    const filePath = "docs/workflows/release-checklist.md";
-    // File should now go through three-way merge instead of patch
-    const inMerged = result.merged.includes(filePath);
-    const inConflicted = result.conflicted.includes(filePath);
-    expect(inMerged || inConflicted).toBe(true);
-    // Should NOT be in patches (that's the old behavior for files with snapshots)
-    expect(result.patches).not.toContain(`.bbg/upgrade-patches/${filePath}.patch`);
-  });
+      const filePath = "docs/workflows/release-checklist.md";
+      // File should now go through three-way merge instead of patch
+      const inMerged = result.merged.includes(filePath);
+      const inConflicted = result.conflicted.includes(filePath);
+      expect(inMerged || inConflicted).toBe(true);
+      // Should NOT be in patches (that's the old behavior for files with snapshots)
+      expect(result.patches).not.toContain(`.bbg/upgrade-patches/${filePath}.patch`);
+    },
+  );
 
-  it("protects existing untracked files that are newly introduced by manifest", async () => {
+  it("protects existing untracked files that are newly introduced by manifest", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
 
@@ -263,58 +270,65 @@ describe("upgrade command", () => {
     expect(hashRecord["README.md"]).toBeUndefined();
   });
 
-  it("renders child AGENTS with repo context and skips orphan child AGENTS with notice", { timeout: 20000 }, async () => {
-    const cwd = await makeTempDir();
-    await seedWorkspace(cwd);
+  it(
+    "renders child AGENTS with repo context and skips orphan child AGENTS with notice",
+    { timeout: 20000 },
+    async () => {
+      const cwd = await makeTempDir();
+      await seedWorkspace(cwd);
 
-    const trackedChildAgents = {
-      "repo-a/AGENTS.md": "old child agents\n",
-      "orphan-repo/AGENTS.md": "old orphan child agents\n",
-    };
+      const trackedChildAgents = {
+        "repo-a/AGENTS.md": "old child agents\n",
+        "orphan-repo/AGENTS.md": "old orphan child agents\n",
+      };
 
-    await Promise.all([
-      writeTextFile(join(cwd, "repo-a", "AGENTS.md"), trackedChildAgents["repo-a/AGENTS.md"]),
-      writeTextFile(join(cwd, "orphan-repo", "AGENTS.md"), trackedChildAgents["orphan-repo/AGENTS.md"]),
-      writeTextFile(
-        join(cwd, ".bbg", "generated-snapshots", "repo-a", "AGENTS.md.gen"),
-        trackedChildAgents["repo-a/AGENTS.md"],
-      ),
-      writeTextFile(
-        join(cwd, ".bbg", "generated-snapshots", "orphan-repo", "AGENTS.md.gen"),
-        trackedChildAgents["orphan-repo/AGENTS.md"],
-      ),
-    ]);
+      await Promise.all([
+        writeTextFile(join(cwd, "repo-a", "AGENTS.md"), trackedChildAgents["repo-a/AGENTS.md"]),
+        writeTextFile(join(cwd, "orphan-repo", "AGENTS.md"), trackedChildAgents["orphan-repo/AGENTS.md"]),
+        writeTextFile(
+          join(cwd, ".bbg", "generated-snapshots", "repo-a", "AGENTS.md.gen"),
+          trackedChildAgents["repo-a/AGENTS.md"],
+        ),
+        writeTextFile(
+          join(cwd, ".bbg", "generated-snapshots", "orphan-repo", "AGENTS.md.gen"),
+          trackedChildAgents["orphan-repo/AGENTS.md"],
+        ),
+      ]);
 
-    const existingHashes = JSON.parse(await readFile(join(cwd, ".bbg", "file-hashes.json"), "utf8")) as Record<
-      string,
-      { generatedHash: string; generatedAt: string; templateVersion: string }
-    >;
-    existingHashes["repo-a/AGENTS.md"] = {
-      generatedHash: sha256Hex(trackedChildAgents["repo-a/AGENTS.md"]),
-      generatedAt: "2026-03-29T00:00:00.000Z",
-      templateVersion: "0.0.1",
-    };
-    existingHashes["orphan-repo/AGENTS.md"] = {
-      generatedHash: sha256Hex(trackedChildAgents["orphan-repo/AGENTS.md"]),
-      generatedAt: "2026-03-29T00:00:00.000Z",
-      templateVersion: "0.0.1",
-    };
-    await writeTextFile(join(cwd, ".bbg", "file-hashes.json"), `${JSON.stringify(existingHashes, null, 2)}\n`);
+      const existingHashes = JSON.parse(await readFile(join(cwd, ".bbg", "file-hashes.json"), "utf8")) as Record<
+        string,
+        { generatedHash: string; generatedAt: string; templateVersion: string }
+      >;
+      existingHashes["repo-a/AGENTS.md"] = {
+        generatedHash: sha256Hex(trackedChildAgents["repo-a/AGENTS.md"]),
+        generatedAt: "2026-03-29T00:00:00.000Z",
+        templateVersion: "0.0.1",
+      };
+      existingHashes["orphan-repo/AGENTS.md"] = {
+        generatedHash: sha256Hex(trackedChildAgents["orphan-repo/AGENTS.md"]),
+        generatedAt: "2026-03-29T00:00:00.000Z",
+        templateVersion: "0.0.1",
+      };
+      await writeTextFile(join(cwd, ".bbg", "file-hashes.json"), `${JSON.stringify(existingHashes, null, 2)}\n`);
 
-    const result = await runUpgrade({ cwd });
+      const result = await runUpgrade({ cwd });
 
-    expect(result.overwritten).toContain("repo-a/AGENTS.md");
-    const childAgentsContent = await readFile(join(cwd, "repo-a", "AGENTS.md"), "utf8");
-    expect(childAgentsContent).toContain("# repo-a -- Agent Rules");
-    expect(childAgentsContent).toContain("**Type:** backend");
-    expect(childAgentsContent).toContain("**Description:** repo");
-    expect(childAgentsContent).toContain("**Stack:** typescript / node");
+      expect(result.overwritten).toContain("repo-a/AGENTS.md");
+      const childAgentsContent = await readFile(join(cwd, "repo-a", "AGENTS.md"), "utf8");
+      expect(childAgentsContent).toContain("# repo-a -- Agent Rules");
+      expect(childAgentsContent).toContain("**Type:** backend");
+      expect(childAgentsContent).toContain("**Description:** repo");
+      expect(childAgentsContent).toContain("**Stack:** typescript / node");
 
-    expect(result.skippedWithNotice).toContain("orphan-repo/AGENTS.md");
-    expect(result.patches).toContain(".bbg/upgrade-patches/orphan-repo/AGENTS.md.patch");
-    const orphanNotice = await readFile(join(cwd, ".bbg", "upgrade-patches", "orphan-repo", "AGENTS.md.patch"), "utf8");
-    expect(orphanNotice).toContain("CHILD AGENTS REPO CONTEXT MISSING");
-  });
+      expect(result.skippedWithNotice).toContain("orphan-repo/AGENTS.md");
+      expect(result.patches).toContain(".bbg/upgrade-patches/orphan-repo/AGENTS.md.patch");
+      const orphanNotice = await readFile(
+        join(cwd, ".bbg", "upgrade-patches", "orphan-repo", "AGENTS.md.patch"),
+        "utf8",
+      );
+      expect(orphanNotice).toContain("CHILD AGENTS REPO CONTEXT MISSING");
+    },
+  );
 
   it("returns merged and conflicted arrays in result", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();

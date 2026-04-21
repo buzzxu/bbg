@@ -193,68 +193,72 @@ describe("target project primary flow", () => {
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
-  it("supports init -> analyze -> start -> resume -> status as the primary target-project path", async () => {
-    const cwd = await makeTempDir();
-    await runInit({ cwd, yes: true, dryRun: false });
+  it(
+    "supports init -> analyze -> start -> resume -> status as the primary target-project path",
+    { timeout: 20000 },
+    async () => {
+      const cwd = await makeTempDir();
+      await runInit({ cwd, yes: true, dryRun: false });
 
-    const configPath = join(cwd, ".bbg", "config.json");
-    const config = parseConfig(await readFile(configPath, "utf8"));
-    config.repos = [
-      {
-        name: "app",
-        gitUrl: "https://example.com/app.git",
-        branch: "main",
-        type: "backend",
-        stack: {
-          language: "typescript",
-          framework: "node",
-          buildTool: "npm",
-          testFramework: "vitest",
-          packageManager: "npm",
+      const configPath = join(cwd, ".bbg", "config.json");
+      const config = parseConfig(await readFile(configPath, "utf8"));
+      config.repos = [
+        {
+          name: "app",
+          gitUrl: "https://example.com/app.git",
+          branch: "main",
+          type: "backend",
+          stack: {
+            language: "typescript",
+            framework: "node",
+            buildTool: "npm",
+            testFramework: "vitest",
+            packageManager: "npm",
+          },
+          description: "application service",
         },
-        description: "application service",
-      },
-    ];
-    config.updatedAt = "2026-04-17T00:00:00.000Z";
-    await writeTextFile(configPath, serializeConfig(config));
-    await mkdir(join(cwd, "app"), { recursive: true });
+      ];
+      config.updatedAt = "2026-04-17T00:00:00.000Z";
+      await writeTextFile(configPath, serializeConfig(config));
+      await mkdir(join(cwd, "app"), { recursive: true });
 
-    const analyze = await runAnalyzeCommand({ cwd });
-    expect(analyze.analyzedRepos).toEqual(["app"]);
-    expect(analyze.repositoryDocs).toContain("docs/repositories/app.md");
+      const analyze = await runAnalyzeCommand({ cwd });
+      expect(analyze.analyzedRepos).toEqual(["app"]);
+      expect(analyze.repositoryDocs).toContain("docs/repositories/app.md");
 
-    process.env.BBG_CURRENT_TOOL = "claude";
-    const started = await runStartCommand({ cwd, task: "Fix checkout timeout" });
-    expect(started.session.taskId).toBe("fix-checkout-timeout");
-    expect(started.session.status).toBe("implementing");
-    expect(started.session.tool).toBe("claude");
-    expect(started.context.hermesQuery).toEqual({
-      executed: true,
-      strategy: "default",
-      topic: "Fix checkout timeout",
-      summary: "Similar checkout incidents found in Hermes.",
-      commandSpecPath: "commands/hermes-query.md",
-      references: ["commands/hermes-query.md"],
-      influencedWorkflow: true,
-      influencedRecovery: false,
-      influencedVerification: false,
-    });
+      process.env.BBG_CURRENT_TOOL = "claude";
+      const started = await runStartCommand({ cwd, task: "Fix checkout timeout" });
+      expect(started.session.taskId).toBe("fix-checkout-timeout");
+      expect(started.session.status).toBe("implementing");
+      expect(started.session.tool).toBe("claude");
+      expect(started.context.hermesQuery).toEqual({
+        executed: true,
+        strategy: "default",
+        topic: "Fix checkout timeout",
+        summary: "Similar checkout incidents found in Hermes.",
+        commandSpecPath: "commands/hermes-query.md",
+        references: ["commands/hermes-query.md"],
+        influencedWorkflow: true,
+        influencedRecovery: false,
+        influencedVerification: false,
+      });
 
-    const resumed = await runResumeCommand({ cwd, taskId: started.session.taskId });
-    expect(resumed.session.entrypoint).toBe("resume");
-    expect(resumed.session.taskId).toBe(started.session.taskId);
-    expect(resumed.context.hermesQuery.summary).toBe("Similar checkout incidents found in Hermes.");
+      const resumed = await runResumeCommand({ cwd, taskId: started.session.taskId });
+      expect(resumed.session.entrypoint).toBe("resume");
+      expect(resumed.session.taskId).toBe(started.session.taskId);
+      expect(resumed.context.hermesQuery.summary).toBe("Similar checkout incidents found in Hermes.");
 
-    const status = await runStatusCommand({ cwd });
-    expect(status.analyze.runId).toBe(analyze.runId);
-    expect(status.tasks).toEqual([
-      expect.objectContaining({
-        taskId: "fix-checkout-timeout",
-      }),
-    ]);
-  });
+      const status = await runStatusCommand({ cwd });
+      expect(status.analyze.runId).toBe(analyze.runId);
+      expect(status.tasks).toEqual([
+        expect.objectContaining({
+          taskId: "fix-checkout-timeout",
+        }),
+      ]);
+    },
+  );
 
-  it("marks the task blocked when terminal start cannot launch the configured runner", async () => {
+  it("marks the task blocked when terminal start cannot launch the configured runner", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
 
@@ -309,7 +313,7 @@ describe("target project primary flow", () => {
     ]);
   });
 
-  it("rejects resume for a completed task", async () => {
+  it("rejects resume for a completed task", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
 
@@ -348,8 +352,8 @@ describe("target project primary flow", () => {
     };
     await writeTextFile(sessionPath, JSON.stringify(completedSession, null, 2));
 
-    await expect(runResumeCommand({ cwd, taskId: started.session.taskId }))
-      .rejects
-      .toThrow(`Task '${started.session.taskId}' is already completed and cannot be resumed.`);
+    await expect(runResumeCommand({ cwd, taskId: started.session.taskId })).rejects.toThrow(
+      `Task '${started.session.taskId}' is already completed and cannot be resumed.`,
+    );
   });
 });

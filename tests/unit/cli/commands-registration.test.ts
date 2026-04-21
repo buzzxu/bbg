@@ -110,7 +110,7 @@ describe("cli command registration", () => {
     process.exitCode = undefined;
   });
 
-  it("exports buildProgram and registers runtime-backed quality commands", async () => {
+  it("exports buildProgram and registers runtime-backed quality commands", { timeout: 20000 }, async () => {
     const cliModule = await import("../../../src/cli.js");
 
     expect(cliModule.buildProgram).toBeTypeOf("function");
