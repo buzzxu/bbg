@@ -104,6 +104,7 @@ export function createStarterDatasetDocument(): EvalDatasetDocument {
             "docs/architecture/technical-architecture.md",
             "docs/architecture/business-architecture.md",
             "docs/architecture/repo-dependency-graph.md",
+            "docs/business/analysis-dimensions.md",
             "docs/business/capability-map.md",
             "docs/business/critical-flows.md",
             "docs/architecture/integration-contracts.md",
@@ -144,6 +145,7 @@ export function createStarterDatasetDocument(): EvalDatasetDocument {
             ".bbg/knowledge/workspace/integration-map.json",
             ".bbg/knowledge/workspace/business-modules.json",
             ".bbg/knowledge/workspace/capabilities.json",
+            ".bbg/knowledge/workspace/analysis-dimensions.json",
             ".bbg/knowledge/workspace/critical-flows.json",
             ".bbg/knowledge/workspace/contracts.json",
             ".bbg/knowledge/workspace/domain-model.json",
@@ -152,6 +154,12 @@ export function createStarterDatasetDocument(): EvalDatasetDocument {
             ".bbg/knowledge/workspace/risk-surface.json",
             ".bbg/knowledge/workspace/decisions.json",
             ".bbg/knowledge/workspace/change-impact.json",
+            ".bbg/knowledge/workspace/knowledge-items.json",
+            ".bbg/knowledge/workspace/evidence-index.json",
+            ".bbg/knowledge/workspace/lifecycle.json",
+            ".bbg/knowledge/workspace/run-diff.json",
+            ".bbg/knowledge/hermes/analyze-artifacts.json",
+            ".bbg/knowledge/hermes/analyze-candidates.json",
           ],
         },
       },
@@ -721,10 +729,7 @@ export function createHermesStrategySuiteDocument(): EvalSuiteDocument {
   return {
     version: 1,
     name: "hermes-strategy-suite",
-    experiments: [
-      "./hermes-control.taskflow.experiment.json",
-      "./hermes-treatment.taskflow.experiment.json",
-    ],
+    experiments: ["./hermes-control.taskflow.experiment.json", "./hermes-treatment.taskflow.experiment.json"],
     reportFile: "./reports/hermes-strategy-suite.report.json",
   };
 }
@@ -938,7 +943,15 @@ export function createAutonomyTaskflowDatasetDocument(): EvalDatasetDocument {
         steps: [
           { type: "set-env", values: { BBG_CURRENT_TOOL: "claude" } },
           { type: "command", command: { name: "start", options: { task: "Fix checkout timeout" } } },
-          { type: "mutate-task-session", patch: { attemptCount: 6, status: "retrying", currentStep: "implement", nextActions: ["implement", "verify"] } },
+          {
+            type: "mutate-task-session",
+            patch: {
+              attemptCount: 6,
+              status: "retrying",
+              currentStep: "implement",
+              nextActions: ["implement", "verify"],
+            },
+          },
           { type: "command", command: { name: "resume" } },
         ],
         expect: {
@@ -967,7 +980,20 @@ export function createAutonomyTaskflowDatasetDocument(): EvalDatasetDocument {
         steps: [
           { type: "set-env", values: { BBG_CURRENT_TOOL: "claude" } },
           { type: "command", command: { name: "start", options: { task: "Fix checkout timeout" } } },
-          { type: "mutate-task-session", patch: { autonomy: { maxAttempts: 5, maxVerifyFailures: 1, maxDurationMs: 3600000, verifyFailureCount: 0, escalated: false, escalationReason: null, escalatedAt: null } } },
+          {
+            type: "mutate-task-session",
+            patch: {
+              autonomy: {
+                maxAttempts: 5,
+                maxVerifyFailures: 1,
+                maxDurationMs: 3600000,
+                verifyFailureCount: 0,
+                escalated: false,
+                escalationReason: null,
+                escalatedAt: null,
+              },
+            },
+          },
           { type: "command", command: { name: "checkpoint", options: { name: "baseline" } } },
           { type: "write-file", path: "README.md", content: "# Runtime starter changed\n" },
           { type: "command", command: { name: "verify", options: { checkpoint: "baseline" } } },
@@ -1056,39 +1082,58 @@ async function seedRuntimeFixture(cwd: string, fixtureDirectory: string): Promis
   await writeTextFile(join(fixtureRoot, "README.md"), "# Runtime starter\n");
   await writeTextFile(join(fixtureRoot, "AGENTS.md"), "# Eval Fixture\n\nPrimary task entrypoint is `bbg start`.\n");
   await writeTextFile(join(fixtureRoot, "RULES.md"), "# Rules\n\nUse deterministic eval-friendly workflows.\n");
-  await writeTextFile(join(fixtureRoot, "commands", "plan.md"), "# Plan\n\nCreate an implementation plan from canonical repo guidance before making changes.\n");
-  await writeTextFile(join(fixtureRoot, "commands", "hermes-query.md"), "# Hermes Query\n\nAnswer task questions using local Hermes context before re-deriving solutions.\n");
-  await writeTextFile(join(fixtureRoot, "skills", "tdd-workflow", "SKILL.md"), "# TDD Workflow\n\nFollow RED -> GREEN -> IMPROVE.\n");
-  await writeTextFile(join(fixtureRoot, "package.json"), `${JSON.stringify({
-    name: "bbg-eval-runtime-starter",
-    private: true,
-    type: "module",
-    scripts: {
-      build: 'node -e "process.exit(0)"',
-      typecheck: 'node -e "process.exit(0)"',
-      test: 'node -e "process.exit(0)"',
-      lint: 'node -e "process.exit(0)"',
-    },
-  }, null, 2)}\n`);
-  await writeTextFile(join(fixtureRoot, ".bbg", "config.json"), serializeConfig({
-    version: "0.1.0",
-    projectName: "runtime-starter",
-    projectDescription: "deterministic runtime eval fixture",
-    createdAt: "2026-04-01T00:00:00.000Z",
-    updatedAt: "2026-04-01T00:00:00.000Z",
-    repos: [],
-    governance: {
-      riskThresholds: {
-        high: { grade: "A+", minScore: 99 },
-        medium: { grade: "A", minScore: 95 },
-        low: { grade: "B", minScore: 85 },
+  await writeTextFile(
+    join(fixtureRoot, "commands", "plan.md"),
+    "# Plan\n\nCreate an implementation plan from canonical repo guidance before making changes.\n",
+  );
+  await writeTextFile(
+    join(fixtureRoot, "commands", "hermes-query.md"),
+    "# Hermes Query\n\nAnswer task questions using local Hermes context before re-deriving solutions.\n",
+  );
+  await writeTextFile(
+    join(fixtureRoot, "skills", "tdd-workflow", "SKILL.md"),
+    "# TDD Workflow\n\nFollow RED -> GREEN -> IMPROVE.\n",
+  );
+  await writeTextFile(
+    join(fixtureRoot, "package.json"),
+    `${JSON.stringify(
+      {
+        name: "bbg-eval-runtime-starter",
+        private: true,
+        type: "module",
+        scripts: {
+          build: 'node -e "process.exit(0)"',
+          typecheck: 'node -e "process.exit(0)"',
+          test: 'node -e "process.exit(0)"',
+          lint: 'node -e "process.exit(0)"',
+        },
       },
-      enableRedTeam: true,
-      enableCrossAudit: true,
-    },
-    context: {},
-    runtime,
-  }));
+      null,
+      2,
+    )}\n`,
+  );
+  await writeTextFile(
+    join(fixtureRoot, ".bbg", "config.json"),
+    serializeConfig({
+      version: "0.1.0",
+      projectName: "runtime-starter",
+      projectDescription: "deterministic runtime eval fixture",
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+      repos: [],
+      governance: {
+        riskThresholds: {
+          high: { grade: "A+", minScore: 99 },
+          medium: { grade: "A", minScore: 95 },
+          low: { grade: "B", minScore: 85 },
+        },
+        enableRedTeam: true,
+        enableCrossAudit: true,
+      },
+      context: {},
+      runtime,
+    }),
+  );
 
   await execa("git", ["init"], { cwd: fixtureRoot });
   await execa("git", ["config", "user.name", "BBG Eval"], { cwd: fixtureRoot });
@@ -1102,118 +1147,168 @@ async function seedWorkspaceFixture(cwd: string, fixtureDirectory: string): Prom
   const fixtureRoot = join(cwd, fixtureDirectory);
 
   await writeTextFile(join(fixtureRoot, "README.md"), "# Workspace starter\n");
-  await writeTextFile(join(fixtureRoot, "AGENTS.md"), "# Workspace Eval Fixture\n\nPrimary task entrypoint is `bbg start`.\n");
+  await writeTextFile(
+    join(fixtureRoot, "AGENTS.md"),
+    "# Workspace Eval Fixture\n\nPrimary task entrypoint is `bbg start`.\n",
+  );
   await writeTextFile(join(fixtureRoot, "RULES.md"), "# Rules\n\nFavor deterministic multi-repo workflows.\n");
-  await writeTextFile(join(fixtureRoot, "commands", "plan.md"), "# Plan\n\nUse workspace context before starting cross-repo tasks.\n");
-  await writeTextFile(join(fixtureRoot, "commands", "hermes-query.md"), "# Hermes Query\n\nPrefer existing workspace knowledge when tasks span multiple repos.\n");
-  await writeTextFile(join(fixtureRoot, "skills", "tdd-workflow", "SKILL.md"), "# TDD Workflow\n\nFollow RED -> GREEN -> IMPROVE.\n");
-  await writeTextFile(join(fixtureRoot, "package.json"), `${JSON.stringify({
-    name: "bbg-eval-workspace-starter",
-    private: true,
-    type: "module",
-  }, null, 2)}\n`);
+  await writeTextFile(
+    join(fixtureRoot, "commands", "plan.md"),
+    "# Plan\n\nUse workspace context before starting cross-repo tasks.\n",
+  );
+  await writeTextFile(
+    join(fixtureRoot, "commands", "hermes-query.md"),
+    "# Hermes Query\n\nPrefer existing workspace knowledge when tasks span multiple repos.\n",
+  );
+  await writeTextFile(
+    join(fixtureRoot, "skills", "tdd-workflow", "SKILL.md"),
+    "# TDD Workflow\n\nFollow RED -> GREEN -> IMPROVE.\n",
+  );
+  await writeTextFile(
+    join(fixtureRoot, "package.json"),
+    `${JSON.stringify(
+      {
+        name: "bbg-eval-workspace-starter",
+        private: true,
+        type: "module",
+      },
+      null,
+      2,
+    )}\n`,
+  );
 
-  await writeTextFile(join(fixtureRoot, "web", "package.json"), `${JSON.stringify({
-    name: "workspace-web",
-    private: true,
-    type: "module",
-    dependencies: {
-      next: "^15.2.0",
-    },
-    devDependencies: {
-      typescript: "^5.8.2",
-    },
-    scripts: {
-      build: 'node -e "process.exit(0)"',
-      typecheck: 'node -e "process.exit(0)"',
-      test: 'node -e "process.exit(0)"',
-      lint: 'node -e "process.exit(0)"',
-    },
-  }, null, 2)}\n`);
-  await writeTextFile(join(fixtureRoot, "web", "tsconfig.json"), `${JSON.stringify({
-    compilerOptions: {
-      target: "ES2022",
-      module: "ESNext",
-      moduleResolution: "Node",
-      strict: true,
-    },
-    include: ["src"],
-  }, null, 2)}\n`);
+  await writeTextFile(
+    join(fixtureRoot, "web", "package.json"),
+    `${JSON.stringify(
+      {
+        name: "workspace-web",
+        private: true,
+        type: "module",
+        dependencies: {
+          next: "^15.2.0",
+        },
+        devDependencies: {
+          typescript: "^5.8.2",
+        },
+        scripts: {
+          build: 'node -e "process.exit(0)"',
+          typecheck: 'node -e "process.exit(0)"',
+          test: 'node -e "process.exit(0)"',
+          lint: 'node -e "process.exit(0)"',
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  await writeTextFile(
+    join(fixtureRoot, "web", "tsconfig.json"),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "Node",
+          strict: true,
+        },
+        include: ["src"],
+      },
+      null,
+      2,
+    )}\n`,
+  );
   await writeTextFile(join(fixtureRoot, "web", "src", "checkout.ts"), "export const checkout = true;\n");
 
-  await writeTextFile(join(fixtureRoot, "api", "package.json"), `${JSON.stringify({
-    name: "workspace-api",
-    private: true,
-    type: "module",
-    devDependencies: {
-      typescript: "^5.8.2",
-    },
-    scripts: {
-      build: 'node -e "process.exit(0)"',
-      typecheck: 'node -e "process.exit(0)"',
-      test: 'node -e "process.exit(0)"',
-      lint: 'node -e "process.exit(0)"',
-    },
-  }, null, 2)}\n`);
-  await writeTextFile(join(fixtureRoot, "api", "tsconfig.json"), `${JSON.stringify({
-    compilerOptions: {
-      target: "ES2022",
-      module: "ESNext",
-      moduleResolution: "Node",
-      strict: true,
-    },
-    include: ["src"],
-  }, null, 2)}\n`);
+  await writeTextFile(
+    join(fixtureRoot, "api", "package.json"),
+    `${JSON.stringify(
+      {
+        name: "workspace-api",
+        private: true,
+        type: "module",
+        devDependencies: {
+          typescript: "^5.8.2",
+        },
+        scripts: {
+          build: 'node -e "process.exit(0)"',
+          typecheck: 'node -e "process.exit(0)"',
+          test: 'node -e "process.exit(0)"',
+          lint: 'node -e "process.exit(0)"',
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  await writeTextFile(
+    join(fixtureRoot, "api", "tsconfig.json"),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          target: "ES2022",
+          module: "ESNext",
+          moduleResolution: "Node",
+          strict: true,
+        },
+        include: ["src"],
+      },
+      null,
+      2,
+    )}\n`,
+  );
   await writeTextFile(join(fixtureRoot, "api", "src", "checkout-route.ts"), "export const checkoutRoute = true;\n");
 
-  await writeTextFile(join(fixtureRoot, ".bbg", "config.json"), serializeConfig({
-    version: "0.1.0",
-    projectName: "workspace-starter",
-    projectDescription: "deterministic workspace eval fixture",
-    createdAt: "2026-04-01T00:00:00.000Z",
-    updatedAt: "2026-04-01T00:00:00.000Z",
-    repos: [
-      {
-        name: "web",
-        gitUrl: "https://example.com/web.git",
-        branch: "main",
-        type: "frontend-web",
-        description: "checkout web frontend",
-        stack: {
-          language: "typescript",
-          framework: "nextjs",
-          buildTool: "npm",
-          testFramework: "vitest",
-          packageManager: "npm",
+  await writeTextFile(
+    join(fixtureRoot, ".bbg", "config.json"),
+    serializeConfig({
+      version: "0.1.0",
+      projectName: "workspace-starter",
+      projectDescription: "deterministic workspace eval fixture",
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+      repos: [
+        {
+          name: "web",
+          gitUrl: "https://example.com/web.git",
+          branch: "main",
+          type: "frontend-web",
+          description: "checkout web frontend",
+          stack: {
+            language: "typescript",
+            framework: "nextjs",
+            buildTool: "npm",
+            testFramework: "vitest",
+            packageManager: "npm",
+          },
         },
-      },
-      {
-        name: "api",
-        gitUrl: "https://example.com/api.git",
-        branch: "main",
-        type: "backend",
-        description: "checkout api backend",
-        stack: {
-          language: "typescript",
-          framework: "node",
-          buildTool: "npm",
-          testFramework: "vitest",
-          packageManager: "npm",
+        {
+          name: "api",
+          gitUrl: "https://example.com/api.git",
+          branch: "main",
+          type: "backend",
+          description: "checkout api backend",
+          stack: {
+            language: "typescript",
+            framework: "node",
+            buildTool: "npm",
+            testFramework: "vitest",
+            packageManager: "npm",
+          },
         },
+      ],
+      governance: {
+        riskThresholds: {
+          high: { grade: "A+", minScore: 99 },
+          medium: { grade: "A", minScore: 95 },
+          low: { grade: "B", minScore: 85 },
+        },
+        enableRedTeam: true,
+        enableCrossAudit: true,
       },
-    ],
-    governance: {
-      riskThresholds: {
-        high: { grade: "A+", minScore: 99 },
-        medium: { grade: "A", minScore: 95 },
-        low: { grade: "B", minScore: 85 },
-      },
-      enableRedTeam: true,
-      enableCrossAudit: true,
-    },
-    context: {},
-    runtime,
-  }));
+      context: {},
+      runtime,
+    }),
+  );
 
   await execa("git", ["init"], { cwd: fixtureRoot });
   await execa("git", ["config", "user.name", "BBG Eval"], { cwd: fixtureRoot });
@@ -1241,18 +1336,54 @@ export async function seedEvalArtifacts(input: { cwd: string }): Promise<SeedEva
   const workspaceFixtureDirectory = "evals/fixtures/workspace-starter";
 
   await writeTextFile(join(input.cwd, datasetFile), `${JSON.stringify(createStarterDatasetDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, experimentFile), `${JSON.stringify(createStarterExperimentDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, taskflowDatasetFile), `${JSON.stringify(createStarterTaskflowDatasetDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, taskflowExperimentFile), `${JSON.stringify(createStarterTaskflowExperimentDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, recoveryTaskflowDatasetFile), `${JSON.stringify(createRecoveryTaskflowDatasetDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, recoveryTaskflowExperimentFile), `${JSON.stringify(createRecoveryTaskflowExperimentDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, autonomyTaskflowDatasetFile), `${JSON.stringify(createAutonomyTaskflowDatasetDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, autonomyTaskflowExperimentFile), `${JSON.stringify(createAutonomyTaskflowExperimentDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, hermesControlTaskflowDatasetFile), `${JSON.stringify(createHermesControlTaskflowDatasetDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, hermesControlTaskflowExperimentFile), `${JSON.stringify(createHermesControlTaskflowExperimentDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, hermesTreatmentTaskflowDatasetFile), `${JSON.stringify(createHermesTreatmentTaskflowDatasetDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, hermesTreatmentTaskflowExperimentFile), `${JSON.stringify(createHermesTreatmentTaskflowExperimentDocument(), null, 2)}\n`);
-  await writeTextFile(join(input.cwd, hermesStrategySuiteFile), `${JSON.stringify(createHermesStrategySuiteDocument(), null, 2)}\n`);
+  await writeTextFile(
+    join(input.cwd, experimentFile),
+    `${JSON.stringify(createStarterExperimentDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, taskflowDatasetFile),
+    `${JSON.stringify(createStarterTaskflowDatasetDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, taskflowExperimentFile),
+    `${JSON.stringify(createStarterTaskflowExperimentDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, recoveryTaskflowDatasetFile),
+    `${JSON.stringify(createRecoveryTaskflowDatasetDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, recoveryTaskflowExperimentFile),
+    `${JSON.stringify(createRecoveryTaskflowExperimentDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, autonomyTaskflowDatasetFile),
+    `${JSON.stringify(createAutonomyTaskflowDatasetDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, autonomyTaskflowExperimentFile),
+    `${JSON.stringify(createAutonomyTaskflowExperimentDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, hermesControlTaskflowDatasetFile),
+    `${JSON.stringify(createHermesControlTaskflowDatasetDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, hermesControlTaskflowExperimentFile),
+    `${JSON.stringify(createHermesControlTaskflowExperimentDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, hermesTreatmentTaskflowDatasetFile),
+    `${JSON.stringify(createHermesTreatmentTaskflowDatasetDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, hermesTreatmentTaskflowExperimentFile),
+    `${JSON.stringify(createHermesTreatmentTaskflowExperimentDocument(), null, 2)}\n`,
+  );
+  await writeTextFile(
+    join(input.cwd, hermesStrategySuiteFile),
+    `${JSON.stringify(createHermesStrategySuiteDocument(), null, 2)}\n`,
+  );
   await writeTextFile(join(input.cwd, suiteFile), `${JSON.stringify(createStarterSuiteDocument(), null, 2)}\n`);
   await seedRuntimeFixture(input.cwd, fixtureDirectory);
   await seedWorkspaceFixture(input.cwd, workspaceFixtureDirectory);

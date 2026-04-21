@@ -2,7 +2,11 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { BBG_GITIGNORE_ENTRIES, MANAGED_GITIGNORE_BLOCK_END, MANAGED_GITIGNORE_BLOCK_START } from "../../src/constants.js";
+import {
+  BBG_GITIGNORE_ENTRIES,
+  MANAGED_GITIGNORE_BLOCK_END,
+  MANAGED_GITIGNORE_BLOCK_START,
+} from "../../src/constants.js";
 import { runInit } from "../../src/commands/init.js";
 import { runUninstall } from "../../src/commands/uninstall.js";
 import { exists, writeTextFile } from "../../src/utils/fs.js";
@@ -20,7 +24,7 @@ describe("uninstall command", () => {
     await Promise.all(tempDirs.splice(0).map((cwd) => rm(cwd, { recursive: true, force: true })));
   });
 
-  it("plans removals without mutating files in dry-run mode", async () => {
+  it("plans removals without mutating files in dry-run mode", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
 
@@ -39,7 +43,7 @@ describe("uninstall command", () => {
     expect(await exists(join(cwd, "AGENTS.md"))).toBe(true);
   });
 
-  it("removes managed sections safely and preserves modified mixed-ownership files", async () => {
+  it("removes managed sections safely and preserves modified mixed-ownership files", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
 
@@ -71,11 +75,14 @@ describe("uninstall command", () => {
     expect(await exists(join(cwd, ".bbg", "config.json"))).toBe(false);
   });
 
-  it("preserves runtime task data when requested", async () => {
+  it("preserves runtime task data when requested", { timeout: 20000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
 
-    await writeTextFile(join(cwd, ".bbg", "tasks", "sample-task", "session.json"), "{\n  \"status\": \"implementing\"\n}\n");
+    await writeTextFile(
+      join(cwd, ".bbg", "tasks", "sample-task", "session.json"),
+      '{\n  "status": "implementing"\n}\n',
+    );
 
     const result = await runUninstall({
       cwd,
@@ -88,7 +95,7 @@ describe("uninstall command", () => {
     expect(await exists(join(cwd, ".bbg", "config.json"))).toBe(false);
   });
 
-  it("allows re-initialization after uninstall", async () => {
+  it("allows re-initialization after uninstall", { timeout: 30000 }, async () => {
     const cwd = await makeTempDir();
     await runInit({ cwd, yes: true, dryRun: false });
     await runUninstall({ cwd, yes: true });

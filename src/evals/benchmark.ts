@@ -46,7 +46,12 @@ export interface EvalBenchmarkReport {
 }
 
 function findLatestNamedEntry(entries: EvalHistoryEntry[], name: string): EvalHistoryEntry | null {
-  return entries.slice().reverse().find((entry) => entry.name === name) ?? null;
+  return (
+    entries
+      .slice()
+      .reverse()
+      .find((entry) => entry.name === name) ?? null
+  );
 }
 
 function average(values: number[]): number {
@@ -87,19 +92,19 @@ export async function buildEvalBenchmarkReport(cwd: string, limit = 10): Promise
   const summary = await summarizeEvalHistory(cwd, limit);
   const latest = summary.latest;
   const previous = summary.previous;
-  const metricKeys = latest ? Object.keys(latest.metrics) as Array<keyof EvalExperimentMetrics> : [];
+  const latestMetrics = latest?.metrics;
+  const metricKeys = latestMetrics ? (Object.keys(latestMetrics) as Array<keyof EvalExperimentMetrics>) : [];
 
   const metrics = Object.fromEntries(
     metricKeys.map((key) => [
       key,
-      summarizeMetric(key, latest.metrics, previous?.metrics ?? null, history.entries),
+      summarizeMetric(key, latestMetrics as EvalExperimentMetrics, previous?.metrics ?? null, history.entries),
     ]),
   );
   const hermesControl = findLatestNamedEntry(history.entries, "hermes-control-taskflow");
   const hermesTreatment = findLatestNamedEntry(history.entries, "hermes-treatment-taskflow");
-  const hermesMetricDiffs = hermesControl && hermesTreatment
-    ? buildMetricDiffs(hermesControl.metrics, hermesTreatment.metrics)
-    : {};
+  const hermesMetricDiffs =
+    hermesControl && hermesTreatment ? buildMetricDiffs(hermesControl.metrics, hermesTreatment.metrics) : {};
   const hermesChanges = summarizeMetricDiffs(hermesMetricDiffs);
 
   return {
@@ -117,23 +122,25 @@ export async function buildEvalBenchmarkReport(cwd: string, limit = 10): Promise
       regressions: hermesChanges.regressions,
       improvements: hermesChanges.improvements,
     },
-    recoveryPlanCoverage: latest ? {
-      collectEvidenceRate: latest.metrics.collectEvidenceRecoveryRate,
-      retryImplementRate: latest.metrics.retryImplementRecoveryRate,
-      manualReviewRate: latest.metrics.manualReviewRate,
-      autoRecoveryActionRate: latest.metrics.autoRecoveryActionRate,
-      autonomyGuardrailRate: latest.metrics.autonomyGuardrailRate,
-      budgetEscalationRate: latest.metrics.budgetEscalationRate,
-      manualHandoffRate: latest.metrics.manualHandoffRate,
-    } : {
-      collectEvidenceRate: null,
-      retryImplementRate: null,
-      manualReviewRate: null,
-      autoRecoveryActionRate: null,
-      autonomyGuardrailRate: null,
-      budgetEscalationRate: null,
-      manualHandoffRate: null,
-    },
+    recoveryPlanCoverage: latest
+      ? {
+          collectEvidenceRate: latest.metrics.collectEvidenceRecoveryRate,
+          retryImplementRate: latest.metrics.retryImplementRecoveryRate,
+          manualReviewRate: latest.metrics.manualReviewRate,
+          autoRecoveryActionRate: latest.metrics.autoRecoveryActionRate,
+          autonomyGuardrailRate: latest.metrics.autonomyGuardrailRate,
+          budgetEscalationRate: latest.metrics.budgetEscalationRate,
+          manualHandoffRate: latest.metrics.manualHandoffRate,
+        }
+      : {
+          collectEvidenceRate: null,
+          retryImplementRate: null,
+          manualReviewRate: null,
+          autoRecoveryActionRate: null,
+          autonomyGuardrailRate: null,
+          budgetEscalationRate: null,
+          manualHandoffRate: null,
+        },
     entries: summary.entries.map((entry) => ({
       kind: entry.kind,
       name: entry.name,

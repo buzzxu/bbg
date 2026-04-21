@@ -130,11 +130,11 @@ async function readExperimentDocument(filePath: string): Promise<EvalExperimentD
 }
 
 async function readSuiteDocument(filePath: string): Promise<EvalSuiteDocument> {
-  return readJsonStore<EvalSuiteDocument>(
-    filePath,
-    { version: 1, name: "", experiments: [] },
-    isEvalSuiteDocument,
-  );
+  return readJsonStore<EvalSuiteDocument>(filePath, { version: 1, name: "", experiments: [] }, isEvalSuiteDocument);
+}
+
+function normalizeAnalyzeKnowledgePaths(paths: string[]): string[] {
+  return paths.filter((pathValue) => !/^\.bbg\/analyze\/runs\/[^/]+\/knowledge-snapshot\.json$/.test(pathValue));
 }
 
 async function runCommand(command: EvalCommandDefinition, cwd: string): Promise<Record<string, unknown>> {
@@ -186,7 +186,7 @@ async function runCommand(command: EvalCommandDefinition, cwd: string): Promise<
       scope: result.scope,
       analyzedRepos: result.analyzedRepos,
       docsUpdated: result.docsUpdated,
-      knowledgeUpdated: result.knowledgeUpdated,
+      knowledgeUpdated: normalizeAnalyzeKnowledgePaths(result.knowledgeUpdated),
     };
   }
 
@@ -330,10 +330,12 @@ async function runTaskflowCommandStep(
   }
 
   if (command.name === "checkpoint") {
-    const result = await withTemporaryEnv(state.env, () => runCheckpointCommand({
-      cwd,
-      name: command.options?.name,
-    }));
+    const result = await withTemporaryEnv(state.env, () =>
+      runCheckpointCommand({
+        cwd,
+        name: command.options?.name,
+      }),
+    );
     return {
       ok: result.ok,
       checkpointFile: result.checkpointFile,
@@ -341,7 +343,9 @@ async function runTaskflowCommandStep(
   }
 
   if (command.name === "verify") {
-    const result = await withTemporaryEnv(state.env, () => runVerifyCommand({ cwd, checkpoint: command.options?.checkpoint }));
+    const result = await withTemporaryEnv(state.env, () =>
+      runVerifyCommand({ cwd, checkpoint: command.options?.checkpoint }),
+    );
     if (result.taskVerification?.taskId) {
       state.lastTaskId = result.taskVerification.taskId;
     }
@@ -355,18 +359,22 @@ async function runTaskflowCommandStep(
     const checks = command.options?.checks
       ?.split(",")
       .map((value) => value.trim())
-      .filter((value): value is "build" | "tests" | "typecheck" | "lint" =>
-        value === "build" || value === "tests" || value === "typecheck" || value === "lint");
-    const result = await withTemporaryEnv(state.env, () => runLoopStartCommand({
-      cwd,
-      id: command.options?.id,
-      taskId: command.options?.taskId ?? state.lastTaskId ?? undefined,
-      envId: command.options?.envId,
-      checks,
-      maxIterations: command.options?.maxIterations ? Number.parseInt(command.options.maxIterations, 10) : undefined,
-      pollIntervalMs: command.options?.pollMs ? Number.parseInt(command.options.pollMs, 10) : undefined,
-      idleTimeoutMs: command.options?.idleMs ? Number.parseInt(command.options.idleMs, 10) : undefined,
-    }));
+      .filter(
+        (value): value is "build" | "tests" | "typecheck" | "lint" =>
+          value === "build" || value === "tests" || value === "typecheck" || value === "lint",
+      );
+    const result = await withTemporaryEnv(state.env, () =>
+      runLoopStartCommand({
+        cwd,
+        id: command.options?.id,
+        taskId: command.options?.taskId ?? state.lastTaskId ?? undefined,
+        envId: command.options?.envId,
+        checks,
+        maxIterations: command.options?.maxIterations ? Number.parseInt(command.options.maxIterations, 10) : undefined,
+        pollIntervalMs: command.options?.pollMs ? Number.parseInt(command.options.pollMs, 10) : undefined,
+        idleTimeoutMs: command.options?.idleMs ? Number.parseInt(command.options.idleMs, 10) : undefined,
+      }),
+    );
     state.lastLoopId = result.id;
     if (result.taskId) {
       state.lastTaskId = result.taskId;
@@ -381,10 +389,12 @@ async function runTaskflowCommandStep(
   }
 
   if (command.name === "loop-status") {
-    const result = await withTemporaryEnv(state.env, () => runLoopStatusCommand({
-      cwd,
-      id: command.options?.id ?? state.lastLoopId ?? undefined,
-    }));
+    const result = await withTemporaryEnv(state.env, () =>
+      runLoopStatusCommand({
+        cwd,
+        id: command.options?.id ?? state.lastLoopId ?? undefined,
+      }),
+    );
     state.lastLoopId = result.id;
     if (result.taskId) {
       state.lastTaskId = result.taskId;
@@ -400,17 +410,19 @@ async function runTaskflowCommandStep(
   }
 
   if (command.name === "analyze") {
-    const result = await withTemporaryEnv(state.env, () => runAnalyzeCommand({
-      cwd,
-      repos: command.options?.repo ? [command.options.repo] : undefined,
-      refresh: command.options?.refresh === "true",
-    }));
+    const result = await withTemporaryEnv(state.env, () =>
+      runAnalyzeCommand({
+        cwd,
+        repos: command.options?.repo ? [command.options.repo] : undefined,
+        refresh: command.options?.refresh === "true",
+      }),
+    );
     return {
       ok: true,
       scope: result.scope,
       analyzedRepos: result.analyzedRepos,
       docsUpdated: result.docsUpdated,
-      knowledgeUpdated: result.knowledgeUpdated,
+      knowledgeUpdated: normalizeAnalyzeKnowledgePaths(result.knowledgeUpdated),
     };
   }
 
@@ -463,8 +475,11 @@ async function snapshotTaskflowActual(cwd: string, state: TaskflowState): Promis
   const finalTask = state.lastTaskId ? await readTaskSession(cwd, state.lastTaskId).catch(() => null) : null;
   const finalLoop = state.lastLoopId ? await readLoopState(cwd, state.lastLoopId).catch(() => null) : null;
   const finalContext = state.lastTaskId
-    ? await readJsonStore(join(getTaskRoot(cwd, state.lastTaskId), "context.json"), {} as Record<string, unknown>, (value): value is Record<string, unknown> => typeof value === "object" && value !== null)
-      .catch(() => null)
+    ? await readJsonStore(
+        join(getTaskRoot(cwd, state.lastTaskId), "context.json"),
+        {} as Record<string, unknown>,
+        (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+      ).catch(() => null)
     : null;
   const status = await runStatusCommand({ cwd });
 
@@ -491,76 +506,89 @@ function deriveTaskflowMetrics(actual: Record<string, unknown>): EvalCaseMetrics
 
   const status = typeof finalTask.status === "string" ? finalTask.status : null;
   const attemptCount = typeof finalTask.attemptCount === "number" ? finalTask.attemptCount : 0;
-  const lastVerification = finalTask.lastVerification && typeof finalTask.lastVerification === "object"
-    ? finalTask.lastVerification as Record<string, unknown>
-    : null;
-  const lastRecoveryAction = finalTask.lastRecoveryAction && typeof finalTask.lastRecoveryAction === "object"
-    ? finalTask.lastRecoveryAction as Record<string, unknown>
-    : null;
-  const runner = finalTask.runner && typeof finalTask.runner === "object"
-    ? finalTask.runner as Record<string, unknown>
-    : null;
-  const finalLoop = actual.finalLoop && typeof actual.finalLoop === "object"
-    ? actual.finalLoop as Record<string, unknown>
-    : null;
-  const finalContext = actual.finalContext && typeof actual.finalContext === "object"
-    ? actual.finalContext as Record<string, unknown>
-    : null;
-  const taskState = finalContext?.taskState && typeof finalContext.taskState === "object"
-    ? finalContext.taskState as Record<string, unknown>
-    : null;
-  const autonomy = taskState?.autonomy && typeof taskState.autonomy === "object"
-    ? taskState.autonomy as Record<string, unknown>
-    : finalTask.autonomy && typeof finalTask.autonomy === "object"
-      ? finalTask.autonomy as Record<string, unknown>
+  const lastVerification =
+    finalTask.lastVerification && typeof finalTask.lastVerification === "object"
+      ? (finalTask.lastVerification as Record<string, unknown>)
       : null;
-  const recovery = finalContext?.recovery && typeof finalContext.recovery === "object"
-    ? finalContext.recovery as Record<string, unknown>
-    : null;
-  const recoveryPlan = recovery?.recoveryPlan && typeof recovery.recoveryPlan === "object"
-    ? recovery.recoveryPlan as Record<string, unknown>
-    : null;
+  const lastRecoveryAction =
+    finalTask.lastRecoveryAction && typeof finalTask.lastRecoveryAction === "object"
+      ? (finalTask.lastRecoveryAction as Record<string, unknown>)
+      : null;
+  const runner =
+    finalTask.runner && typeof finalTask.runner === "object" ? (finalTask.runner as Record<string, unknown>) : null;
+  const finalLoop =
+    actual.finalLoop && typeof actual.finalLoop === "object" ? (actual.finalLoop as Record<string, unknown>) : null;
+  const finalContext =
+    actual.finalContext && typeof actual.finalContext === "object"
+      ? (actual.finalContext as Record<string, unknown>)
+      : null;
+  const taskState =
+    finalContext?.taskState && typeof finalContext.taskState === "object"
+      ? (finalContext.taskState as Record<string, unknown>)
+      : null;
+  const autonomy =
+    taskState?.autonomy && typeof taskState.autonomy === "object"
+      ? (taskState.autonomy as Record<string, unknown>)
+      : finalTask.autonomy && typeof finalTask.autonomy === "object"
+        ? (finalTask.autonomy as Record<string, unknown>)
+        : null;
+  const recovery =
+    finalContext?.recovery && typeof finalContext.recovery === "object"
+      ? (finalContext.recovery as Record<string, unknown>)
+      : null;
+  const recoveryPlan =
+    recovery?.recoveryPlan && typeof recovery.recoveryPlan === "object"
+      ? (recovery.recoveryPlan as Record<string, unknown>)
+      : null;
   const recoveryPlanKind = typeof recoveryPlan?.kind === "string" ? recoveryPlan.kind : null;
   const loopBound = Boolean(
-    finalLoop
-      && typeof finalLoop.id === "string"
-      && typeof finalLoop.taskId === "string"
-      && typeof finalLoop.taskEnvId === "string"
-      && finalTask.loopId === finalLoop.id
-      && finalTask.taskId === finalLoop.taskId
-      && finalTask.taskEnvId === finalLoop.taskEnvId,
+    finalLoop &&
+    typeof finalLoop.id === "string" &&
+    typeof finalLoop.taskId === "string" &&
+    typeof finalLoop.taskEnvId === "string" &&
+    finalTask.loopId === finalLoop.id &&
+    finalTask.taskId === finalLoop.taskId &&
+    finalTask.taskEnvId === finalLoop.taskEnvId,
   );
-  const initialStartTool = actual.commandResults && Array.isArray(actual.commandResults)
-    ? (
-      actual.commandResults.find((entry) =>
-        entry && typeof entry === "object"
-        && (entry as Record<string, unknown>).step === "start"
-        && typeof (entry as Record<string, unknown>).result === "object"
-        && (entry as Record<string, unknown>).result !== null,
-      ) as { result?: Record<string, unknown> } | undefined
-    )?.result?.tool
-    : null;
-  const hermesQuery = finalContext?.hermesQuery && typeof finalContext.hermesQuery === "object"
-    ? finalContext.hermesQuery as Record<string, unknown>
-    : null;
+  const initialStartTool =
+    actual.commandResults && Array.isArray(actual.commandResults)
+      ? (
+          actual.commandResults.find(
+            (entry) =>
+              entry &&
+              typeof entry === "object" &&
+              (entry as Record<string, unknown>).step === "start" &&
+              typeof (entry as Record<string, unknown>).result === "object" &&
+              (entry as Record<string, unknown>).result !== null,
+          ) as { result?: Record<string, unknown> } | undefined
+        )?.result?.tool
+      : null;
+  const hermesQuery =
+    finalContext?.hermesQuery && typeof finalContext.hermesQuery === "object"
+      ? (finalContext.hermesQuery as Record<string, unknown>)
+      : null;
   const workspaceAnalyzeResult = Array.isArray(actual.commandResults)
     ? (
-      actual.commandResults.find((entry) =>
-        entry && typeof entry === "object"
-        && (entry as Record<string, unknown>).step === "analyze"
-        && typeof (entry as Record<string, unknown>).result === "object"
-        && (entry as Record<string, unknown>).result !== null,
-      ) as { result?: Record<string, unknown> } | undefined
-    )?.result
+        actual.commandResults.find(
+          (entry) =>
+            entry &&
+            typeof entry === "object" &&
+            (entry as Record<string, unknown>).step === "analyze" &&
+            typeof (entry as Record<string, unknown>).result === "object" &&
+            (entry as Record<string, unknown>).result !== null,
+        ) as { result?: Record<string, unknown> } | undefined
+      )?.result
     : null;
-  const workspaceAnalyzed = workspaceAnalyzeResult?.scope === "workspace"
-    && Array.isArray(workspaceAnalyzeResult.analyzedRepos)
-    && workspaceAnalyzeResult.analyzedRepos.length > 1;
-  const workspaceKnowledgeRecorded = workspaceAnalyzed
-    && Array.isArray(workspaceAnalyzeResult.docsUpdated)
-    && workspaceAnalyzeResult.docsUpdated.length > 0
-    && Array.isArray(workspaceAnalyzeResult.knowledgeUpdated)
-    && workspaceAnalyzeResult.knowledgeUpdated.length > 0;
+  const workspaceAnalyzed =
+    workspaceAnalyzeResult?.scope === "workspace" &&
+    Array.isArray(workspaceAnalyzeResult.analyzedRepos) &&
+    workspaceAnalyzeResult.analyzedRepos.length > 1;
+  const workspaceKnowledgeRecorded =
+    workspaceAnalyzed &&
+    Array.isArray(workspaceAnalyzeResult.docsUpdated) &&
+    workspaceAnalyzeResult.docsUpdated.length > 0 &&
+    Array.isArray(workspaceAnalyzeResult.knowledgeUpdated) &&
+    workspaceAnalyzeResult.knowledgeUpdated.length > 0;
 
   return {
     workspaceAnalyzed,
@@ -578,19 +606,21 @@ function deriveTaskflowMetrics(actual: Record<string, unknown>): EvalCaseMetrics
     taskCompleted: status === "completed",
     verificationPassed: lastVerification?.ok === true && attemptCount <= 1,
     verificationRecorded: lastVerification !== null,
-    recoverySucceeded: attemptCount > 1 && (status === "implementing" || status === "verifying" || status === "completed"),
+    recoverySucceeded:
+      attemptCount > 1 && (status === "implementing" || status === "verifying" || status === "completed"),
     blocked: status === "blocked",
     evidenceRecovered: lastRecoveryAction?.kind === "auto-observe-start",
     hermesContextUsed: hermesQuery?.executed === true,
     loopBound,
     loopCompleted: finalLoop?.status === "completed",
     runnerLaunched: runner?.launched === true,
-    crossToolResumeSucceeded: finalTask.entrypoint === "resume"
-      && typeof finalTask.tool === "string"
-      && finalTask.tool.length > 0
-      && typeof initialStartTool === "string"
-      && initialStartTool.length > 0
-      && initialStartTool !== finalTask.tool,
+    crossToolResumeSucceeded:
+      finalTask.entrypoint === "resume" &&
+      typeof finalTask.tool === "string" &&
+      finalTask.tool.length > 0 &&
+      typeof initialStartTool === "string" &&
+      initialStartTool.length > 0 &&
+      initialStartTool !== finalTask.tool,
   };
 }
 
@@ -658,12 +688,20 @@ async function runTaskflowCase(datasetDirectory: string, testCase: EvalTaskflowC
   }
 }
 
-async function writeReportIfNeeded<T extends Record<string, unknown>>(cwd: string, reportFile: string | undefined, report: T): Promise<string | undefined> {
+async function writeReportIfNeeded<T extends object>(
+  cwd: string,
+  reportFile: string | undefined,
+  report: T,
+): Promise<string | undefined> {
   if (reportFile === undefined) {
     return undefined;
   }
 
-  const absoluteReportFile = resolveRepoLocalPath(cwd, reportFile, "Eval report path must stay within the current repository.");
+  const absoluteReportFile = resolveRepoLocalPath(
+    cwd,
+    reportFile,
+    "Eval report path must stay within the current repository.",
+  );
   await writeJsonStore(absoluteReportFile, report);
   return toRelativeReportPath(cwd, absoluteReportFile);
 }
@@ -678,7 +716,11 @@ export async function runEvalExperiment(input: {
   }
 
   const experimentFile = input.experimentPath
-    ? resolveRepoLocalPath(input.cwd, input.experimentPath, "Eval experiment path must stay within the current repository.")
+    ? resolveRepoLocalPath(
+        input.cwd,
+        input.experimentPath,
+        "Eval experiment path must stay within the current repository.",
+      )
     : undefined;
   if (experimentFile && !(await exists(experimentFile))) {
     throw new Error(`Eval experiment not found: ${input.experimentPath as string}`);
@@ -726,7 +768,7 @@ export async function runEvalExperiment(input: {
     metrics: computeEvalMetrics({
       totalCases: results.length,
       passed,
-      caseMetrics: results.flatMap((result) => result.metrics ? [result.metrics] : []),
+      caseMetrics: results.flatMap((result) => (result.metrics ? [result.metrics] : [])),
     }),
     results,
     generatedAt: new Date().toISOString(),
@@ -742,11 +784,12 @@ export async function runEvalExperiment(input: {
   return finalReport;
 }
 
-export async function runEvalSuite(input: {
-  cwd: string;
-  suitePath: string;
-}): Promise<EvalSuiteReport> {
-  const suiteFile = resolveRepoLocalPath(input.cwd, input.suitePath, "Eval suite path must stay within the current repository.");
+export async function runEvalSuite(input: { cwd: string; suitePath: string }): Promise<EvalSuiteReport> {
+  const suiteFile = resolveRepoLocalPath(
+    input.cwd,
+    input.suitePath,
+    "Eval suite path must stay within the current repository.",
+  );
   if (!(await exists(suiteFile))) {
     throw new Error(`Eval suite not found: ${input.suitePath}`);
   }
@@ -756,15 +799,17 @@ export async function runEvalSuite(input: {
   const reports: EvalExperimentReport[] = [];
 
   for (const experimentPath of suite.experiments) {
-    reports.push(await runEvalExperiment({
-      cwd: input.cwd,
-      experimentPath: resolveStrictRepoRelativePath(
-        input.cwd,
-        suiteDir,
-        experimentPath,
-        "Eval experiment path must stay within the current repository.",
-      ),
-    }));
+    reports.push(
+      await runEvalExperiment({
+        cwd: input.cwd,
+        experimentPath: resolveStrictRepoRelativePath(
+          input.cwd,
+          suiteDir,
+          experimentPath,
+          "Eval experiment path must stay within the current repository.",
+        ),
+      }),
+    );
   }
 
   const allResults = reports.flatMap((report) => report.results);
@@ -776,7 +821,7 @@ export async function runEvalSuite(input: {
     metrics: computeEvalMetrics({
       totalCases: allResults.length,
       passed,
-      caseMetrics: allResults.flatMap((result) => result.metrics ? [result.metrics] : []),
+      caseMetrics: allResults.flatMap((result) => (result.metrics ? [result.metrics] : [])),
     }),
     reports,
     generatedAt: new Date().toISOString(),
@@ -793,26 +838,30 @@ export async function runEvalSuite(input: {
 }
 
 function isEvalExperimentReport(value: unknown): value is EvalExperimentReport {
-  return typeof value === "object"
-    && value !== null
-    && typeof (value as EvalExperimentReport).experimentName === "string"
-    && typeof (value as EvalExperimentReport).datasetName === "string"
-    && typeof (value as EvalExperimentReport).passed === "number"
-    && typeof (value as EvalExperimentReport).failed === "number"
-    && typeof (value as EvalExperimentReport).generatedAt === "string"
-    && Array.isArray((value as EvalExperimentReport).results)
-    && typeof (value as EvalExperimentReport).metrics === "object";
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as EvalExperimentReport).experimentName === "string" &&
+    typeof (value as EvalExperimentReport).datasetName === "string" &&
+    typeof (value as EvalExperimentReport).passed === "number" &&
+    typeof (value as EvalExperimentReport).failed === "number" &&
+    typeof (value as EvalExperimentReport).generatedAt === "string" &&
+    Array.isArray((value as EvalExperimentReport).results) &&
+    typeof (value as EvalExperimentReport).metrics === "object"
+  );
 }
 
 function isEvalSuiteReport(value: unknown): value is EvalSuiteReport {
-  return typeof value === "object"
-    && value !== null
-    && typeof (value as EvalSuiteReport).suiteName === "string"
-    && typeof (value as EvalSuiteReport).passed === "number"
-    && typeof (value as EvalSuiteReport).failed === "number"
-    && typeof (value as EvalSuiteReport).generatedAt === "string"
-    && Array.isArray((value as EvalSuiteReport).reports)
-    && typeof (value as EvalSuiteReport).metrics === "object";
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as EvalSuiteReport).suiteName === "string" &&
+    typeof (value as EvalSuiteReport).passed === "number" &&
+    typeof (value as EvalSuiteReport).failed === "number" &&
+    typeof (value as EvalSuiteReport).generatedAt === "string" &&
+    Array.isArray((value as EvalSuiteReport).reports) &&
+    typeof (value as EvalSuiteReport).metrics === "object"
+  );
 }
 
 function extractReportName(report: EvalExperimentReport | EvalSuiteReport): string {
@@ -833,10 +882,18 @@ export async function compareEvalReports(input: {
     resolveRepoLocalPath(input.cwd, input.headPath, "Eval report path must stay within the current repository."),
   ];
   const [base, head] = await Promise.all([
-    readJsonStore(basePath, {} as EvalExperimentReport, (value): value is EvalExperimentReport | EvalSuiteReport =>
-      isEvalExperimentReport(value) || isEvalSuiteReport(value)),
-    readJsonStore(headPath, {} as EvalExperimentReport, (value): value is EvalExperimentReport | EvalSuiteReport =>
-      isEvalExperimentReport(value) || isEvalSuiteReport(value)),
+    readJsonStore(
+      basePath,
+      {} as EvalExperimentReport,
+      (value): value is EvalExperimentReport | EvalSuiteReport =>
+        isEvalExperimentReport(value) || isEvalSuiteReport(value),
+    ),
+    readJsonStore(
+      headPath,
+      {} as EvalExperimentReport,
+      (value): value is EvalExperimentReport | EvalSuiteReport =>
+        isEvalExperimentReport(value) || isEvalSuiteReport(value),
+    ),
   ]);
 
   const baseMetrics = extractMetrics(base);

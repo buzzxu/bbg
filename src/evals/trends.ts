@@ -27,20 +27,14 @@ const NEGATIVE_WHEN_DECREASES = [
   "crossToolResumeRate",
 ] as const;
 
-const NEGATIVE_WHEN_INCREASES = [
-  "blockedRate",
-] as const;
+const NEGATIVE_WHEN_INCREASES = ["blockedRate"] as const;
 
 export function buildMetricDiffs(
   baseMetrics: EvalExperimentMetrics,
   headMetrics: EvalExperimentMetrics,
 ): Record<string, number> {
-  return Object.fromEntries(
-    Object.keys(headMetrics).map((key) => [
-      key,
-      Number(((headMetrics as Record<string, number>)[key] - (baseMetrics as Record<string, number>)[key]).toFixed(4)),
-    ]),
-  );
+  const metricKeys = Object.keys(headMetrics) as Array<keyof EvalExperimentMetrics>;
+  return Object.fromEntries(metricKeys.map((key) => [key, Number((headMetrics[key] - baseMetrics[key]).toFixed(4))]));
 }
 
 export function summarizeMetricDiffs(metricDiffs: Record<string, number>): {

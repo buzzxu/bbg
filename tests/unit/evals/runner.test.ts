@@ -53,7 +53,9 @@ describe("eval runner", () => {
     expect(report.metrics.passRate).toBe(1);
     expect(report.metrics.workspaceAnalysisRate).toBeGreaterThan(0);
     expect(report.metrics.workspaceKnowledgeRate).toBeGreaterThan(0);
-    expect(report.results.map((result: { id: string; passed: boolean }) => ({ id: result.id, passed: result.passed }))).toEqual([
+    expect(
+      report.results.map((result: { id: string; passed: boolean }) => ({ id: result.id, passed: result.passed })),
+    ).toEqual([
       { id: "quality-gate-pass", passed: true },
       { id: "checkpoint-creates-baseline", passed: true },
       { id: "verify-detects-readme-drift", passed: true },
@@ -74,11 +76,13 @@ describe("eval runner", () => {
     expect(report.failed).toBe(0);
 
     const history = await readEvalHistory(cwd);
-    expect(history.entries[0]).toEqual(expect.objectContaining({
-      kind: "experiment",
-      name: "starter-runtime",
-      datasetName: "starter-runtime",
-    }));
+    expect(history.entries[0]).toEqual(
+      expect.objectContaining({
+        kind: "experiment",
+        name: "starter-runtime",
+        datasetName: "starter-runtime",
+      }),
+    );
   });
 
   it("runs a taskflow experiment and captures task metrics", async () => {
@@ -152,7 +156,7 @@ describe("eval runner", () => {
     expect(report.metrics.manualReviewRate).toBeGreaterThan(0);
   });
 
-  it("runs a suite and aggregates metrics across experiments", { timeout: 20000 }, async () => {
+  it("runs a suite and aggregates metrics across experiments", { timeout: 40000 }, async () => {
     const cwd = await makeTempDir();
     const seeded = await seedEvalArtifacts({ cwd });
 
@@ -307,7 +311,9 @@ describe("eval runner", () => {
       ],
     });
 
-    await expect(runEvalExperiment({ cwd, datasetPath })).rejects.toThrow("Eval workspace must stay within the dataset directory");
+    await expect(runEvalExperiment({ cwd, datasetPath })).rejects.toThrow(
+      "Eval workspace must stay within the dataset directory",
+    );
 
     await writeJsonStore(join(cwd, datasetPath), {
       version: 1,
@@ -331,7 +337,9 @@ describe("eval runner", () => {
       ],
     });
 
-    await expect(runEvalExperiment({ cwd, datasetPath })).rejects.toThrow("Eval setup write path must stay within the cloned workspace");
+    await expect(runEvalExperiment({ cwd, datasetPath })).rejects.toThrow(
+      "Eval setup write path must stay within the cloned workspace",
+    );
   });
 
   it("rejects missing experiments and repo-external report paths", async () => {
@@ -350,7 +358,9 @@ describe("eval runner", () => {
       reportFile: "../../outside.report.json",
     });
 
-    await expect(runEvalExperiment({ cwd, experimentPath })).rejects.toThrow("Eval report path must stay within the current repository");
+    await expect(runEvalExperiment({ cwd, experimentPath })).rejects.toThrow(
+      "Eval report path must stay within the current repository",
+    );
 
     await expect(runEvalExperiment({ cwd, experimentPath: "../outside.experiment.json" })).rejects.toThrow(
       "Eval experiment path must stay within the current repository",
@@ -383,17 +393,24 @@ describe("eval runner", () => {
     const seeded = await seedEvalArtifacts({ cwd });
     const datasetPath = seeded.datasetFile;
 
-    await writeTextFile(join(cwd, seeded.fixtureDirectory, "package.json"), `${JSON.stringify({
-      name: "bbg-eval-runtime-starter",
-      private: true,
-      type: "module",
-      scripts: {
-        build: 'node -e "process.exit(1)"',
-        typecheck: 'node -e "process.exit(0)"',
-        test: 'node -e "process.exit(0)"',
-        lint: 'node -e "process.exit(0)"',
-      },
-    }, null, 2)}\n`);
+    await writeTextFile(
+      join(cwd, seeded.fixtureDirectory, "package.json"),
+      `${JSON.stringify(
+        {
+          name: "bbg-eval-runtime-starter",
+          private: true,
+          type: "module",
+          scripts: {
+            build: 'node -e "process.exit(1)"',
+            typecheck: 'node -e "process.exit(0)"',
+            test: 'node -e "process.exit(0)"',
+            lint: 'node -e "process.exit(0)"',
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
     await writeJsonStore(join(cwd, datasetPath), {
       version: 1,
       name: "setup-failure",

@@ -111,6 +111,7 @@ describe("eval datasets", () => {
               "docs/architecture/technical-architecture.md",
               "docs/architecture/business-architecture.md",
               "docs/architecture/repo-dependency-graph.md",
+              "docs/business/analysis-dimensions.md",
               "docs/business/capability-map.md",
               "docs/business/critical-flows.md",
               "docs/architecture/integration-contracts.md",
@@ -151,6 +152,7 @@ describe("eval datasets", () => {
               ".bbg/knowledge/workspace/integration-map.json",
               ".bbg/knowledge/workspace/business-modules.json",
               ".bbg/knowledge/workspace/capabilities.json",
+              ".bbg/knowledge/workspace/analysis-dimensions.json",
               ".bbg/knowledge/workspace/critical-flows.json",
               ".bbg/knowledge/workspace/contracts.json",
               ".bbg/knowledge/workspace/domain-model.json",
@@ -159,6 +161,12 @@ describe("eval datasets", () => {
               ".bbg/knowledge/workspace/risk-surface.json",
               ".bbg/knowledge/workspace/decisions.json",
               ".bbg/knowledge/workspace/change-impact.json",
+              ".bbg/knowledge/workspace/knowledge-items.json",
+              ".bbg/knowledge/workspace/evidence-index.json",
+              ".bbg/knowledge/workspace/lifecycle.json",
+              ".bbg/knowledge/workspace/run-diff.json",
+              ".bbg/knowledge/hermes/analyze-artifacts.json",
+              ".bbg/knowledge/hermes/analyze-candidates.json",
             ],
           },
         },
@@ -240,10 +248,7 @@ describe("eval datasets", () => {
     expect(createHermesStrategySuiteDocument()).toEqual({
       version: 1,
       name: "hermes-strategy-suite",
-      experiments: [
-        "./hermes-control.taskflow.experiment.json",
-        "./hermes-treatment.taskflow.experiment.json",
-      ],
+      experiments: ["./hermes-control.taskflow.experiment.json", "./hermes-treatment.taskflow.experiment.json"],
       reportFile: "./reports/hermes-strategy-suite.report.json",
     });
   });
@@ -312,9 +317,9 @@ describe("eval datasets", () => {
     const experiment = JSON.parse(await readFile(join(cwd, result.experimentFile), "utf8")) as { dataset: string };
     expect(experiment.dataset).toBe("./starter.dataset.json");
 
-    const taskflowExperiment = JSON.parse(
-      await readFile(join(cwd, result.taskflowExperimentFile), "utf8"),
-    ) as { dataset: string };
+    const taskflowExperiment = JSON.parse(await readFile(join(cwd, result.taskflowExperimentFile), "utf8")) as {
+      dataset: string;
+    };
     expect(taskflowExperiment.dataset).toBe("./taskflow.dataset.json");
 
     const hermesTreatmentExperiment = JSON.parse(
@@ -332,9 +337,9 @@ describe("eval datasets", () => {
       "./hermes-treatment.taskflow.experiment.json",
     ]);
 
-    const hermesSuite = JSON.parse(
-      await readFile(join(cwd, result.hermesStrategySuiteFile), "utf8"),
-    ) as { experiments: string[] };
+    const hermesSuite = JSON.parse(await readFile(join(cwd, result.hermesStrategySuiteFile), "utf8")) as {
+      experiments: string[];
+    };
     expect(hermesSuite.experiments).toEqual([
       "./hermes-control.taskflow.experiment.json",
       "./hermes-treatment.taskflow.experiment.json",
