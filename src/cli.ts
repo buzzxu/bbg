@@ -1511,6 +1511,18 @@ export const buildProgram = (): Command => {
               process.stdout.write(`- ${entry}\n`);
             }
           }
+          if ((result.focus.matchedEntities?.length ?? 0) > 0) {
+            process.stdout.write(`${uiText("analyze.matchedEntities")}:\n`);
+            for (const entry of result.focus.matchedEntities ?? []) {
+              process.stdout.write(`- ${entry}\n`);
+            }
+          }
+          if ((result.focus.matchedChains?.length ?? 0) > 0) {
+            process.stdout.write(`${uiText("analyze.matchedChains")}:\n`);
+            for (const entry of result.focus.matchedChains ?? []) {
+              process.stdout.write(`- ${entry}\n`);
+            }
+          }
           if (result.focus.matchedContracts.length > 0) {
             process.stdout.write(`${uiText("analyze.matchedContracts")}:\n`);
             for (const contract of result.focus.matchedContracts) {
@@ -1541,6 +1553,7 @@ export const buildProgram = (): Command => {
         process.stdout.write(`${uiText("analyze.dependencyGraph")}: ${result.dependencyGraphPath}\n`);
         process.stdout.write(`${uiText("analyze.capabilityMap")}: ${result.capabilityMapPath}\n`);
         process.stdout.write(`${uiText("analyze.criticalFlows")}: ${result.criticalFlowsPath}\n`);
+        process.stdout.write(`${uiText("analyze.businessChains")}: ${result.businessChainsPath}\n`);
         process.stdout.write(`${uiText("analyze.contracts")}: ${result.integrationContractsPath}\n`);
         process.stdout.write(`${uiText("analyze.runtimeConstraints")}: ${result.runtimeConstraintsPath}\n`);
         process.stdout.write(`${uiText("analyze.riskSurface")}: ${result.riskSurfacePath}\n`);

@@ -30,6 +30,14 @@ export interface RuntimeAutonomySetting {
   maxDurationMs: number;
 }
 
+export interface RuntimeAnalysisAiSetting {
+  enabled: boolean;
+  mode: "provider" | "handoff";
+  provider?: string;
+  modelClass?: "fast" | "balanced" | "premium";
+  timeoutMs: number;
+}
+
 export interface RuntimeConfig {
   telemetry: RuntimeFileSetting;
   evaluation: RuntimeFileSetting;
@@ -37,6 +45,7 @@ export interface RuntimeConfig {
   context: RuntimeContextSetting;
   commands?: RuntimeCommandsSetting;
   autonomy: RuntimeAutonomySetting;
+  analysisAi?: RuntimeAnalysisAiSetting;
 }
 
 export interface SessionHistoryDocument {
@@ -72,6 +81,13 @@ export function buildDefaultRuntimeConfig(): RuntimeConfig {
       maxAttempts: 5,
       maxVerifyFailures: 3,
       maxDurationMs: 3600000,
+    },
+    analysisAi: {
+      enabled: true,
+      mode: "provider",
+      provider: "local-synthesis",
+      modelClass: "premium",
+      timeoutMs: 45000,
     },
   };
 }

@@ -251,6 +251,7 @@ export async function writeAnalyzeWikiArtifacts(input: {
         ".bbg/knowledge/workspace/integration-map.json",
         ".bbg/knowledge/workspace/capabilities.json",
         ".bbg/knowledge/workspace/critical-flows.json",
+        ".bbg/knowledge/workspace/business-chains.json",
         ".bbg/knowledge/workspace/contracts.json",
         ".bbg/knowledge/workspace/risk-surface.json",
       ],
@@ -263,6 +264,7 @@ export async function writeAnalyzeWikiArtifacts(input: {
     `- ${copy.keyDocs}:`,
     `  - [${copy.capabilityMap}](../../business/capability-map.md)`,
     `  - [${copy.criticalFlowAnalysis}](../../business/critical-flows.md)`,
+    `  - [${copy.businessChains}](../../business/business-chains.md)`,
     `  - [${copy.integrationContracts}](../../architecture/integration-contracts.md)`,
     `  - [${copy.riskSurface}](../../architecture/risk-surface.md)`,
     `  - [${copy.changeImpactMap}](../../architecture/change-impact-map.md)`,
@@ -355,6 +357,7 @@ export async function writeAnalyzeWikiArtifacts(input: {
         ".bbg/knowledge/workspace/business-context.json",
         ".bbg/knowledge/workspace/capabilities.json",
         ".bbg/knowledge/workspace/critical-flows.json",
+        ".bbg/knowledge/workspace/business-chains.json",
         ".bbg/knowledge/workspace/contracts.json",
         ".bbg/knowledge/workspace/constraints.json",
         ".bbg/knowledge/workspace/risk-surface.json",
@@ -373,6 +376,7 @@ export async function writeAnalyzeWikiArtifacts(input: {
     "",
     `- [${copy.capabilityMap}](../../business/capability-map.md)`,
     `- [${copy.criticalFlowAnalysis}](../../business/critical-flows.md)`,
+    `- [${copy.businessChains}](../../business/business-chains.md)`,
     `- [${copy.domainModel}](../../business/domain-model.md)`,
     `- [${copy.integrationContracts}](../../architecture/integration-contracts.md)`,
     `- [${copy.runtimeConstraints}](../../architecture/runtime-constraints.md)`,
@@ -384,6 +388,14 @@ export async function writeAnalyzeWikiArtifacts(input: {
     "",
     ...(input.model.criticalFlows.length
       ? input.model.criticalFlows.map((flow) => `- ${flow.summary}`)
+      : [`- ${copy.notConfirmedYet}`]),
+    "",
+    `## ${copy.businessChains}`,
+    "",
+    ...(input.model.businessChains.length
+      ? input.model.businessChains.map(
+          (chain) => `- ${chain.summary} (${chain.primaryActor ?? copy.none} -> ${chain.businessObject ?? copy.none})`,
+        )
       : [`- ${copy.notConfirmedYet}`]),
     "",
     `## ${copy.capabilityMap}`,
@@ -588,18 +600,22 @@ export async function buildAnalyzeKnowledgeQueryAugmentation(input: {
   const candidates: Array<{ path: string; dimension: string }> = [
     { path: "docs/business/capability-map.md", dimension: "capabilities" },
     { path: "docs/business/critical-flows.md", dimension: "critical flows" },
+    { path: "docs/business/business-chains.md", dimension: "business chains" },
     { path: "docs/architecture/integration-contracts.md", dimension: "contracts" },
     { path: "docs/architecture/risk-surface.md", dimension: "risk surface" },
     { path: "docs/architecture/change-impact-map.md", dimension: "change impact" },
     { path: "docs/architecture/decision-history.md", dimension: "decision history" },
     { path: ".bbg/knowledge/workspace/capabilities.json", dimension: "capabilities" },
     { path: ".bbg/knowledge/workspace/critical-flows.json", dimension: "critical flows" },
+    { path: ".bbg/knowledge/workspace/business-chains.json", dimension: "business chains" },
     { path: ".bbg/knowledge/workspace/contracts.json", dimension: "contracts" },
     { path: ".bbg/knowledge/workspace/risk-surface.json", dimension: "risk surface" },
     { path: ".bbg/knowledge/workspace/change-impact.json", dimension: "change impact" },
     { path: ".bbg/knowledge/workspace/decisions.json", dimension: "decision history" },
     { path: ".bbg/knowledge/workspace/knowledge-items.json", dimension: "knowledge items" },
     { path: ".bbg/knowledge/workspace/evidence-index.json", dimension: "evidence" },
+    { path: ".bbg/knowledge/workspace/ai-analysis.json", dimension: "ai analysis" },
+    { path: ".bbg/knowledge/workspace/reconciliation-report.json", dimension: "reconciliation" },
     { path: ".bbg/knowledge/hermes/analyze-candidates.json", dimension: "hermes candidates" },
   ];
 

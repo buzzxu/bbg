@@ -1,6 +1,9 @@
 import { createAnalyzeRunId, writeAnalyzeRunState } from "../runtime/analyze-runs.js";
 import { writeAnalyzeInterviewState } from "../runtime/analyze-interview.js";
+import { planAnalyzeAiExecution } from "../runtime/ai-analysis-runner.js";
 import { writeAnalyzeWikiArtifacts } from "../runtime/wiki.js";
+import { synthesizeAnalyzeAiResult } from "./ai-analysis.js";
+import { reconcileAnalyzeAiResult } from "./ai-reconcile.js";
 import { resolveDocumentationLanguage } from "../config/documentation-language.js";
 import { buildAnalyzeKnowledgeModel } from "./analysis-model.js";
 import { deriveRepoBusinessAnalysis } from "./business-analysis.js";
@@ -8,8 +11,10 @@ import { runAnalyzeDeepInterview } from "./deep-interview.js";
 import { discoverAnalyzeSelection } from "./discovery.js";
 import { writeAnalyzeDocs } from "./emit-docs.js";
 import { writeAnalyzeKnowledge } from "./emit-knowledge.js";
+import { collectAnalyzeEvidenceItems } from "./evidence-collector.js";
 import { deriveAnalyzeFocusSummary, enrichAnalyzeFocusSummary } from "./focus-analysis.js";
 import { writeAnalyzeHermesIntake } from "./hermes-intake.js";
+import { buildAnalyzeKnowledgeItemsIndex, enrichAnalyzeKnowledgeModel } from "./knowledge-items.js";
 import { pruneStaleAnalyzeArtifacts } from "./prune-stale.js";
 import { analyzeSelectedRepos } from "./repo-analysis.js";
 import { runAnalyzeSocraticInterview } from "./socratic-engine.js";
@@ -125,6 +130,58 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
       `decisions=${model.decisionRecords.length}`,
     ],
   });
+  const aiExecution = planAnalyzeAiExecution(selection.config.runtime);
+  phases.push({
+    name: "prepare-ai-context",
+    status: aiExecution.enabled ? "completed" : "skipped",
+    details: [
+      `mode=${aiExecution.mode}`,
+      `provider=${aiExecution.provider ?? "none"}`,
+      `modelClass=${aiExecution.modelClass ?? "none"}`,
+      aiExecution.reason ?? "none",
+    ],
+  });
+  const enrichedModel = enrichAnalyzeKnowledgeModel(model);
+  const aiEvidence = collectAnalyzeEvidenceItems({
+    runId: `${runId}-ai`,
+    technical,
+    business,
+    fusion,
+    interview: interview.summary,
+    knowledgeItems: buildAnalyzeKnowledgeItemsIndex({ runId: `${runId}-ai`, model: enrichedModel }),
+  });
+  const aiAnalysis = synthesizeAnalyzeAiResult({
+    execution: aiExecution,
+    technical,
+    business,
+    fusion,
+    interview: interview.summary,
+    focus,
+    model,
+    evidence: aiEvidence,
+  });
+  phases.push({
+    name: "ai-analysis",
+    status: aiAnalysis.enabled ? "completed" : "skipped",
+    details: [
+      `dimensions=${aiAnalysis.recommendedDimensions.length}`,
+      `chains=${aiAnalysis.coreBusinessChains.length}`,
+      `unknowns=${aiAnalysis.unknowns.length}`,
+    ],
+  });
+  const reconciled = reconcileAnalyzeAiResult({ model, ai: aiAnalysis });
+  const finalModel = reconciled.model;
+  phases.push({
+    name: "reconcile-ai-analysis",
+    status: reconciled.reconciliation ? "completed" : "skipped",
+    details: reconciled.reconciliation
+      ? [
+          `adoptedDimensions=${reconciled.reconciliation.adoptedDimensions.length}`,
+          `adoptedChains=${reconciled.reconciliation.adoptedChains.length}`,
+          `review=${reconciled.reconciliation.reviewRequired.length}`,
+        ]
+      : ["no-ai-reconciliation"],
+  });
   const pruned = await pruneStaleAnalyzeArtifacts({
     cwd: input.cwd,
     config: selection.config,
@@ -138,7 +195,7 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
     focus,
     technical,
     business,
-    model,
+    model: finalModel,
   });
   const docs = await writeAnalyzeDocs({
     cwd: input.cwd,
@@ -146,7 +203,7 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
     business,
     fusion,
     interview: interview.summary,
-    model,
+    model: finalModel,
     focus: enrichedFocus,
     documentationLanguage,
   });
@@ -164,8 +221,10 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
     business,
     fusion,
     interview: interview.summary,
-    model,
+    model: finalModel,
     focus: enrichedFocus,
+    aiAnalysis,
+    reconciliation: reconciled.reconciliation,
   });
   phases.push({
     name: "emit-knowledge" as const,
@@ -198,7 +257,7 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
     cwd: input.cwd,
     fusion,
     interview: interview.summary,
-    model,
+    model: finalModel,
     focus: enrichedFocus?.query ?? null,
     documentationLanguage,
   });
@@ -220,11 +279,14 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
         ".bbg/knowledge/workspace/analysis-dimensions.json",
         ".bbg/knowledge/workspace/capabilities.json",
         ".bbg/knowledge/workspace/critical-flows.json",
+        ".bbg/knowledge/workspace/business-chains.json",
         ".bbg/knowledge/workspace/contracts.json",
         ".bbg/knowledge/workspace/domain-model.json",
         ".bbg/knowledge/workspace/risk-surface.json",
         ".bbg/knowledge/workspace/decisions.json",
         ".bbg/knowledge/workspace/change-impact.json",
+        ".bbg/knowledge/workspace/ai-analysis.json",
+        ".bbg/knowledge/workspace/reconciliation-report.json",
         ".bbg/knowledge/workspace/knowledge-items.json",
         ".bbg/knowledge/workspace/evidence-index.json",
         ".bbg/knowledge/workspace/lifecycle.json",
@@ -235,6 +297,7 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
         "docs/business/analysis-dimensions.md",
         "docs/business/capability-map.md",
         "docs/business/critical-flows.md",
+        "docs/business/business-chains.md",
         "docs/business/domain-model.md",
         "docs/architecture/integration-contracts.md",
         "docs/architecture/runtime-constraints.md",
@@ -311,6 +374,7 @@ export async function runAnalyzeOrchestrator(input: RunAnalyzeCommandInput): Pro
       integrationMapPath: docs.integrationMapPath,
       moduleMapPath: docs.moduleMapPath,
       coreFlowsPath: docs.coreFlowsPath,
+      businessChainsPath: docs.businessChainsPath,
       projectContextPath: docs.projectContextPath,
       docsUpdated: [...docs.docsUpdated, ...wiki.wikiPaths],
       knowledgeUpdated: knowledge.knowledgeUpdated,

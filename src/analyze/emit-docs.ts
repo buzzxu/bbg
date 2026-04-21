@@ -72,6 +72,7 @@ export async function writeAnalyzeDocs(input: {
   const integrationMapPath = "docs/architecture/integration-map.md";
   const moduleMapPath = "docs/business/module-map.md";
   const coreFlowsPath = "docs/business/core-flows.md";
+  const businessChainsPath = "docs/business/business-chains.md";
   const projectContextPath = "docs/business/project-context.md";
   const domainModelPath = "docs/business/domain-model.md";
   const focusedAnalysisPath = "docs/workflows/focused-analysis.md";
@@ -93,6 +94,7 @@ export async function writeAnalyzeDocs(input: {
     integrationMapPath,
     moduleMapPath,
     coreFlowsPath,
+    businessChainsPath,
     projectContextPath,
     domainModelPath,
   ];
@@ -117,6 +119,11 @@ export async function writeAnalyzeDocs(input: {
         "",
       ].join("\n"),
     ),
+    `## ${copy.overview}`,
+    "",
+    ...(input.model.technicalArchitectureNarrative.length > 0
+      ? input.model.technicalArchitectureNarrative.map((entry) => `- ${entry}`)
+      : [`- ${copy.none}`]),
   ].join("\n");
 
   const businessContent = [
@@ -140,6 +147,11 @@ export async function writeAnalyzeDocs(input: {
         "",
       ].join("\n"),
     ),
+    `## ${copy.overview}`,
+    "",
+    ...(input.model.businessArchitectureNarrative.length > 0
+      ? input.model.businessArchitectureNarrative.map((entry) => `- ${entry}`)
+      : [`- ${copy.none}`]),
   ].join("\n");
 
   const dependencyContent = [
@@ -149,7 +161,10 @@ export async function writeAnalyzeDocs(input: {
     "",
     `## ${copy.dependencies}`,
     "",
-    toBulletList(input.fusion.integrationEdges.map((edge) => `${edge.from} -> ${edge.to}`), copy.none),
+    toBulletList(
+      input.fusion.integrationEdges.map((edge) => `${edge.from} -> ${edge.to}`),
+      copy.none,
+    ),
     "",
   ].join("\n");
 
@@ -173,7 +188,9 @@ export async function writeAnalyzeDocs(input: {
         `### ${copy.evidence}`,
         "",
         `- ${capability.evidence.summary}`,
-        ...(capability.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${capability.evidence.signals.join(", ")}`] : []),
+        ...(capability.evidence.signals.length > 0
+          ? [`- ${copy.evidenceSignals}: ${capability.evidence.signals.join(", ")}`]
+          : []),
         "",
       ].join("\n"),
     ),
@@ -190,16 +207,30 @@ export async function writeAnalyzeDocs(input: {
         "",
         `- ${copy.dimensionDescription}: ${dimension.description}`,
         `- ${copy.repositories}: ${dimension.supportingRepos.join(", ") || copy.none}`,
+        `- ${copy.category}: ${dimension.category ?? copy.none}`,
+        `- ${copy.recommendedPriority}: ${dimension.recommendedPriority ?? copy.none}`,
         `- ${copy.confidence}: ${dimension.confidence}`,
+        "",
+        `### ${copy.businessObjects}`,
+        "",
+        ...(dimension.businessObjects?.length
+          ? dimension.businessObjects.map((entry) => `- ${entry}`)
+          : [`- ${copy.none}`]),
         "",
         `### ${copy.rationale}`,
         "",
         `- ${dimension.rationale}`,
         "",
+        `### ${copy.keyQuestions}`,
+        "",
+        ...(dimension.keyQuestions?.length ? dimension.keyQuestions.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+        "",
         `### ${copy.evidence}`,
         "",
         `- ${dimension.evidence.summary}`,
-        ...(dimension.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${dimension.evidence.signals.join(", ")}`] : []),
+        ...(dimension.evidence.signals.length > 0
+          ? [`- ${copy.evidenceSignals}: ${dimension.evidence.signals.join(", ")}`]
+          : []),
         "",
       ].join("\n"),
     ),
@@ -215,21 +246,55 @@ export async function writeAnalyzeDocs(input: {
         `## ${flow.summary}`,
         "",
         `- ${copy.confidence}: ${flow.confidence}`,
+        `- ${copy.primaryActor}: ${flow.primaryActor ?? copy.none}`,
+        `- ${copy.businessObject}: ${flow.businessObject ?? copy.none}`,
+        `- ${copy.trigger}: ${flow.trigger ?? copy.none}`,
+        `- ${copy.goal}: ${flow.goal ?? flow.summary}`,
         `- ${copy.participatingRepos}: ${flow.participatingRepos.join(", ") || copy.none}`,
         `- ${copy.participatingModules}: ${flow.participatingModules.join(", ") || copy.none}`,
         `- ${copy.contracts}: ${flow.contracts.join(", ") || copy.none}`,
+        "",
+        `### ${copy.preconditions}`,
+        "",
+        ...(flow.preconditions?.length ? flow.preconditions.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
         "",
         `### ${copy.likelyFlowSequence}`,
         "",
         ...flow.steps.map((step) => `1. ${step.repo}: ${step.action} (${step.boundary})`),
         "",
+        `### ${copy.stateTransitions}`,
+        "",
+        ...(flow.stateTransitions?.length
+          ? flow.stateTransitions.map(
+              (entry) => `- ${entry.businessObject}: ${entry.fromState} -> ${entry.toState} (${entry.trigger})`,
+            )
+          : [`- ${copy.none}`]),
+        "",
         "### Mermaid",
         "",
         toMermaidFlow(flow),
         "",
-        `### ${copy.failureHotspots}`,
+        `### ${copy.failureBranches}`,
         "",
-        ...(flow.failurePoints.length > 0 ? flow.failurePoints.map((point) => `- ${point}`) : [`- ${copy.none}`]),
+        ...(flow.failureBranches?.length
+          ? flow.failureBranches.map((branch) => `- ${branch.title}: ${branch.condition} -> ${branch.impact}`)
+          : flow.failurePoints.length > 0
+            ? flow.failurePoints.map((point) => `- ${point}`)
+            : [`- ${copy.none}`]),
+        "",
+        `### ${copy.compensations}`,
+        "",
+        ...(flow.compensations?.length ? flow.compensations.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+        "",
+        `### ${copy.invariants}`,
+        "",
+        ...(flow.invariants?.length ? flow.invariants.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+        "",
+        `### ${copy.observabilityHints}`,
+        "",
+        ...(flow.observabilityHints?.length
+          ? flow.observabilityHints.map((entry) => `- ${entry}`)
+          : [`- ${copy.none}`]),
         "",
         `### ${copy.evidence}`,
         "",
@@ -258,7 +323,9 @@ export async function writeAnalyzeDocs(input: {
         `### ${copy.evidence}`,
         "",
         `- ${contract.evidence.summary}`,
-        ...(contract.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${contract.evidence.signals.join(", ")}`] : []),
+        ...(contract.evidence.signals.length > 0
+          ? [`- ${copy.evidenceSignals}: ${contract.evidence.signals.join(", ")}`]
+          : []),
         "",
       ].join("\n"),
     ),
@@ -276,7 +343,9 @@ export async function writeAnalyzeDocs(input: {
         `- ${copy.category}: ${constraint.category}`,
         `- ${copy.confidence}: ${constraint.confidence}`,
         `- ${copy.evidence}: ${constraint.evidence.summary}`,
-        ...(constraint.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${constraint.evidence.signals.join(", ")}`] : []),
+        ...(constraint.evidence.signals.length > 0
+          ? [`- ${copy.evidenceSignals}: ${constraint.evidence.signals.join(", ")}`]
+          : []),
         "",
       ].join("\n"),
     ),
@@ -320,7 +389,9 @@ export async function writeAnalyzeDocs(input: {
         `- ${copy.status}: ${decision.status}`,
         `- ${copy.confidence}: ${decision.confidence}`,
         `- ${copy.rationale}: ${decision.rationale}`,
-        ...(decision.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${decision.evidence.signals.join(", ")}`] : []),
+        ...(decision.evidence.signals.length > 0
+          ? [`- ${copy.evidenceSignals}: ${decision.evidence.signals.join(", ")}`]
+          : []),
         "",
       ].join("\n"),
     ),
@@ -347,7 +418,9 @@ export async function writeAnalyzeDocs(input: {
         `### ${copy.evidence}`,
         "",
         `- ${impact.evidence.summary}`,
-        ...(impact.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${impact.evidence.signals.join(", ")}`] : []),
+        ...(impact.evidence.signals.length > 0
+          ? [`- ${copy.evidenceSignals}: ${impact.evidence.signals.join(", ")}`]
+          : []),
         "",
       ].join("\n"),
     ),
@@ -419,9 +492,57 @@ export async function writeAnalyzeDocs(input: {
     toLinkedList([
       { label: copy.analysisDimensions, path: "analysis-dimensions.md" },
       { label: copy.criticalFlowAnalysis, path: "critical-flows.md" },
+      { label: copy.businessChains, path: "business-chains.md" },
       ...input.model.criticalFlows.slice(0, 5).map((flow) => ({ label: flow.summary, path: "critical-flows.md" })),
     ]),
     "",
+  ].join("\n");
+
+  const businessChainsContent = [
+    `# ${copy.businessChains}`,
+    "",
+    `${copy.updatedAt}: ${updatedAt}`,
+    "",
+    ...(input.model.businessChains.length > 0
+      ? input.model.businessChains.map((chain) =>
+          [
+            `## ${chain.summary}`,
+            "",
+            `- ${copy.primaryActor}: ${chain.primaryActor ?? copy.none}`,
+            `- ${copy.businessObject}: ${chain.businessObject ?? copy.none}`,
+            `- ${copy.trigger}: ${chain.trigger ?? copy.none}`,
+            `- ${copy.goal}: ${chain.goal ?? chain.summary}`,
+            `- ${copy.contracts}: ${chain.contracts.join(", ") || copy.none}`,
+            "",
+            `### ${copy.preconditions}`,
+            "",
+            ...(chain.preconditions?.length ? chain.preconditions.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+            "",
+            `### ${copy.stateTransitions}`,
+            "",
+            ...(chain.stateTransitions?.length
+              ? chain.stateTransitions.map(
+                  (entry) => `- ${entry.businessObject}: ${entry.fromState} -> ${entry.toState} (${entry.trigger})`,
+                )
+              : [`- ${copy.none}`]),
+            "",
+            `### ${copy.failureBranches}`,
+            "",
+            ...(chain.failureBranches?.length
+              ? chain.failureBranches.map((entry) => `- ${entry.title}: ${entry.condition} -> ${entry.impact}`)
+              : [`- ${copy.none}`]),
+            "",
+            `### ${copy.compensations}`,
+            "",
+            ...(chain.compensations?.length ? chain.compensations.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+            "",
+            `### ${copy.invariants}`,
+            "",
+            ...(chain.invariants?.length ? chain.invariants.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+            "",
+          ].join("\n"),
+        )
+      : [`- ${copy.none}`]),
   ].join("\n");
 
   const projectContextContent = [
@@ -437,6 +558,7 @@ export async function writeAnalyzeDocs(input: {
       { label: copy.analysisDimensions, path: "analysis-dimensions.md" },
       { label: copy.capabilityMap, path: "capability-map.md" },
       { label: copy.criticalFlowAnalysis, path: "critical-flows.md" },
+      { label: copy.businessChains, path: "business-chains.md" },
       { label: copy.domainModel, path: "domain-model.md" },
       { label: copy.integrationContracts, path: "../architecture/integration-contracts.md" },
       { label: copy.runtimeConstraints, path: "../architecture/runtime-constraints.md" },
@@ -473,17 +595,27 @@ export async function writeAnalyzeDocs(input: {
       ? input.interview.context.decisionHistory.map((decision) => `- ${decision}`)
       : [`- ${copy.noneRecordedYet}`]),
     "",
+    `## ${copy.businessObjects}`,
+    "",
+    ...(input.model.keyBusinessObjects.length > 0
+      ? input.model.keyBusinessObjects.map((entry) => `- ${entry}`)
+      : [`- ${copy.none}`]),
+    "",
+    `## Unknowns`,
+    "",
+    ...(input.model.unknowns.length > 0 ? input.model.unknowns.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+    "",
     `## ${copy.aiInferredAssumptions}`,
     "",
     ...(input.interview?.assumptionsApplied.length
       ? input.interview.assumptionsApplied.flatMap((assumption) => [
-        `### ${assumption.key}`,
-        "",
-        ...assumption.values.map((value) => `- ${value}`),
-        `- ${copy.rationale}: ${assumption.rationale}`,
-        ...(assumption.evidence.length > 0 ? [`- ${copy.evidence}: ${assumption.evidence.join(", ")}`] : []),
-        "",
-      ])
+          `### ${assumption.key}`,
+          "",
+          ...assumption.values.map((value) => `- ${value}`),
+          `- ${copy.rationale}: ${assumption.rationale}`,
+          ...(assumption.evidence.length > 0 ? [`- ${copy.evidence}: ${assumption.evidence.join(", ")}`] : []),
+          "",
+        ])
       : [`- ${copy.none}`]),
     "",
   ].join("\n");
@@ -503,12 +635,16 @@ export async function writeAnalyzeDocs(input: {
         "",
         `### ${copy.coreConcepts}`,
         "",
-        ...(context.coreConcepts.length > 0 ? context.coreConcepts.map((concept) => `- ${concept}`) : [`- ${copy.none}`]),
+        ...(context.coreConcepts.length > 0
+          ? context.coreConcepts.map((concept) => `- ${concept}`)
+          : [`- ${copy.none}`]),
         "",
         `### ${copy.evidence}`,
         "",
         `- ${context.evidence.summary}`,
-        ...(context.evidence.signals.length > 0 ? [`- ${copy.evidenceSignals}: ${context.evidence.signals.join(", ")}`] : []),
+        ...(context.evidence.signals.length > 0
+          ? [`- ${copy.evidenceSignals}: ${context.evidence.signals.join(", ")}`]
+          : []),
         "",
       ].join("\n"),
     ),
@@ -522,11 +658,31 @@ export async function writeAnalyzeDocs(input: {
       "",
       `## ${copy.repositories}`,
       "",
-      ...(input.focus.matchedRepos.length > 0 ? input.focus.matchedRepos.map((repo) => `- ${repo}`) : [`- ${copy.none}`]),
+      ...(input.focus.matchedRepos.length > 0
+        ? input.focus.matchedRepos.map((repo) => `- ${repo}`)
+        : [`- ${copy.none}`]),
+      "",
+      "## Intent",
+      "",
+      `- ${input.focus.intent ?? copy.none}`,
+      "",
+      `## ${copy.businessObjects}`,
+      "",
+      ...((input.focus.matchedEntities ?? []).length > 0
+        ? (input.focus.matchedEntities ?? []).map((entry) => `- ${entry}`)
+        : [`- ${copy.none}`]),
+      "",
+      `## ${copy.businessChains}`,
+      "",
+      ...((input.focus.matchedChains ?? []).length > 0
+        ? (input.focus.matchedChains ?? []).map((entry) => `- ${entry}`)
+        : [`- ${copy.none}`]),
       "",
       `## ${copy.likelyFlowSequence}`,
       "",
-      ...(input.focus.likelyEntrypoints.length > 0 ? input.focus.likelyEntrypoints.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      ...(input.focus.likelyEntrypoints.length > 0
+        ? input.focus.likelyEntrypoints.map((entry) => `- ${entry}`)
+        : [`- ${copy.none}`]),
       "",
       "## Mermaid",
       "",
@@ -534,29 +690,51 @@ export async function writeAnalyzeDocs(input: {
         "```mermaid",
         "flowchart LR",
         ...input.focus.matchedRepos.map((repo) => `  ${mermaidNodeId(repo)}[\"${repo}\"]`),
-        ...input.focus.matchedRepos.slice(0, -1).map((repo, index) => `  ${mermaidNodeId(repo)} --> ${mermaidNodeId(input.focus!.matchedRepos[index + 1])}`),
+        ...input.focus.matchedRepos
+          .slice(0, -1)
+          .map((repo, index) => `  ${mermaidNodeId(repo)} --> ${mermaidNodeId(input.focus!.matchedRepos[index + 1])}`),
         "```",
       ].join("\n"),
       "",
       `## ${copy.contracts}`,
       "",
-      ...(input.focus.matchedContracts.length > 0 ? input.focus.matchedContracts.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      ...(input.focus.matchedContracts.length > 0
+        ? input.focus.matchedContracts.map((entry) => `- ${entry}`)
+        : [`- ${copy.none}`]),
       "",
       `## ${copy.riskSurface}`,
       "",
-      ...(input.focus.riskHotspots.length > 0 ? input.focus.riskHotspots.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      ...(input.focus.riskHotspots.length > 0
+        ? input.focus.riskHotspots.map((entry) => `- ${entry}`)
+        : [`- ${copy.none}`]),
       "",
       `## ${copy.reviewerHints}`,
       "",
-      ...(input.focus.reviewerHints.length > 0 ? input.focus.reviewerHints.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      ...(input.focus.reviewerHints.length > 0
+        ? input.focus.reviewerHints.map((entry) => `- ${entry}`)
+        : [`- ${copy.none}`]),
       "",
       `## ${copy.rationale}`,
       "",
       ...input.focus.rationale.map((entry) => `- ${entry}`),
       "",
+      "## Semantic Expansions",
+      "",
+      ...((input.focus.semanticExpansions ?? []).length > 0
+        ? (input.focus.semanticExpansions ?? []).map((entry) => `- ${entry}`)
+        : [`- ${copy.none}`]),
+      "",
+      "## Follow-up Questions",
+      "",
+      ...((input.focus.followupQuestions ?? []).length > 0
+        ? (input.focus.followupQuestions ?? []).map((entry) => `- ${entry}`)
+        : [`- ${copy.none}`]),
+      "",
       `## ${copy.evidenceSignals}`,
       "",
-      ...(input.focus.matchedSignals.length > 0 ? input.focus.matchedSignals.map((entry) => `- ${entry}`) : [`- ${copy.none}`]),
+      ...(input.focus.matchedSignals.length > 0
+        ? input.focus.matchedSignals.map((entry) => `- ${entry}`)
+        : [`- ${copy.none}`]),
       "",
     ].join("\n");
     await writeTextFile(join(input.cwd, focusedAnalysisPath), focusedContent);
@@ -580,6 +758,7 @@ export async function writeAnalyzeDocs(input: {
   await writeTextFile(join(input.cwd, integrationMapPath), integrationMapContent);
   await writeTextFile(join(input.cwd, moduleMapPath), moduleMapContent);
   await writeTextFile(join(input.cwd, coreFlowsPath), coreFlowsContent);
+  await writeTextFile(join(input.cwd, businessChainsPath), businessChainsContent);
   await writeTextFile(join(input.cwd, projectContextPath), projectContextContent);
   await writeTextFile(join(input.cwd, domainModelPath), domainModelContent);
 
@@ -641,6 +820,7 @@ export async function writeAnalyzeDocs(input: {
     `- [${copy.technicalArchitecture}](technical-architecture.md)`,
     `- [${copy.businessArchitecture}](business-architecture.md)`,
     `- [${copy.repoDependencyGraph}](repo-dependency-graph.md)`,
+    `- [${copy.businessChains}](../business/business-chains.md)`,
     `- [${copy.integrationContracts}](integration-contracts.md)`,
     `- [${copy.runtimeConstraints}](runtime-constraints.md)`,
     `- [${copy.riskSurface}](risk-surface.md)`,
@@ -682,6 +862,7 @@ export async function writeAnalyzeDocs(input: {
     integrationMapPath,
     moduleMapPath,
     coreFlowsPath,
+    businessChainsPath,
     projectContextPath,
     focusedAnalysisPath: input.focus ? focusedAnalysisPath : null,
     docsUpdated,

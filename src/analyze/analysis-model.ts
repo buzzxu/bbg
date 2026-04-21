@@ -16,6 +16,7 @@ import type {
   RepoTechnicalAnalysis,
   WorkspaceFusionResult,
 } from "./types.js";
+import { deriveAnalyzeBusinessChains } from "./business-chains.js";
 
 function clampConfidence(value: number): number {
   return Number(Math.max(0, Math.min(1, value)).toFixed(2));
@@ -177,6 +178,7 @@ function deriveAnalysisDimensions(input: {
     name: string,
     description: string,
     rationale: string,
+    category: AnalyzeBusinessDimension["category"],
     supportingRepos: string[],
     evidenceSignals: string[],
     confidence: number,
@@ -185,7 +187,15 @@ function deriveAnalysisDimensions(input: {
       name,
       description,
       rationale,
+      category,
       supportingRepos: unique(supportingRepos),
+      businessObjects: topConcepts([name, description, ...evidenceSignals]).slice(0, 4),
+      keyQuestions: [
+        `Which business paths are blocked if ${name} changes?`,
+        `What contracts or state transitions define ${name}?`,
+      ],
+      recommendedPriority: confidence >= 0.84 ? "high" : confidence >= 0.74 ? "medium" : "low",
+      triggerSignals: unique(evidenceSignals).slice(0, 6),
       evidence: makeEvidence(
         "Planned from repository entrypoints, API signals, contracts, risks, and workspace structure.",
         evidenceSignals,
@@ -205,6 +215,7 @@ function deriveAnalysisDimensions(input: {
       "用户入口与交互场景",
       "分析用户侧页面、路由、入口点以及这些入口背后的主要 API 交互。",
       "检测到面向用户的前端仓库，并提取出了页面、路由和请求信号。",
+      "user-journey",
       userFacingRepos,
       input.flows.flatMap((flow) => flow.evidence.signals).slice(0, 10),
       0.84,
@@ -215,6 +226,7 @@ function deriveAnalysisDimensions(input: {
       "后台运营与配置面",
       "分析后台页面、运营配置动作和管理端调用的接口面与影响范围。",
       "检测到管理端仓库，并发现了后台路由、页面和配置类 API 调用。",
+      "operations",
       adminRepos,
       input.capabilities
         .filter((capability) => capability.owningRepos.some((repo) => adminRepos.includes(repo)))
@@ -228,6 +240,7 @@ function deriveAnalysisDimensions(input: {
       "服务契约与跨仓协同",
       "分析前端、管理端与后端之间的 API 契约、消费关系和跨仓协作边界。",
       "工作区同时包含客户端与后端服务，并已推断出跨仓集成边。",
+      "integration",
       [...clientRepos, ...backendRepos],
       input.contracts.flatMap((contract) => contract.evidence.signals).slice(0, 10),
       0.88,
@@ -238,6 +251,7 @@ function deriveAnalysisDimensions(input: {
       "核心业务对象与状态",
       "分析页面、接口、DTO、实体和命名信号中反复出现的核心业务对象与状态变化。",
       "已提取出一批反复出现的能力、领域词和实体词，可作为业务对象建模入口。",
+      "domain-model",
       unique(input.capabilities.flatMap((capability) => capability.owningRepos)),
       input.capabilities.flatMap((capability) => capability.evidence.signals).slice(0, 10),
       0.8,
@@ -249,6 +263,7 @@ function deriveAnalysisDimensions(input: {
       "风险与运行约束",
       "分析测试薄弱区、敏感边界、外部集成和运行时约束，识别最需要谨慎变更的部分。",
       "风险面已识别出高风险热点与运行时敏感区，需要单独作为分析维度。",
+      "risk",
       unique(input.risks.flatMap((risk) => risk.affectedRepos)),
       input.risks.flatMap((risk) => risk.evidence.signals).slice(0, 10),
       0.79,
@@ -260,6 +275,7 @@ function deriveAnalysisDimensions(input: {
       "仓库角色与业务边界",
       "分析各仓库承担的业务角色、入口点和跨仓协作方式。",
       "当前未发现更强的领域维度，因此退回到仓库角色与入口点分析。",
+      "value-chain",
       input.technical.map((repo) => repo.repo.name),
       allSignals.slice(0, 10),
       0.62,
@@ -434,6 +450,8 @@ function deriveCriticalFlows(
       ...matchReposForFlow(flow, technical, business),
     ]);
     const repos = matchedRepos.length > 0 ? matchedRepos : technical.map((entry) => entry.repo.name);
+    const actor = /(admin|operator|ops)/i.test(flow) ? "operator" : /(system|job|sync)/i.test(flow) ? "system" : "user";
+    const businessObject = topConcepts([flow, ...repos])[0];
     const steps = repos.map((repo, repoIndex) => {
       const technicalRepo = technical.find((entry) => entry.repo.name === repo);
       const businessRepo = businessByRepo.get(repo);
@@ -462,6 +480,14 @@ function deriveCriticalFlows(
     return {
       name: `flow-${index + 1}`,
       summary: flow,
+      trigger: businessByRepo.get(repos[0] ?? "")?.entrypoints[0] ?? flow,
+      primaryActor: actor,
+      businessObject: businessObject ?? repos[0] ?? `flow-${index + 1}`,
+      goal: flow,
+      preconditions: unique([
+        `${actor} reaches the initiating entrypoint for ${flow}.`,
+        ...repos.slice(0, 2).map((repo) => `${repo} is available.`),
+      ]),
       participatingRepos: repos,
       participatingModules: unique(
         repos.flatMap((repo) => businessByRepo.get(repo)?.capabilities.slice(0, 2) ?? [repo]),
@@ -476,6 +502,45 @@ function deriveCriticalFlows(
         .map((item) => item.title)
         .slice(0, 4),
       steps,
+      syncSteps: steps,
+      asyncSteps: [],
+      manualSteps:
+        actor === "operator" ? [steps[0]].filter((step): step is (typeof steps)[number] => Boolean(step)) : [],
+      stateTransitions: [
+        {
+          businessObject: businessObject ?? repos[0] ?? `flow-${index + 1}`,
+          fromState: "initiated",
+          toState: riskSurface.some((item) => item.affectedRepos.some((repo) => repos.includes(repo)))
+            ? "completed-or-blocked"
+            : "completed",
+          trigger: businessByRepo.get(repos[0] ?? "")?.entrypoints[0] ?? flow,
+          evidence: makeEvidence(
+            "Inferred from matched entrypoints, API calls, and associated risk markers.",
+            unique(steps.flatMap((step) => step.evidence.signals)),
+          ),
+        },
+      ],
+      failureBranches: riskSurface
+        .filter((item) => item.affectedRepos.some((repo) => repos.includes(repo)))
+        .slice(0, 3)
+        .map((item) => ({
+          title: item.title,
+          condition: item.reasons[0] ?? item.title,
+          impact: `The ${flow} path may fail or require review.`,
+          mitigation: `Add verification around ${item.affectedRepos.join(", ") || "the impacted repos"}.`,
+          evidence: item.evidence,
+        })),
+      compensations: riskSurface.some((item) => item.affectedRepos.some((repo) => repos.includes(repo)))
+        ? [`Retry or recover ${flow} across ${repos.join(", ")}.`]
+        : [],
+      invariants: unique([
+        `${actor} expects ${flow} to preserve the contract surfaces involved.`,
+        ...repos.map((repo) => `${repo} keeps its boundary responsibilities intact.`),
+      ]).slice(0, 4),
+      observabilityHints: unique([
+        `Trace ${flow} across ${repos.join(" -> ")}.`,
+        ...repos.map((repo) => `Capture latency and failures in ${repo}.`),
+      ]).slice(0, 5),
       evidence: makeEvidence(
         "Built from interview-confirmed flows or inferred user/admin/API journeys, then traced across matching repos.",
         unique([...repos.map((repo) => `repo:${repo}`), ...steps.flatMap((step) => step.evidence.signals)]),
@@ -750,6 +815,59 @@ function deriveChangeImpact(
   });
 }
 
+function deriveKeyBusinessObjects(
+  contexts: AnalyzeDomainContext[],
+  capabilities: AnalyzeCapability[],
+  flows: AnalyzeCriticalFlow[],
+): string[] {
+  return unique([
+    ...contexts.flatMap((context) => [context.name, ...context.coreConcepts]),
+    ...capabilities.map((capability) => capability.name),
+    ...flows.map((flow) => flow.businessObject ?? flow.participatingModules[0] ?? flow.name),
+  ]).slice(0, 12);
+}
+
+function deriveArchitectureNarratives(input: {
+  businessGoal: string | null;
+  modules: WorkspaceFusionResult["businessModules"];
+  flows: AnalyzeCriticalFlow[];
+  contracts: AnalyzeContractSurface[];
+  risks: AnalyzeRiskItem[];
+  technical: RepoTechnicalAnalysis[];
+}): { business: string[]; technical: string[] } {
+  return {
+    business: [
+      input.businessGoal
+        ? `The workspace is primarily optimized to support ${input.businessGoal}.`
+        : `The workspace business goal is inferred from ${input.modules.length} module signal(s) and ${input.flows.length} critical flow hypothesis/hypotheses.`,
+      input.flows.length > 0
+        ? `Primary business coordination centers on ${input.flows
+            .slice(0, 3)
+            .map((flow) => flow.summary)
+            .join("; ")}.`
+        : "No business chain is confirmed yet; repository role analysis remains the main clue.",
+      input.modules.length > 0
+        ? `Business responsibilities are distributed across ${input.modules.map((module) => module.name).join(", ")}.`
+        : "No stable business module boundary was inferred from workspace fusion.",
+    ],
+    technical: [
+      `The technical architecture spans ${input.technical.length} repository role(s) and ${input.contracts.length} contract surface(s).`,
+      input.contracts.length > 0
+        ? `Cross-repo coordination is expressed through ${input.contracts
+            .slice(0, 4)
+            .map((contract) => contract.name)
+            .join("; ")}.`
+        : "Cross-repo contracts remain implicit in current repository signals.",
+      input.risks.length > 0
+        ? `Highest delivery risk clusters around ${input.risks
+            .slice(0, 3)
+            .map((risk) => risk.title)
+            .join("; ")}.`
+        : "No dominant runtime hotspot was inferred from tests, naming signals, or interview context.",
+    ],
+  };
+}
+
 export function buildAnalyzeKnowledgeModel(input: {
   technical: RepoTechnicalAnalysis[];
   business: RepoBusinessAnalysis[];
@@ -772,24 +890,62 @@ export function buildAnalyzeKnowledgeModel(input: {
   const domainContexts = deriveDomainContexts(input.technical, input.business);
   const decisionRecords = deriveDecisionRecords(input.interview);
   const changeImpact = deriveChangeImpact(capabilities, criticalFlows, contractSurfaces, input.technical);
-  const analysisDimensions = deriveAnalysisDimensions({
-    technical: input.technical,
-    business: input.business,
-    capabilities,
-    contracts: contractSurfaces,
-    risks: riskSurface,
-    flows: criticalFlows,
-  });
-
-  return {
-    analysisDimensions,
+  const businessChains = deriveAnalyzeBusinessChains({
+    analysisDimensions: [],
     capabilities,
     criticalFlows,
+    businessChains: criticalFlows,
     contractSurfaces,
     domainContexts,
     runtimeConstraints,
     riskSurface,
     decisionRecords,
     changeImpact,
+    keyBusinessObjects: [],
+    businessArchitectureNarrative: [],
+    technicalArchitectureNarrative: [],
+    unknowns: [],
+    contradictions: [],
+  });
+  const analysisDimensions = deriveAnalysisDimensions({
+    technical: input.technical,
+    business: input.business,
+    capabilities,
+    contracts: contractSurfaces,
+    risks: riskSurface,
+    flows: businessChains,
+  });
+  const keyBusinessObjects = deriveKeyBusinessObjects(domainContexts, capabilities, businessChains);
+  const narratives = deriveArchitectureNarratives({
+    businessGoal: input.interview?.context.businessGoal ?? null,
+    modules: input.fusion.businessModules,
+    flows: businessChains,
+    contracts: contractSurfaces,
+    risks: riskSurface,
+    technical: input.technical,
+  });
+  const unknowns = unique([
+    ...(input.interview?.pendingQuestions.map((gap) => gap.question) ?? []),
+    ...(!input.interview?.context.businessGoal
+      ? ["Business goal still relies on inferred evidence rather than explicit confirmation."]
+      : []),
+  ]).slice(0, 8);
+
+  return {
+    analysisDimensions,
+    capabilities,
+    criticalFlows: businessChains,
+    businessChains,
+    contractSurfaces,
+    domainContexts,
+    runtimeConstraints,
+    riskSurface,
+    decisionRecords,
+    changeImpact,
+    keyBusinessObjects,
+    businessArchitectureNarrative: narratives.business,
+    technicalArchitectureNarrative: narratives.technical,
+    unknowns,
+    contradictions: [],
   };
 }

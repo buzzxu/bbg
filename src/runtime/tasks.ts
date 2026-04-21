@@ -642,6 +642,7 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
   const references = [
     "docs/business/capability-map.md",
     "docs/business/critical-flows.md",
+    "docs/business/business-chains.md",
     "docs/architecture/integration-contracts.md",
     "docs/architecture/risk-surface.md",
     "docs/architecture/decision-history.md",
@@ -650,20 +651,23 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
   const paths = {
     capabilities: join(cwd, ".bbg", "knowledge", "workspace", "capabilities.json"),
     flows: join(cwd, ".bbg", "knowledge", "workspace", "critical-flows.json"),
+    businessChains: join(cwd, ".bbg", "knowledge", "workspace", "business-chains.json"),
     contracts: join(cwd, ".bbg", "knowledge", "workspace", "contracts.json"),
     risks: join(cwd, ".bbg", "knowledge", "workspace", "risk-surface.json"),
     decisions: join(cwd, ".bbg", "knowledge", "workspace", "decisions.json"),
     changeImpact: join(cwd, ".bbg", "knowledge", "workspace", "change-impact.json"),
   };
 
-  const [capabilitiesRaw, flowsRaw, contractsRaw, risksRaw, decisionsRaw, changeImpactRaw] = await Promise.all([
-    readIfExists(paths.capabilities),
-    readIfExists(paths.flows),
-    readIfExists(paths.contracts),
-    readIfExists(paths.risks),
-    readIfExists(paths.decisions),
-    readIfExists(paths.changeImpact),
-  ]);
+  const [capabilitiesRaw, flowsRaw, businessChainsRaw, contractsRaw, risksRaw, decisionsRaw, changeImpactRaw] =
+    await Promise.all([
+      readIfExists(paths.capabilities),
+      readIfExists(paths.flows),
+      readIfExists(paths.businessChains),
+      readIfExists(paths.contracts),
+      readIfExists(paths.risks),
+      readIfExists(paths.decisions),
+      readIfExists(paths.changeImpact),
+    ]);
 
   const matchedCapabilities: string[] = [];
   const matchedKnowledgeItemIds: string[] = [];
@@ -773,6 +777,50 @@ async function collectImpactGuidance(cwd: string, task: string): Promise<TaskImp
     }
     if (matchedFlows.length > 0) {
       rationale.push(`Matched ${matchedFlows.length} critical flow entry(s) relevant to this task.`);
+    }
+  }
+
+  const businessChainsParsed = parseJson(businessChainsRaw);
+  if (isRecord(businessChainsParsed) && Array.isArray(businessChainsParsed.chains)) {
+    for (const chain of businessChainsParsed.chains) {
+      if (!isRecord(chain)) {
+        continue;
+      }
+      const values = [
+        typeof chain.summary === "string" ? chain.summary : "",
+        typeof chain.businessObject === "string" ? chain.businessObject : "",
+        typeof chain.primaryActor === "string" ? chain.primaryActor : "",
+        ...(Array.isArray(chain.contracts) ? chain.contracts.filter((v): v is string => typeof v === "string") : []),
+      ];
+      if (!matchTextSignals(task, values)) {
+        continue;
+      }
+      if (typeof chain.summary === "string") {
+        matchedFlows.push(chain.summary);
+      }
+      if (typeof chain.id === "string") {
+        matchedKnowledgeItemIds.push(chain.id);
+      }
+      if (Array.isArray(chain.participatingRepos)) {
+        impactedRepos.push(...chain.participatingRepos.filter((v): v is string => typeof v === "string"));
+      }
+      if (Array.isArray(chain.contracts)) {
+        impactedContracts.push(...chain.contracts.filter((v): v is string => typeof v === "string"));
+      }
+      if (Array.isArray(chain.failurePoints)) {
+        riskHotspots.push(...chain.failurePoints.filter((v): v is string => typeof v === "string"));
+      }
+      const evidence = isRecord(chain.evidence) ? chain.evidence : null;
+      if (evidence && Array.isArray(evidence.signals)) {
+        evidenceSignals.push(...evidence.signals.filter((v): v is string => typeof v === "string"));
+      }
+      if (typeof chain.confidence === "number") {
+        confidenceScores.push(chain.confidence);
+      }
+      matchedReferences.add("docs/business/business-chains.md");
+    }
+    if (matchedReferences.has("docs/business/business-chains.md")) {
+      rationale.push("Matched business-chain guidance derived from analyze chain artifacts.");
     }
   }
 

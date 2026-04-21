@@ -17,6 +17,7 @@ export interface AnalyzeDocCopy {
   integrationMap: string;
   moduleMap: string;
   coreFlows: string;
+  businessChains: string;
   projectContext: string;
   updatedAt: string;
   repositories: string;
@@ -67,6 +68,19 @@ export interface AnalyzeDocCopy {
   likelyFlowSequence: string;
   reviewerHints: string;
   status: string;
+  primaryActor: string;
+  businessObject: string;
+  trigger: string;
+  goal: string;
+  preconditions: string;
+  stateTransitions: string;
+  failureBranches: string;
+  compensations: string;
+  invariants: string;
+  observabilityHints: string;
+  recommendedPriority: string;
+  keyQuestions: string;
+  businessObjects: string;
   projectContextOverview: string;
   notProvided: string;
   none: string;
@@ -100,6 +114,7 @@ const ENGLISH_COPY: AnalyzeDocCopy = {
   integrationMap: "Integration Map",
   moduleMap: "Module Map",
   coreFlows: "Core Flows",
+  businessChains: "Business Chains",
   projectContext: "Project Context",
   updatedAt: "Updated at",
   repositories: "Repositories",
@@ -150,6 +165,19 @@ const ENGLISH_COPY: AnalyzeDocCopy = {
   likelyFlowSequence: "Likely Flow Sequence",
   reviewerHints: "Reviewer hints",
   status: "Status",
+  primaryActor: "Primary Actor",
+  businessObject: "Business Object",
+  trigger: "Trigger",
+  goal: "Goal",
+  preconditions: "Preconditions",
+  stateTransitions: "State Transitions",
+  failureBranches: "Failure Branches",
+  compensations: "Compensations",
+  invariants: "Invariants",
+  observabilityHints: "Observability Hints",
+  recommendedPriority: "Recommended Priority",
+  keyQuestions: "Key Questions",
+  businessObjects: "Business Objects",
   projectContextOverview: "Project context is now a navigation page over the richer analyze knowledge set.",
   notProvided: "(not provided)",
   none: "(none)",
@@ -183,6 +211,7 @@ const CHINESE_COPY: AnalyzeDocCopy = {
   integrationMap: "集成关系图",
   moduleMap: "模块地图",
   coreFlows: "核心流程",
+  businessChains: "业务链",
   projectContext: "项目上下文",
   updatedAt: "更新时间",
   repositories: "仓库列表",
@@ -233,6 +262,19 @@ const CHINESE_COPY: AnalyzeDocCopy = {
   likelyFlowSequence: "推定流程路径",
   reviewerHints: "评审建议",
   status: "状态",
+  primaryActor: "主要触发角色",
+  businessObject: "核心业务对象",
+  trigger: "触发点",
+  goal: "目标",
+  preconditions: "前置条件",
+  stateTransitions: "状态迁移",
+  failureBranches: "失败分支",
+  compensations: "补偿措施",
+  invariants: "关键不变量",
+  observabilityHints: "观测建议",
+  recommendedPriority: "推荐优先级",
+  keyQuestions: "关键问题",
+  businessObjects: "业务对象",
   projectContextOverview: "项目上下文现在作为导航页，指向更完整的 analyze 知识模型。",
   notProvided: "（未提供）",
   none: "（无）",

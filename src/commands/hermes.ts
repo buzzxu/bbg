@@ -80,6 +80,7 @@ export async function runHermesCommand(input: RunHermesCommandInput): Promise<Ru
   let candidateReferences: string[] = [];
   if (input.kind === "candidates") {
     const analyzeCandidatesPath = join(input.cwd, ".bbg", "knowledge", "hermes", "analyze-candidates.json");
+    const reconciliationPath = join(input.cwd, ".bbg", "knowledge", "workspace", "reconciliation-report.json");
     if (await exists(analyzeCandidatesPath)) {
       try {
         const parsed = JSON.parse(await readTextFile(analyzeCandidatesPath)) as { candidates?: unknown[] };
@@ -92,6 +93,15 @@ export async function runHermesCommand(input: RunHermesCommandInput): Promise<Ru
         candidateSummary = "Analyze-origin candidate knowledge objects are available for review.";
       }
       candidateReferences = [".bbg/knowledge/hermes/analyze-candidates.json"];
+    }
+    if (await exists(reconciliationPath)) {
+      candidateSummary = [
+        candidateSummary,
+        "Analyze reconciliation report is available for AI-adopted dimensions and chains.",
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(" ");
+      candidateReferences = [...candidateReferences, ".bbg/knowledge/workspace/reconciliation-report.json"];
     }
   }
 

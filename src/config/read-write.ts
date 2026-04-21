@@ -163,15 +163,34 @@ function isRuntimeAutonomySetting(value: unknown): value is NonNullable<BbgConfi
   }
 
   return (
-    typeof value.maxAttempts === "number"
-    && Number.isInteger(value.maxAttempts)
-    && value.maxAttempts > 0
-    && typeof value.maxVerifyFailures === "number"
-    && Number.isInteger(value.maxVerifyFailures)
-    && value.maxVerifyFailures > 0
-    && typeof value.maxDurationMs === "number"
-    && Number.isInteger(value.maxDurationMs)
-    && value.maxDurationMs > 0
+    typeof value.maxAttempts === "number" &&
+    Number.isInteger(value.maxAttempts) &&
+    value.maxAttempts > 0 &&
+    typeof value.maxVerifyFailures === "number" &&
+    Number.isInteger(value.maxVerifyFailures) &&
+    value.maxVerifyFailures > 0 &&
+    typeof value.maxDurationMs === "number" &&
+    Number.isInteger(value.maxDurationMs) &&
+    value.maxDurationMs > 0
+  );
+}
+
+function isRuntimeAnalysisAiSetting(value: unknown): value is NonNullable<BbgConfig["runtime"]>["analysisAi"] {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.enabled === "boolean" &&
+    (value.mode === "provider" || value.mode === "handoff") &&
+    (value.provider === undefined || isString(value.provider)) &&
+    (value.modelClass === undefined ||
+      value.modelClass === "fast" ||
+      value.modelClass === "balanced" ||
+      value.modelClass === "premium") &&
+    typeof value.timeoutMs === "number" &&
+    Number.isInteger(value.timeoutMs) &&
+    value.timeoutMs > 0
   );
 }
 
@@ -186,6 +205,7 @@ function isRuntimeConfig(value: unknown): value is NonNullable<BbgConfig["runtim
     isRuntimeFileSetting(value.policy) &&
     isRuntimeContextSetting(value.context) &&
     isRuntimeAutonomySetting(value.autonomy) &&
+    (value.analysisAi === undefined || isRuntimeAnalysisAiSetting(value.analysisAi)) &&
     (value.commands === undefined || isRuntimeCommandsSetting(value.commands))
   );
 }
@@ -221,9 +241,9 @@ function isKnowledgeConfig(value: unknown): value is NonNullable<BbgConfig["know
   );
 }
 
-function isAgentRunnerToolConfig(value: unknown): value is NonNullable<
-  NonNullable<BbgConfig["agentRunner"]>["tools"]
->[string] {
+function isAgentRunnerToolConfig(
+  value: unknown,
+): value is NonNullable<NonNullable<BbgConfig["agentRunner"]>["tools"]>[string] {
   if (!isRecord(value)) {
     return false;
   }
@@ -234,8 +254,7 @@ function isAgentRunnerToolConfig(value: unknown): value is NonNullable<
     value.command.trim().length > 0 &&
     (value.args === undefined || (Array.isArray(value.args) && value.args.every(isString))) &&
     (value.detached === undefined || isBoolean(value.detached)) &&
-    (value.env === undefined ||
-      (isRecord(value.env) && Object.values(value.env).every(isString)))
+    (value.env === undefined || (isRecord(value.env) && Object.values(value.env).every(isString)))
   );
 }
 
@@ -246,8 +265,7 @@ function isAgentRunnerConfig(value: unknown): value is NonNullable<BbgConfig["ag
 
   return (
     (value.defaultTool === undefined || isString(value.defaultTool)) &&
-    (value.tools === undefined ||
-      (isRecord(value.tools) && Object.values(value.tools).every(isAgentRunnerToolConfig)))
+    (value.tools === undefined || (isRecord(value.tools) && Object.values(value.tools).every(isAgentRunnerToolConfig)))
   );
 }
 
@@ -268,7 +286,9 @@ function isBbgConfig(value: unknown): value is BbgConfig {
     isString(value.version) &&
     isString(value.projectName) &&
     isString(value.projectDescription) &&
-    (value.documentationLanguage === undefined || value.documentationLanguage === "zh-CN" || value.documentationLanguage === "en") &&
+    (value.documentationLanguage === undefined ||
+      value.documentationLanguage === "zh-CN" ||
+      value.documentationLanguage === "en") &&
     isString(value.createdAt) &&
     isString(value.updatedAt) &&
     isRiskThreshold(value.governance.riskThresholds.high) &&

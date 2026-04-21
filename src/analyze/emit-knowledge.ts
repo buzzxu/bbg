@@ -1,6 +1,8 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import type {
+  AnalyzeAiAnalysisResult,
+  AnalyzeAiReconciliationResult,
   AnalyzeFocusSummary,
   AnalyzeInterviewSummary,
   AnalyzeKnowledgeArtifacts,
@@ -55,6 +57,8 @@ export async function writeAnalyzeKnowledge(input: {
   interview: AnalyzeInterviewSummary | null;
   model: AnalyzeKnowledgeModel;
   focus: AnalyzeFocusSummary | null;
+  aiAnalysis?: AnalyzeAiAnalysisResult | null;
+  reconciliation?: AnalyzeAiReconciliationResult | null;
 }): Promise<AnalyzeKnowledgeArtifacts> {
   const updatedAt = new Date().toISOString();
   const knowledgeUpdated: string[] = [];
@@ -224,6 +228,23 @@ export async function writeAnalyzeKnowledge(input: {
   );
   knowledgeUpdated.push(workspaceCriticalFlowsPath);
 
+  const workspaceBusinessChainsPath = ".bbg/knowledge/workspace/business-chains.json";
+  await writeTextFile(
+    join(input.cwd, workspaceBusinessChainsPath),
+    `${JSON.stringify(
+      {
+        version: 2,
+        runId: input.runId,
+        updatedAt,
+        source: "analyze",
+        chains: enrichedModel.businessChains,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  knowledgeUpdated.push(workspaceBusinessChainsPath);
+
   const workspaceContractsPath = ".bbg/knowledge/workspace/contracts.json";
   await writeTextFile(
     join(input.cwd, workspaceContractsPath),
@@ -384,6 +405,48 @@ export async function writeAnalyzeKnowledge(input: {
     await rm(join(input.cwd, focusedAnalysisPath), { force: true });
   }
 
+  const workspaceAiAnalysisPath = ".bbg/knowledge/workspace/ai-analysis.json";
+  if (input.aiAnalysis) {
+    await writeTextFile(
+      join(input.cwd, workspaceAiAnalysisPath),
+      `${JSON.stringify(
+        {
+          version: 1,
+          runId: input.runId,
+          updatedAt,
+          source: "analyze",
+          analysis: input.aiAnalysis,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    knowledgeUpdated.push(workspaceAiAnalysisPath);
+  } else if (await exists(join(input.cwd, workspaceAiAnalysisPath))) {
+    await rm(join(input.cwd, workspaceAiAnalysisPath), { force: true });
+  }
+
+  const workspaceReconciliationPath = ".bbg/knowledge/workspace/reconciliation-report.json";
+  if (input.reconciliation) {
+    await writeTextFile(
+      join(input.cwd, workspaceReconciliationPath),
+      `${JSON.stringify(
+        {
+          version: 1,
+          runId: input.runId,
+          updatedAt,
+          source: "analyze",
+          reconciliation: input.reconciliation,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    knowledgeUpdated.push(workspaceReconciliationPath);
+  } else if (await exists(join(input.cwd, workspaceReconciliationPath))) {
+    await rm(join(input.cwd, workspaceReconciliationPath), { force: true });
+  }
+
   const initialKnowledgeItems = buildAnalyzeKnowledgeItemsIndex({
     runId: input.runId,
     model: enrichedModel,
@@ -499,6 +562,9 @@ export async function writeAnalyzeKnowledge(input: {
           evidenceIndex: workspaceEvidenceIndexPath,
           lifecycle: workspaceLifecyclePath,
           runDiff: workspaceRunDiffPath,
+          businessChains: workspaceBusinessChainsPath,
+          aiAnalysis: input.aiAnalysis ? workspaceAiAnalysisPath : undefined,
+          reconciliation: input.reconciliation ? workspaceReconciliationPath : undefined,
           wikiSummaryPaths: [],
           domainFiles: knowledgeUpdated.filter((pathValue) => pathValue.startsWith(".bbg/knowledge/")),
         },

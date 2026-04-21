@@ -155,6 +155,9 @@ export interface AnalyzeKnowledgeSnapshot {
     evidenceIndex: string;
     lifecycle: string;
     runDiff: string;
+    businessChains?: string;
+    aiAnalysis?: string;
+    reconciliation?: string;
     wikiSummaryPaths: string[];
     domainFiles: string[];
   };
@@ -192,6 +195,7 @@ export interface RunAnalyzeCommandResult {
   integrationMapPath: string;
   moduleMapPath: string;
   coreFlowsPath: string;
+  businessChainsPath: string;
   projectContextPath: string;
   docsUpdated: string[];
   knowledgeUpdated: string[];
@@ -229,12 +233,17 @@ export interface AnalyzeKnowledgeGap {
 
 export interface AnalyzeFocusSummary {
   query: string;
+  intent?: "business-chain" | "business-object" | "integration" | "risk" | "architecture" | "general";
   matchedRepos: string[];
   matchedSignals: string[];
   matchedContracts: string[];
   riskHotspots: string[];
   reviewerHints: string[];
   likelyEntrypoints: string[];
+  matchedEntities?: string[];
+  matchedChains?: string[];
+  semanticExpansions?: string[];
+  followupQuestions?: string[];
   rationale: string[];
 }
 
@@ -261,6 +270,23 @@ export interface AnalyzeWorkflowStep {
   repo: string;
   action: string;
   boundary: string;
+  kind?: "sync" | "async" | "manual";
+  evidence: AnalyzeEvidenceNote;
+}
+
+export interface AnalyzeStateTransition {
+  businessObject: string;
+  fromState: string;
+  toState: string;
+  trigger: string;
+  evidence: AnalyzeEvidenceNote;
+}
+
+export interface AnalyzeFailureBranch {
+  title: string;
+  condition: string;
+  impact: string;
+  mitigation: string;
   evidence: AnalyzeEvidenceNote;
 }
 
@@ -268,11 +294,24 @@ export interface AnalyzeCriticalFlow {
   id?: string;
   name: string;
   summary: string;
+  trigger?: string;
+  primaryActor?: string;
+  businessObject?: string;
+  goal?: string;
+  preconditions?: string[];
   participatingRepos: string[];
   participatingModules: string[];
   contracts: string[];
   failurePoints: string[];
   steps: AnalyzeWorkflowStep[];
+  syncSteps?: AnalyzeWorkflowStep[];
+  asyncSteps?: AnalyzeWorkflowStep[];
+  manualSteps?: AnalyzeWorkflowStep[];
+  stateTransitions?: AnalyzeStateTransition[];
+  failureBranches?: AnalyzeFailureBranch[];
+  compensations?: string[];
+  invariants?: string[];
+  observabilityHints?: string[];
   evidence: AnalyzeEvidenceNote;
   confidence: number;
   status?: AnalyzeKnowledgeStatus;
@@ -362,7 +401,12 @@ export interface AnalyzeBusinessDimension {
   name: string;
   description: string;
   rationale: string;
+  category?: "value-chain" | "user-journey" | "domain-model" | "workflow" | "integration" | "risk" | "operations";
   supportingRepos: string[];
+  businessObjects?: string[];
+  keyQuestions?: string[];
+  recommendedPriority?: "high" | "medium" | "low";
+  triggerSignals?: string[];
   evidence: AnalyzeEvidenceNote;
   confidence: number;
   status?: AnalyzeKnowledgeStatus;
@@ -370,16 +414,69 @@ export interface AnalyzeBusinessDimension {
   relatedIds?: string[];
 }
 
+export interface AnalyzeAiClaim {
+  id: string;
+  kind: "dimension" | "chain" | "narrative" | "object" | "decision";
+  statement: string;
+  rationale: string;
+  evidenceRefs: string[];
+  confidence: number;
+  status: "supported" | "contradicted" | "unknown";
+}
+
+export interface AnalyzeAiDimensionCandidate extends AnalyzeBusinessDimension {
+  evidenceRefs: string[];
+}
+
+export interface AnalyzeAiBusinessChain extends AnalyzeCriticalFlow {
+  evidenceRefs: string[];
+}
+
+export interface AnalyzeAiAnalysisResult {
+  enabled: boolean;
+  mode: "provider" | "handoff" | "heuristic-fallback" | "disabled";
+  provider: string | null;
+  modelClass: "fast" | "balanced" | "premium" | null;
+  generatedAt: string;
+  recommendedDimensions: AnalyzeAiDimensionCandidate[];
+  businessArchitectureNarrative: string[];
+  technicalArchitectureNarrative: string[];
+  coreBusinessChains: AnalyzeAiBusinessChain[];
+  keyBusinessObjects: string[];
+  decisionHypotheses: string[];
+  unknowns: string[];
+  contradictions: string[];
+  claims: AnalyzeAiClaim[];
+  promptPreview: string[];
+}
+
+export interface AnalyzeAiReconciliationResult {
+  generatedAt: string;
+  mode: AnalyzeAiAnalysisResult["mode"];
+  adoptedDimensions: string[];
+  adoptedChains: string[];
+  reviewRequired: string[];
+  conflicts: string[];
+  finalBusinessArchitectureNarrative: string[];
+  finalTechnicalArchitectureNarrative: string[];
+}
+
 export interface AnalyzeKnowledgeModel {
   analysisDimensions: AnalyzeBusinessDimension[];
   capabilities: AnalyzeCapability[];
   criticalFlows: AnalyzeCriticalFlow[];
+  businessChains: AnalyzeCriticalFlow[];
   contractSurfaces: AnalyzeContractSurface[];
   domainContexts: AnalyzeDomainContext[];
   runtimeConstraints: AnalyzeRuntimeConstraint[];
   riskSurface: AnalyzeRiskItem[];
   decisionRecords: AnalyzeDecisionRecord[];
   changeImpact: AnalyzeChangeImpactEntry[];
+  keyBusinessObjects: string[];
+  businessArchitectureNarrative: string[];
+  technicalArchitectureNarrative: string[];
+  unknowns: string[];
+  contradictions: string[];
 }
 
 export interface AnalyzeInterviewAssumption {
@@ -423,6 +520,9 @@ export interface AnalyzePhaseSummary {
     | "business-analysis"
     | "workspace-fusion"
     | "focus-analysis"
+    | "prepare-ai-context"
+    | "ai-analysis"
+    | "reconcile-ai-analysis"
     | "capability-analysis"
     | "workflow-analysis"
     | "contract-analysis"
@@ -534,6 +634,7 @@ export interface AnalyzeDocArtifacts {
   integrationMapPath: string;
   moduleMapPath: string;
   coreFlowsPath: string;
+  businessChainsPath: string;
   projectContextPath: string;
   focusedAnalysisPath: string | null;
   docsUpdated: string[];

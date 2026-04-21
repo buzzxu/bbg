@@ -18,6 +18,40 @@ function unique(values: string[]): string[] {
   return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
 }
 
+function classifyFocusIntent(query: string): NonNullable<AnalyzeFocusSummary["intent"]> {
+  const normalized = query.toLowerCase();
+  if (/(flow|journey|chain|lifecycle|path|checkout|order|fulfillment)/.test(normalized)) {
+    return "business-chain";
+  }
+  if (/(object|entity|model|domain|aggregate|state)/.test(normalized)) {
+    return "business-object";
+  }
+  if (/(risk|failure|incident|fragile|hotspot)/.test(normalized)) {
+    return "risk";
+  }
+  if (/(contract|api|integration|boundary)/.test(normalized)) {
+    return "integration";
+  }
+  if (/(architecture|design|technical|system)/.test(normalized)) {
+    return "architecture";
+  }
+  return "general";
+}
+
+function semanticExpansions(tokens: string[]): string[] {
+  const expansions: string[] = [];
+  if (tokens.some((token) => ["order", "checkout", "payment", "fulfillment"].includes(token))) {
+    expansions.push("transaction", "state change", "downstream integration");
+  }
+  if (tokens.some((token) => ["user", "customer", "member", "account"].includes(token))) {
+    expansions.push("identity", "entrypoint", "permission");
+  }
+  if (tokens.some((token) => ["risk", "failure", "incident"].includes(token))) {
+    expansions.push("hotspot", "rollback", "verification");
+  }
+  return unique(expansions).slice(0, 6);
+}
+
 function repoSignals(technical: RepoTechnicalAnalysis, business: RepoBusinessAnalysis | undefined): string[] {
   return unique([
     technical.repo.name,
@@ -84,22 +118,29 @@ export function deriveAnalyzeFocusSummary(input: {
     scoredRepos.flatMap((entry) => entry.matchingSignals.map((signal) => `${entry.repo}: ${signal}`)),
   ).slice(0, 12);
 
-  const repoMatchReason = matchedRepos.length > 0
-    ? `Matched focus tokens against repo descriptions, entrypoints, API signals, and inferred business capabilities in ${matchedRepos.join(", ")}.`
-    : "No strong repo-level match found for the focus tokens in current workspace signals.";
+  const repoMatchReason =
+    matchedRepos.length > 0
+      ? `Matched focus tokens against repo descriptions, entrypoints, API signals, and inferred business capabilities in ${matchedRepos.join(", ")}.`
+      : "No strong repo-level match found for the focus tokens in current workspace signals.";
 
-  const integrationReason = input.fusion.integrationEdges.length > 0
-    ? `Workspace integration edges considered: ${input.fusion.integrationEdges.map((edge) => `${edge.from}->${edge.to}`).join(", ")}.`
-    : "No explicit workspace integration edges were inferred.";
+  const integrationReason =
+    input.fusion.integrationEdges.length > 0
+      ? `Workspace integration edges considered: ${input.fusion.integrationEdges.map((edge) => `${edge.from}->${edge.to}`).join(", ")}.`
+      : "No explicit workspace integration edges were inferred.";
 
   return {
     query,
+    intent: classifyFocusIntent(query),
     matchedRepos,
     matchedSignals,
     matchedContracts: [],
     riskHotspots: [],
     reviewerHints: [],
     likelyEntrypoints: [],
+    matchedEntities: unique(tokens),
+    matchedChains: [],
+    semanticExpansions: semanticExpansions(tokens),
+    followupQuestions: tokens.slice(0, 3).map((token) => `What business boundary is defined by ${token}?`),
     rationale: [repoMatchReason, integrationReason],
   };
 }
@@ -114,9 +155,10 @@ export function enrichAnalyzeFocusSummary(input: {
     return null;
   }
 
+  const focus = input.focus;
   const businessByRepo = new Map(input.business.map((entry) => [entry.repoName, entry] as const));
   const likelyEntrypoints = unique(
-    input.focus.matchedRepos.flatMap((repo) => {
+    focus.matchedRepos.flatMap((repo) => {
       const technical = input.technical.find((entry) => entry.repo.name === repo);
       const business = businessByRepo.get(repo);
       return [
@@ -131,23 +173,54 @@ export function enrichAnalyzeFocusSummary(input: {
 
   const matchedContracts = unique(
     input.model.contractSurfaces
-      .filter((contract) => contract.owners.some((repo) => input.focus?.matchedRepos.includes(repo)) || contract.consumers.some((repo) => input.focus?.matchedRepos.includes(repo)))
+      .filter(
+        (contract) =>
+          contract.owners.some((repo) => focus.matchedRepos.includes(repo)) ||
+          contract.consumers.some((repo) => focus.matchedRepos.includes(repo)),
+      )
       .map((contract) => contract.name),
   ).slice(0, 8);
 
   const riskHotspots = unique(
     input.model.riskSurface
-      .filter((risk) => risk.affectedRepos.some((repo) => input.focus?.matchedRepos.includes(repo)))
+      .filter((risk) => risk.affectedRepos.some((repo) => focus.matchedRepos.includes(repo)))
       .map((risk) => risk.title),
   ).slice(0, 8);
 
   const reviewerHints = unique(
     input.model.changeImpact
-      .filter((impact) => impact.impactedRepos.some((repo) => input.focus?.matchedRepos.includes(repo)) || impact.target === input.focus?.query)
+      .filter(
+        (impact) =>
+          impact.impactedRepos.some((repo) => focus.matchedRepos.includes(repo)) || impact.target === focus.query,
+      )
       .flatMap((impact) => impact.reviewerHints),
   ).slice(0, 8);
 
-  const rationale = [...input.focus.rationale];
+  const rationale = [...focus.rationale];
+  const matchedChains = unique(
+    input.model.businessChains
+      .filter((chain) => {
+        const haystack = [
+          chain.summary,
+          chain.businessObject ?? "",
+          chain.primaryActor ?? "",
+          ...(chain.participatingRepos ?? []),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return (
+          focus.matchedSignals.some((signal) => haystack.includes(signal.split(": ").at(-1)?.toLowerCase() ?? "")) ||
+          tokenize(focus.query).some((token) => haystack.includes(token))
+        );
+      })
+      .map((chain) => chain.summary),
+  ).slice(0, 6);
+  const matchedEntities = unique([
+    ...(focus.matchedEntities ?? []),
+    ...input.model.keyBusinessObjects.filter((entry) =>
+      tokenize(`${entry} ${focus.query}`).some((token) => entry.toLowerCase().includes(token)),
+    ),
+  ]).slice(0, 8);
   if (matchedContracts.length > 0) {
     rationale.push(`Expanded focus through ${matchedContracts.length} contract surface(s) touching matched repos.`);
   }
@@ -157,13 +230,23 @@ export function enrichAnalyzeFocusSummary(input: {
   if (reviewerHints.length > 0) {
     rationale.push(`Derived reviewer hints from impacted repos and language-specific review guidance.`);
   }
+  if (matchedChains.length > 0) {
+    rationale.push(`Matched ${matchedChains.length} business chain(s) semantically related to the focus query.`);
+  }
 
   return {
-    ...input.focus,
+    ...focus,
     matchedContracts,
     riskHotspots,
     reviewerHints,
     likelyEntrypoints,
+    matchedEntities,
+    matchedChains,
+    followupQuestions: unique([
+      ...(focus.followupQuestions ?? []),
+      ...matchedEntities.slice(0, 2).map((entity) => `Which states and invariants define ${entity}?`),
+      ...matchedChains.slice(0, 2).map((chain) => `Which contracts and state transitions constrain ${chain}?`),
+    ]).slice(0, 6),
     rationale,
   };
 }
