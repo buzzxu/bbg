@@ -405,7 +405,6 @@ function deriveInferredFlows(
 
   for (const edge of fusion.integrationEdges) {
     const source = technical.find((entry) => entry.repo.name === edge.from);
-    const target = technical.find((entry) => entry.repo.name === edge.to);
     const sourceBusiness = businessByRepo.get(edge.from);
     const targetBusiness = businessByRepo.get(edge.to);
     const sharedTerms = unique(
@@ -598,9 +597,12 @@ function deriveRiskSurface(
       .map((entry) => entry.repo.name);
     items.push({
       title: hotspot,
-      severity: /(auth|payment|tenant|security|checkout|share|template|poster|permission)/i.test(hotspot)
-        ? "high"
-        : "medium",
+      severity:
+        /(auth|tenant|security|transaction|permission|token|secret|credential|privacy|pii|compliance|audit)/i.test(
+          hotspot,
+        )
+          ? "high"
+          : "medium",
       affectedRepos: affectedRepos.length > 0 ? affectedRepos : technical.slice(0, 1).map((entry) => entry.repo.name),
       reasons: ["Flagged by analyze interview as a failure-prone or sensitive area."],
       evidence: makeEvidence(

@@ -84,8 +84,7 @@ export function buildDefaultRuntimeConfig(): RuntimeConfig {
     },
     analysisAi: {
       enabled: true,
-      mode: "provider",
-      provider: "local-synthesis",
+      mode: "handoff",
       modelClass: "premium",
       timeoutMs: 45000,
     },

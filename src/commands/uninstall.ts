@@ -1,4 +1,4 @@
-import { rmdir, rm, stat } from "node:fs/promises";
+import { readdir, rmdir, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import fg from "fast-glob";
 import type { FileHashRecord } from "../config/hash.js";
@@ -7,6 +7,7 @@ import { parseConfig } from "../config/read-write.js";
 import type { BbgConfig } from "../config/schema.js";
 import { hasManagedSection, isManagedAdapterPath, removeManagedSection } from "../adapters/managed.js";
 import { removeBbgGitignoreEntries } from "./init-gitignore.js";
+import { INIT_INFO_CACHE_PATH, writeInitInfoCache } from "./init-info-cache.js";
 import { buildTrackedFiles } from "../lifecycle/tracked-files.js";
 import { buildDefaultRuntimeConfig } from "../runtime/schema.js";
 import { uiText } from "../i18n/ui-copy.js";
@@ -21,6 +22,7 @@ export interface RunUninstallInput {
   keepDocs?: boolean;
   keepKnowledge?: boolean;
   keepToolAdapters?: boolean;
+  keepInitInfo?: boolean;
   yes?: boolean;
 }
 
@@ -42,6 +44,11 @@ interface UninstallDecision {
   nextContent?: string;
 }
 
+interface BbgResidualCandidate {
+  path: string;
+  isDirectory: boolean;
+}
+
 const DYNAMIC_DOC_FILES = [
   "docs/architecture/technical-architecture.md",
   "docs/architecture/business-architecture.md",
@@ -55,8 +62,11 @@ const DIRECTORY_CANDIDATES = [
   ".bbg/generated-snapshots",
   ".bbg/upgrade-patches",
   ".bbg/context",
+  ".bbg/checkpoints",
   ".bbg/sessions",
   ".bbg/evaluations",
+  ".bbg/evals",
+  ".bbg/events",
   ".bbg/telemetry",
   ".bbg/policy",
   ".bbg/tasks",
@@ -64,25 +74,37 @@ const DIRECTORY_CANDIDATES = [
   ".bbg/loops",
   ".bbg/repos",
   ".bbg/analyze",
+  ".bbg/analysis",
   ".bbg/knowledge",
+  ".bbg/quarantine",
+  ".bbg/doc-garden",
+  ".bbg/reports",
+  ".bbg/scripts",
 ];
 
 const RUNTIME_DATA_PREFIXES = [
   ".bbg/tasks",
   ".bbg/task-envs",
   ".bbg/loops",
+  ".bbg/checkpoints",
   ".bbg/sessions",
   ".bbg/evaluations",
+  ".bbg/evals",
+  ".bbg/events",
   ".bbg/telemetry",
+  ".bbg/telemetry.db",
   ".bbg/context",
   ".bbg/analyze",
+  ".bbg/analysis",
   ".bbg/repos",
+  ".bbg/quarantine",
+  ".bbg/doc-garden",
+  ".bbg/reports",
+  ".bbg/session-state.json",
+  ".bbg/token-tracker.json",
 ];
 
-const KNOWLEDGE_PREFIXES = [
-  ".bbg/knowledge",
-  "docs/wiki",
-];
+const KNOWLEDGE_PREFIXES = [".bbg/knowledge", ".bbg/knowledge.db", "docs/wiki"];
 
 const DOC_PREFIXES = [
   "docs/workflows",
@@ -98,21 +120,9 @@ const DOC_PREFIXES = [
   "docs/repositories",
 ];
 
-const TOOL_ADAPTER_PREFIXES = [
-  ".claude",
-  ".codex",
-  ".opencode",
-  ".gemini",
-  ".cursor",
-  "CLAUDE.md",
-];
+const TOOL_ADAPTER_PREFIXES = [".claude", ".codex", ".opencode", ".gemini", ".cursor", "CLAUDE.md"];
 
-const BASELINE_OPTIONAL_MANAGED_PREFIXES = [
-  ".bbg",
-  ...KNOWLEDGE_PREFIXES,
-  ...DOC_PREFIXES,
-  ...TOOL_ADAPTER_PREFIXES,
-];
+const BASELINE_OPTIONAL_MANAGED_PREFIXES = [".bbg", ...KNOWLEDGE_PREFIXES, ...DOC_PREFIXES, ...TOOL_ADAPTER_PREFIXES];
 
 function normalizePath(pathValue: string): string {
   return pathValue.replaceAll("\\", "/").replace(/^\.\/+/, "");
@@ -166,6 +176,19 @@ async function collectDynamicDocCandidates(cwd: string): Promise<string[]> {
   return [...generated, ...DYNAMIC_DOC_FILES].map(normalizePath);
 }
 
+async function collectBbgResidualCandidates(cwd: string): Promise<BbgResidualCandidate[]> {
+  const bbgRoot = join(cwd, ".bbg");
+  if (!(await exists(bbgRoot))) {
+    return [];
+  }
+
+  const entries = await readdir(bbgRoot, { withFileTypes: true });
+  return entries.map((entry) => ({
+    path: normalizePath(`.bbg/${entry.name}`),
+    isDirectory: entry.isDirectory(),
+  }));
+}
+
 function collectDirectoryCandidates(config: BbgConfig | null): string[] {
   const runtime = config?.runtime ?? buildDefaultRuntimeConfig();
   const runtimeFiles = [
@@ -187,7 +210,9 @@ function collectDirectoryCandidates(config: BbgConfig | null): string[] {
 
 function pruneChildrenOfDirectories(paths: string[], directories: string[]): string[] {
   const normalizedDirectories = directories.map(normalizePath);
-  return paths.filter((pathValue) => !normalizedDirectories.some((directory) => normalizePath(pathValue).startsWith(`${directory}/`)));
+  return paths.filter(
+    (pathValue) => !normalizedDirectories.some((directory) => normalizePath(pathValue).startsWith(`${directory}/`)),
+  );
 }
 
 function shouldKeepPath(pathValue: string, input: RunUninstallInput): string | null {
@@ -245,6 +270,16 @@ async function decideTrackedFile(
         : { path: pathValue, disposition: "delete", reason: "adapter file only contained bbg-managed content" };
   }
 
+  if (pathValue === INIT_INFO_CACHE_PATH) {
+    return input.keepInitInfo
+      ? { path: pathValue, disposition: "keep", reason: "preserved by --keep-init-info" }
+      : { path: pathValue, disposition: "delete", reason: "stale bbg init info cache" };
+  }
+
+  if (pathValue === ".bbg/config.json" || pathValue === ".bbg/file-hashes.json") {
+    return { path: pathValue, disposition: "delete", reason: "bbg installation metadata" };
+  }
+
   if (!previousHash) {
     if (isPathWithinAny(pathValue, BASELINE_OPTIONAL_MANAGED_PREFIXES)) {
       return { path: pathValue, disposition: "delete", reason: "bbg-owned file outside baseline hash inventory" };
@@ -256,15 +291,14 @@ async function decideTrackedFile(
   }
 
   const currentHash = sha256Hex(currentContent);
-  if (currentHash === previousHash || input.force) {
-    return {
-      path: pathValue,
-      disposition: "delete",
-      reason: currentHash === previousHash ? "generated file matches recorded baseline" : "forced removal of modified generated file",
-    };
-  }
-
-  return { path: pathValue, disposition: "skip-modified", reason: "user-modified generated file" };
+  return {
+    path: pathValue,
+    disposition: "delete",
+    reason:
+      currentHash === previousHash
+        ? "generated file matches recorded baseline"
+        : "remove modified bbg-generated file during uninstall",
+  };
 }
 
 function decisionForDirectory(pathValue: string, input: RunUninstallInput): UninstallDecision {
@@ -317,12 +351,14 @@ export async function runUninstall(input: RunUninstallInput): Promise<RunUninsta
   const notices: string[] = [];
   const hasConfigFile = await exists(join(input.cwd, ".bbg", "config.json"));
   const hasHashesFile = await exists(join(input.cwd, ".bbg", "file-hashes.json"));
+  const hasBbgDirectory = await exists(join(input.cwd, ".bbg"));
+  const hasInitInfoCache = await exists(join(input.cwd, INIT_INFO_CACHE_PATH));
   const config = await maybeLoadConfig(input.cwd, notices);
   const hashRecord = await maybeLoadHashRecord(input.cwd, notices);
   const hasConfig = Boolean(config) || hasConfigFile;
   const hasHashes = Object.keys(hashRecord).length > 0 || hasHashesFile;
 
-  if (!hasConfig && !hasHashes) {
+  if (!hasConfig && !hasHashes && !hasBbgDirectory && !hasInitInfoCache) {
     throw new Error("No bbg installation metadata found. Run `bbg init` first.");
   }
 
@@ -336,12 +372,31 @@ export async function runUninstall(input: RunUninstallInput): Promise<RunUninsta
   }
 
   const dynamicDocs = await collectDynamicDocCandidates(input.cwd);
-  const directoryCandidates = collectDirectoryCandidates(config);
-  const rootCandidates = [".bbg/config.json", ".bbg/file-hashes.json"];
+  const bbgResiduals = await collectBbgResidualCandidates(input.cwd);
+  const directoryCandidates = [...collectDirectoryCandidates(config), ...bbgResiduals.filter((entry) => entry.isDirectory).map((entry) => entry.path)]
+    .filter((value, index, all) => all.indexOf(value) === index);
+  const rootCandidates = [
+    ".bbg/config.json",
+    ".bbg/file-hashes.json",
+    ...(hasInitInfoCache || input.keepInitInfo ? [INIT_INFO_CACHE_PATH] : []),
+  ];
+
+  if (input.keepInitInfo) {
+    if (config) {
+      if (!input.dryRun) {
+        await writeInitInfoCache(input.cwd, config);
+      }
+      notices.push("preserved init info at .bbg-init-info.json");
+    } else {
+      notices.push("unable to preserve init info because .bbg/config.json could not be parsed");
+    }
+  }
 
   const trackedPaths = trackedFiles.map((file) => normalizePath(file.path));
   const fileCandidates = pruneChildrenOfDirectories(
-    [...rootCandidates, ...trackedPaths, ...dynamicDocs].filter((value, index, all) => all.indexOf(value) === index),
+    [...rootCandidates, ...trackedPaths, ...dynamicDocs, ...bbgResiduals.map((entry) => entry.path)].filter(
+      (value, index, all) => all.indexOf(value) === index,
+    ),
     directoryCandidates,
   );
 
@@ -363,9 +418,11 @@ export async function runUninstall(input: RunUninstallInput): Promise<RunUninsta
     const planSummary = [
       `Delete ${[...decisions.values()].filter((decision) => decision.disposition === "delete").length} path(s)`,
       `remove sections from ${[...decisions.values()].filter((decision) => decision.disposition === "remove-section").length} file(s)`,
-      `skip ${[
-        ...decisions.values(),
-      ].filter((decision) => decision.disposition === "skip-modified" || decision.disposition === "keep").length} path(s)`,
+      `skip ${
+        [...decisions.values()].filter(
+          (decision) => decision.disposition === "skip-modified" || decision.disposition === "keep",
+        ).length
+      } path(s)`,
     ].join(", ");
     const confirmed = await promptConfirm({
       message: uiText("uninstall.confirm", { value: planSummary }),

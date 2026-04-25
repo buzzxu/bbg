@@ -2,11 +2,13 @@
 
 ## Description
 
-Run a second independent audit using a different AI model after primary review. Compare findings from both audits, highlight agreement and conflicts, and produce a consolidated release recommendation.
+Use the Cross Audit Skill to run a second independent audit using a different AI model after primary review. Do not ask the user to run a public `bbg cross-audit` CLI command.
 
 ## Usage
 
 ```
+
+The skill may call `bbg cross-audit-agent` internally after collecting primary and cross-audit evidence.
 /cross-audit
 /cross-audit --primary-model codex --cross-model claude
 /cross-audit --scope code-review,security-scan

@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
@@ -39,8 +40,8 @@ export interface RunUpgradeResult {
 const EXECUTABLE_GENERATED_PATHS = new Set([
   ".githooks/pre-commit",
   ".githooks/pre-push",
-  "scripts/doctor.py",
-  "scripts/sync_versions.py",
+  ".bbg/harness/scripts/doctor.py",
+  ".bbg/harness/scripts/sync_versions.py",
 ]);
 
 function maybeMakeExecutable(cwd: string, relativePath: string): void {
@@ -118,6 +119,7 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
   for (const trackedFile of trackedFiles) {
     const absolutePath = join(input.cwd, trackedFile.path);
     const nextContent = trackedFile.nextContent;
+    const hasCurrentFile = await exists(absolutePath);
 
     if (trackedFile.missingRepoContext) {
       const patchRelativePath = toPatchRelativePath(trackedFile.path);
@@ -131,10 +133,24 @@ export async function runUpgrade(input: RunUpgradeInput): Promise<RunUpgradeResu
 
     if (nextContent === null) {
       skippedDeletedTemplate.push(trackedFile.path);
+      if (trackedFile.path === ".gitignore") {
+        continue;
+      }
+      if (!input.dryRun && trackedFile.previousHash) {
+        if (!hasCurrentFile) {
+          delete nextHashes[trackedFile.path];
+          continue;
+        }
+
+        const currentContent = await readTextFile(absolutePath);
+        const currentHash = sha256Hex(currentContent);
+        if (input.force || currentHash === trackedFile.previousHash) {
+          await rm(absolutePath, { force: true });
+          delete nextHashes[trackedFile.path];
+        }
+      }
       continue;
     }
-
-    const hasCurrentFile = await exists(absolutePath);
 
     if (!hasCurrentFile) {
       if (trackedFile.previousHash) {

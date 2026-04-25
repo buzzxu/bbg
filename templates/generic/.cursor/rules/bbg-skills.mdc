@@ -1,0 +1,31 @@
+---
+description: Route first-level BBG skill requests to repository-local canonical skills
+globs: "**/*"
+alwaysApply: true
+---
+
+<!-- BBG:BEGIN MANAGED -->
+# BBG Primary Skill Entrypoints
+
+BBG primary skill entrypoints are repository-local and must not be installed globally.
+
+Always load `AGENTS.md` and `RULES.md` before using a BBG entrypoint so the local project governance and coding constraints remain authoritative.
+
+When the user intent matches one of these first-level workflows, read the referenced canonical skill before acting:
+
+- Analyze: `.bbg/harness/skills/analyze/SKILL.md`
+- Add Repo: `.bbg/harness/skills/add-repo/SKILL.md`
+- Start: `.bbg/harness/skills/start/SKILL.md`
+- Resume: `.bbg/harness/skills/resume/SKILL.md`
+- Deliver: `.bbg/harness/skills/deliver/SKILL.md`
+
+Do not expose internal BBG skills as user choices. Internal skills such as `workflow`, `model-route`, `task-start`, `analyze-repo`, `cross-audit`, and `hermes` are invoked only through the primary entrypoints above.
+
+Trigger examples:
+
+- `bbg analyze`, `analyze skill`, `项目分析`, `业务分析`, `技术架构分析` -> Analyze
+- `add repo`, `添加仓库`, `注册子项目` -> Add Repo
+- `start task`, `开始需求`, `开始开发` -> Start
+- `resume`, `继续任务`, `恢复上下文` -> Resume
+- `deliver`, `交付报告`, `客户报告` -> Deliver
+<!-- BBG:END MANAGED -->

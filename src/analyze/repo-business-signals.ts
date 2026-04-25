@@ -53,7 +53,6 @@ const DOMAIN_STOP_WORDS = new Set([
   "types",
   "type",
   "mgr",
-  "shop",
   "app",
   "config",
   "configure",
@@ -62,7 +61,6 @@ const DOMAIN_STOP_WORDS = new Set([
   "executor",
   "job",
   "jobs",
-  "poster",
   "project",
   "admin",
   "web",
@@ -84,31 +82,6 @@ const DOMAIN_STOP_WORDS = new Set([
   "test",
   "tests",
 ]);
-const TERM_ALIASES: Record<string, string> = {
-  activities: "activity",
-  campaigns: "campaign",
-  templates: "template",
-  posters: "poster",
-  permissions: "permission",
-  menus: "menu",
-  products: "product",
-  stores: "store",
-  shops: "store",
-  orders: "order",
-  carts: "cart",
-  payments: "payment",
-  shares: "share",
-  logistics: "logistics",
-  aftersales: "aftersale",
-  presales: "presale",
-  users: "user",
-  auths: "auth",
-  materials: "material",
-  advertising: "advertising",
-  promotions: "promotion",
-  regions: "region",
-  settings: "settings",
-};
 const TECHNICAL_SIGNAL_BLACKLIST = [
   "babel",
   "axios",
@@ -143,33 +116,49 @@ const EXTERNAL_INTEGRATION_KEYWORDS = [
   "redis",
   "mysql",
   "postgres",
-  "pay",
-  "payment",
   "sdk",
-  "upload",
 ];
 const RISK_KEYWORDS = [
   "auth",
   "permission",
-  "menu",
-  "payment",
-  "order",
-  "share",
-  "template",
-  "poster",
-  "activity",
-  "campaign",
-  "upload",
-  "store",
+  "authorization",
+  "authentication",
+  "tenant",
+  "token",
+  "secret",
+  "credential",
+  "webhook",
+  "transaction",
+  "consistency",
+  "migration",
+  "encrypt",
+  "decrypt",
+  "private",
+  "sensitive",
+  "pii",
+  "audit",
 ];
 
 function unique(values: string[]): string[] {
   return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
 }
 
+function hasNonAscii(value: string): boolean {
+  return [...value].some((char) => char.charCodeAt(0) > 127);
+}
+
 function normalizeTerm(raw: string): string {
   const normalized = raw.toLowerCase().replace(/[^a-z0-9-]+/g, "");
-  return TERM_ALIASES[normalized] ?? normalized;
+  if (normalized.endsWith("ies") && normalized.length > 4) {
+    return `${normalized.slice(0, -3)}y`;
+  }
+  if (normalized.endsWith("ses") && normalized.length > 4) {
+    return normalized.slice(0, -2);
+  }
+  if (normalized.endsWith("s") && !normalized.endsWith("ss") && normalized.length > 3) {
+    return normalized.slice(0, -1);
+  }
+  return normalized;
 }
 
 function tokenizePathSegment(segment: string): string[] {
@@ -181,7 +170,7 @@ function tokenizePathSegment(segment: string): string[] {
 }
 
 function humanizeTerm(term: string): string {
-  if (/[^\x00-\x7F]/.test(term)) {
+  if (hasNonAscii(term)) {
     return term;
   }
   return term
@@ -231,10 +220,14 @@ function normalizePhrase(raw: string): string | null {
   if (DOMAIN_STOP_WORDS.has(lowered)) {
     return null;
   }
-  if (TECHNICAL_SIGNAL_BLACKLIST.some((term) => lowered === term || lowered.includes(`${term} `) || lowered.includes(` ${term}`))) {
+  if (
+    TECHNICAL_SIGNAL_BLACKLIST.some(
+      (term) => lowered === term || lowered.includes(`${term} `) || lowered.includes(` ${term}`),
+    )
+  ) {
     return null;
   }
-  return /[^\x00-\x7F]/.test(value) ? value : humanizeTerm(normalizeTerm(value.replace(/\s+/g, "-")));
+  return hasNonAscii(value) ? value : humanizeTerm(normalizeTerm(value.replace(/\s+/g, "-")));
 }
 
 function extractCommentPhrases(content: string): string[] {
@@ -324,7 +317,9 @@ function extractRouteEntrypoints(relPath: string, content: string): string[] {
   const results: string[] = [];
   const normalizedPath = relPath.replaceAll(sep, "/");
 
-  const routeDirMatch = normalizedPath.match(/(?:pages|views)\/([^/]+(?:\/[^/]+)?)(?:\/(?:index|main|detail|list))?\.(?:jsx?|tsx?|vue)$/);
+  const routeDirMatch = normalizedPath.match(
+    /(?:pages|views)\/([^/]+(?:\/[^/]+)?)(?:\/(?:index|main|detail|list))?\.(?:jsx?|tsx?|vue)$/,
+  );
   if (routeDirMatch?.[1]) {
     results.push(`view:${routeDirMatch[1]}`);
   }
@@ -345,10 +340,13 @@ function extractRouteEntrypoints(relPath: string, content: string): string[] {
 function extractApiEntrypoints(relPath: string, content: string): string[] {
   const results: string[] = [];
   const normalizedPath = relPath.replaceAll(sep, "/").toLowerCase();
-  const apiLikeFile = /(?:^|\/)(api|service|request|controller|http-clients)\b/.test(normalizedPath)
-    || normalizedPath.endsWith(".http")
-    || normalizedPath.endsWith("/api.js")
-    || normalizedPath.endsWith("/api.ts");
+  const apiLikeFile =
+    /(?:^|\/)(api|apis|service|services|request|requests|client|clients|controller|controllers|http)\b/.test(
+      normalizedPath,
+    ) ||
+    normalizedPath.endsWith(".http") ||
+    normalizedPath.endsWith("/api.js") ||
+    normalizedPath.endsWith("/api.ts");
 
   for (const match of content.matchAll(/@(?:Get|Post|Put|Delete|Patch)?Request?Mapping\s*\(([\s\S]*?)\)/g)) {
     const args = match[1];
@@ -442,13 +440,15 @@ function extractRiskMarkers(
   routeEntrypoints: string[],
   apiEntrypoints: string[],
 ): string[] {
-  const haystack = [...capabilityTerms, ...entityTerms, ...routeEntrypoints, ...apiEntrypoints]
-    .join(" ")
-    .toLowerCase();
+  const haystack = [...capabilityTerms, ...entityTerms, ...routeEntrypoints, ...apiEntrypoints].join(" ").toLowerCase();
   return RISK_KEYWORDS.filter((keyword) => haystack.includes(keyword));
 }
 
-export async function extractRepoBusinessSignals(repoPath: string, repoType: string, deps: string[]): Promise<RepoBusinessSignals> {
+export async function extractRepoBusinessSignals(
+  repoPath: string,
+  repoType: string,
+  deps: string[],
+): Promise<RepoBusinessSignals> {
   const candidateFiles = await collectCandidateFiles(repoPath);
   const routeEntrypoints: string[] = [];
   const apiEntrypoints: string[] = [];
@@ -492,7 +492,11 @@ export async function extractRepoBusinessSignals(repoPath: string, repoType: str
   };
 }
 
-export async function extractRepoBusinessSignalsIfPresent(repoPath: string, repoType: string, deps: string[]): Promise<RepoBusinessSignals> {
+export async function extractRepoBusinessSignalsIfPresent(
+  repoPath: string,
+  repoType: string,
+  deps: string[],
+): Promise<RepoBusinessSignals> {
   if (!(await exists(repoPath))) {
     return {
       routeEntrypoints: [],

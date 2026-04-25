@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import { dirname, join, posix, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { serializeConfig } from "../config/read-write.js";
@@ -23,6 +24,7 @@ import { runDoctor, type RunDoctorResult } from "./doctor.js";
 import { ROOT_TEMPLATE_MANIFEST, TOOL_CONFIG_TEMPLATES, buildTemplatePlan } from "./init-manifest.js";
 import { collectInitConfig } from "./init-prompts.js";
 import { ensureRootGitignore } from "./init-gitignore.js";
+import { INIT_INFO_CACHE_PATH, readInitInfoCache } from "./init-info-cache.js";
 
 /* ------------------------------------------------------------------ */
 /*  Re-exports for backward compatibility (upgrade.ts, tests, etc.)   */
@@ -83,7 +85,8 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
   }
 
   const nowIso = new Date().toISOString();
-  const initData = await collectInitConfig(nowIso, options);
+  const initInfo = await readInitInfoCache(options.cwd);
+  const initData = await collectInitConfig(nowIso, { ...options, initInfo });
   const baselineConfig = initData.config;
   const plannedFiles = buildPlannedFiles(options.cwd, baselineConfig);
   if (options.dryRun) {
@@ -145,6 +148,8 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
 
   makeExecutable(join(options.cwd, ".githooks", "pre-commit"));
   makeExecutable(join(options.cwd, ".githooks", "pre-push"));
+  makeExecutable(join(options.cwd, ".bbg", "harness", "scripts", "doctor.py"));
+  makeExecutable(join(options.cwd, ".bbg", "harness", "scripts", "sync_versions.py"));
 
   const childAgentFiles: string[] = [];
   for (const repo of baselineConfig.repos) {
@@ -188,6 +193,10 @@ export async function runInit(options: RunInitOptions): Promise<RunInitResult> {
       .map((check) => check.checkId)
       .join(", ");
     throw new Error(`Initialization validation failed (${doctorResult.mode}): ${failedChecks}`);
+  }
+
+  if (initInfo) {
+    await rm(join(options.cwd, INIT_INFO_CACHE_PATH), { force: true });
   }
 
   return {

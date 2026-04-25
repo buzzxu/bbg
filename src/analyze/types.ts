@@ -6,6 +6,7 @@ export interface RunAnalyzeCommandInput {
   repos?: string[];
   refresh?: boolean;
   focus?: string;
+  progress?: (event: AnalyzeProgressEvent) => void | Promise<void>;
   interview?: {
     mode?: "auto" | "off" | "guided" | "deep";
     answers?: Partial<Record<AnalyzeInterviewQuestionKey, string>>;
@@ -116,6 +117,78 @@ export interface AnalyzeEvidenceItem {
   contradictions: string[];
 }
 
+export interface AnalyzeEvidenceGraphFileNode {
+  id: string;
+  repo: string;
+  path: string;
+  language: string;
+  kind: "source" | "test" | "config" | "http" | "unknown";
+  lineCount: number;
+}
+
+export interface AnalyzeEvidenceGraphSymbolNode {
+  id: string;
+  repo: string;
+  file: string;
+  name: string;
+  kind: "class" | "interface" | "enum" | "function" | "method";
+  lineRange: [number, number];
+  summary: string;
+}
+
+export interface AnalyzeEvidenceGraphRouteNode {
+  id: string;
+  repo: string;
+  file: string;
+  route: string;
+  kind: "page" | "route-config";
+  lineRange: [number, number];
+  summary: string;
+}
+
+export interface AnalyzeEvidenceGraphApiEndpointNode {
+  id: string;
+  repo: string;
+  file: string;
+  method: string | null;
+  path: string;
+  lineRange: [number, number];
+  symbolName?: string;
+  summary: string;
+}
+
+export interface AnalyzeEvidenceGraphDtoEntityNode {
+  id: string;
+  repo: string;
+  file: string;
+  name: string;
+  kind: "dto" | "entity" | "model" | "request" | "response" | "schema";
+  lineRange: [number, number];
+  summary: string;
+}
+
+export interface AnalyzeEvidenceGraphTestNode {
+  id: string;
+  repo: string;
+  file: string;
+  framework: string;
+  lineRange: [number, number];
+  summary: string;
+}
+
+export interface AnalyzeEvidenceGraph {
+  version: 1;
+  runId: string;
+  generatedAt: string;
+  repos: string[];
+  files: AnalyzeEvidenceGraphFileNode[];
+  symbols: AnalyzeEvidenceGraphSymbolNode[];
+  routes: AnalyzeEvidenceGraphRouteNode[];
+  apiEndpoints: AnalyzeEvidenceGraphApiEndpointNode[];
+  dtoEntities: AnalyzeEvidenceGraphDtoEntityNode[];
+  tests: AnalyzeEvidenceGraphTestNode[];
+}
+
 export interface AnalyzeKnowledgeLifecycleState {
   knowledgeItemId: string;
   status: AnalyzeKnowledgeStatus;
@@ -153,11 +226,14 @@ export interface AnalyzeKnowledgeSnapshot {
   paths: {
     knowledgeItems: string;
     evidenceIndex: string;
+    evidenceGraph?: string;
+    domainLexicon?: string;
     lifecycle: string;
     runDiff: string;
     businessChains?: string;
     aiAnalysis?: string;
     reconciliation?: string;
+    aiReasoningRequest?: string;
     wikiSummaryPaths: string[];
     domainFiles: string[];
   };
@@ -203,6 +279,9 @@ export interface RunAnalyzeCommandResult {
   interview: AnalyzeInterviewSummary | null;
   focus: AnalyzeFocusSummary | null;
   focusedAnalysisPath: string | null;
+  aiAgentTaskPath: string | null;
+  aiResponsePath: string | null;
+  nextAction: string | null;
 }
 
 export type AnalyzeInterviewQuestionKey =
@@ -434,7 +513,7 @@ export interface AnalyzeAiBusinessChain extends AnalyzeCriticalFlow {
 
 export interface AnalyzeAiAnalysisResult {
   enabled: boolean;
-  mode: "provider" | "handoff" | "heuristic-fallback" | "disabled";
+  mode: "provider" | "handoff" | "disabled";
   provider: string | null;
   modelClass: "fast" | "balanced" | "premium" | null;
   generatedAt: string;
@@ -520,6 +599,7 @@ export interface AnalyzePhaseSummary {
     | "business-analysis"
     | "workspace-fusion"
     | "focus-analysis"
+    | "evidence-graph"
     | "prepare-ai-context"
     | "ai-analysis"
     | "reconcile-ai-analysis"
@@ -536,6 +616,20 @@ export interface AnalyzePhaseSummary {
     | "write-state";
   status: "completed" | "skipped" | "pending";
   details: string[];
+}
+
+export interface AnalyzeProgressEvent {
+  version: 1;
+  runId: string;
+  updatedAt: string;
+  phase: AnalyzePhaseSummary["name"];
+  status: AnalyzePhaseSummary["status"] | "running" | "partial" | "failed";
+  phaseIndex: number;
+  totalPhases: number;
+  progressPercent: number;
+  message: string;
+  details: string[];
+  nextAction: string | null;
 }
 
 export interface AnalyzeSelection {

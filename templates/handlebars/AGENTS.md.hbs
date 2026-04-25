@@ -31,14 +31,16 @@ This file configures AI coding agents (Claude Code, OpenCode, Cursor, Codex CLI,
 
 ## Primary Entrypoints
 
-Prefer these primary CLI entrypoints when switching between AI tools:
+Prefer these primary AI entrypoints when switching between AI tools:
 
-- `bbg analyze`
-- `bbg start "<task>"`
-- `bbg resume <task-id>`
+- Analyze Skill: `.bbg/harness/skills/analyze/SKILL.md`
+- Add Repo Skill: `.bbg/harness/skills/add-repo/SKILL.md`
+- Start Skill: `.bbg/harness/skills/start/SKILL.md`
+- Resume Skill: `.bbg/harness/skills/resume/SKILL.md`
+- Deliver Skill: `.bbg/harness/skills/deliver/SKILL.md`
 - `bbg status`
 
-Tool-specific prompts should act as shortcuts to these primary entrypoints.
+Tool-specific prompts should act as shortcuts to these primary entrypoints. Internal orchestration skills are invoked by the primary entrypoints and should not be presented as separate choices unless the user explicitly asks for internal BBG mechanics.
 
 ## Model Choice
 
@@ -81,10 +83,10 @@ If the current tool was launched by `bbg`, also prefer these environment variabl
 
 This project uses a two-layer AI workflow model:
 
-- `harness` manages execution quality through `AGENTS.md`, `RULES.md`, `rules/`, `skills/`, `.bbg/context/`, and `.bbg/policy/`
-- `Hermes` manages learning quality through `commands/hermes-*.md`, `skills/hermes-*/`, and `.bbg/knowledge/`
+- `harness` manages execution quality through `AGENTS.md`, `RULES.md`, `.bbg/harness/rules/`, `.bbg/harness/skills/`, `.bbg/context/`, and `.bbg/policy/`
+- `Hermes` manages learning quality through `.bbg/harness/commands/hermes-*.md`, `.bbg/harness/skills/hermes-*/`, and `.bbg/knowledge/`
 
-Use `bbg analyze` to understand the project or workspace. Use `bbg start "<task>"` for implementation work. Use Hermes explicitly when you need to query prior learnings, distill evidence, draft reusable skills or rules, verify candidates, or promote trusted changes back into canonical assets.
+Use `.bbg/harness/skills/analyze/SKILL.md` to understand the project, workspace, or a focused business function. Use `.bbg/harness/skills/add-repo/SKILL.md` when adding local or remote repositories so registration and analysis stay in the AI workflow. Use `.bbg/harness/skills/start/SKILL.md` for implementation work. Use `.bbg/harness/skills/resume/SKILL.md` to continue structured task state. Use `.bbg/harness/skills/deliver/SKILL.md` for customer-facing delivery reports. Let these primary skills invoke internal workflow/model-routing/Hermes/cross-audit helpers when needed.
 
 Practical harness-engineering helpers:
 
@@ -95,132 +97,137 @@ Practical harness-engineering helpers:
 
 ## Agents
 
-This project includes pre-configured AI agents in the `agents/` directory:
+This project includes pre-configured AI agents in the `.bbg/harness/agents/` directory:
 
 ### Core Agents (always available)
 
 | Agent | File | Purpose |
 |-------|------|---------|
-| planner | `agents/planner.md` | Implementation planning |
-| architect | `agents/architect.md` | System design decisions |
-| tdd-guide | `agents/tdd-guide.md` | Test-driven development |
-| code-reviewer | `agents/code-reviewer.md` | Code quality review |
-| security-reviewer | `agents/security-reviewer.md` | Vulnerability detection |
-| build-error-resolver | `agents/build-error-resolver.md` | Fix build/type errors |
-| refactor-cleaner | `agents/refactor-cleaner.md` | Dead code cleanup |
-| e2e-runner | `agents/e2e-runner.md` | End-to-end test execution |
-| doc-updater | `agents/doc-updater.md` | Documentation sync |
-| loop-operator | `agents/loop-operator.md` | Autonomous loop control |
-| harness-optimizer | `agents/harness-optimizer.md` | AI workflow optimization |
-| database-reviewer | `agents/database-reviewer.md` | Database design review |
-| devops-reviewer | `agents/devops-reviewer.md` | Infrastructure review |
+| planner | `.bbg/harness/agents/planner.md` | Implementation planning |
+| architect | `.bbg/harness/agents/architect.md` | System design decisions |
+| tdd-guide | `.bbg/harness/agents/tdd-guide.md` | Test-driven development |
+| code-reviewer | `.bbg/harness/agents/code-reviewer.md` | Code quality review |
+| security-reviewer | `.bbg/harness/agents/security-reviewer.md` | Vulnerability detection |
+| build-error-resolver | `.bbg/harness/agents/build-error-resolver.md` | Fix build/type errors |
+| refactor-cleaner | `.bbg/harness/agents/refactor-cleaner.md` | Dead code cleanup |
+| e2e-runner | `.bbg/harness/agents/e2e-runner.md` | End-to-end test execution |
+| doc-updater | `.bbg/harness/agents/doc-updater.md` | Documentation sync |
+| loop-operator | `.bbg/harness/agents/loop-operator.md` | Autonomous loop control |
+| harness-optimizer | `.bbg/harness/agents/harness-optimizer.md` | AI workflow optimization |
+| database-reviewer | `.bbg/harness/agents/database-reviewer.md` | Database design review |
+| devops-reviewer | `.bbg/harness/agents/devops-reviewer.md` | Infrastructure review |
 
 {{#if-includes languages "typescript"}}
 ### TypeScript Agents
 
 | Agent | File | Purpose |
 |-------|------|---------|
-| typescript-reviewer | `agents/typescript-reviewer.md` | TypeScript code review |
-| typescript-build-resolver | `agents/typescript-build-resolver.md` | TypeScript build fixes |
+| typescript-reviewer | `.bbg/harness/agents/typescript-reviewer.md` | TypeScript code review |
+| typescript-build-resolver | `.bbg/harness/agents/typescript-build-resolver.md` | TypeScript build fixes |
 {{/if-includes}}
 {{#if-includes languages "python"}}
 ### Python Agents
 
 | Agent | File | Purpose |
 |-------|------|---------|
-| python-reviewer | `agents/python-reviewer.md` | Python code review |
-| python-build-resolver | `agents/python-build-resolver.md` | Python build fixes |
+| python-reviewer | `.bbg/harness/agents/python-reviewer.md` | Python code review |
+| python-build-resolver | `.bbg/harness/agents/python-build-resolver.md` | Python build fixes |
 {{/if-includes}}
 {{#if-includes languages "go"}}
 ### Go Agents
 
 | Agent | File | Purpose |
 |-------|------|---------|
-| go-reviewer | `agents/go-reviewer.md` | Go code review |
-| go-build-resolver | `agents/go-build-resolver.md` | Go build fixes |
+| go-reviewer | `.bbg/harness/agents/go-reviewer.md` | Go code review |
+| go-build-resolver | `.bbg/harness/agents/go-build-resolver.md` | Go build fixes |
 {{/if-includes}}
 {{#if-includes languages "java"}}
 ### Java Agents
 
 | Agent | File | Purpose |
 |-------|------|---------|
-| java-reviewer | `agents/java-reviewer.md` | Java code review |
-| java-build-resolver | `agents/java-build-resolver.md` | Java build fixes |
+| java-reviewer | `.bbg/harness/agents/java-reviewer.md` | Java code review |
+| java-build-resolver | `.bbg/harness/agents/java-build-resolver.md` | Java build fixes |
 {{/if-includes}}
 {{#if-includes languages "rust"}}
 ### Rust Agents
 
 | Agent | File | Purpose |
 |-------|------|---------|
-| rust-reviewer | `agents/rust-reviewer.md` | Rust code review |
-| rust-build-resolver | `agents/rust-build-resolver.md` | Rust build fixes |
+| rust-reviewer | `.bbg/harness/agents/rust-reviewer.md` | Rust code review |
+| rust-build-resolver | `.bbg/harness/agents/rust-build-resolver.md` | Rust build fixes |
 {{/if-includes}}
 {{#if-includes languages "kotlin"}}
 ### Kotlin Agents
 
 | Agent | File | Purpose |
 |-------|------|---------|
-| kotlin-reviewer | `agents/kotlin-reviewer.md` | Kotlin code review |
+| kotlin-reviewer | `.bbg/harness/agents/kotlin-reviewer.md` | Kotlin code review |
 {{/if-includes}}
 
 ## Skills
 
-Detailed workflow instructions are in `skills/*/SKILL.md`. Key skills:
+Detailed workflow instructions are in `.bbg/harness/skills/*/SKILL.md`. Key skills:
 
 | Skill | Path | Use Case |
 |-------|------|----------|
-| TDD Workflow | `skills/tdd-workflow/SKILL.md` | RED-GREEN-IMPROVE cycle |
-| Verification Loop | `skills/verification-loop/SKILL.md` | Post-change verification |
-| Security Review | `skills/security-review/SKILL.md` | Security audit workflow |
-| Code Review Checklist | `skills/code-review-checklist/SKILL.md` | Structured code review |
-| Coding Standards | `skills/coding-standards/SKILL.md` | Style enforcement |
-| Continuous Learning | `skills/continuous-learning/SKILL.md` | Learning from mistakes |
-| Search First | `skills/search-first/SKILL.md` | Read before writing |
+| TDD Workflow | `.bbg/harness/skills/tdd-workflow/SKILL.md` | RED-GREEN-IMPROVE cycle |
+| Verification Loop | `.bbg/harness/skills/verification-loop/SKILL.md` | Post-change verification |
+| Security Review | `.bbg/harness/skills/security-review/SKILL.md` | Security audit workflow |
+| Code Review Checklist | `.bbg/harness/skills/code-review-checklist/SKILL.md` | Structured code review |
+| Coding Standards | `.bbg/harness/skills/coding-standards/SKILL.md` | Style enforcement |
+| Analyze | `.bbg/harness/skills/analyze/SKILL.md` | AI-driven business and technical project analysis |
+| Add Repo | `.bbg/harness/skills/add-repo/SKILL.md` | AI-driven repository registration and follow-up analysis |
+| Start | `.bbg/harness/skills/start/SKILL.md` | AI-driven task start and implementation workflow |
+| Resume | `.bbg/harness/skills/resume/SKILL.md` | AI-driven task continuation |
+| Deliver | `.bbg/harness/skills/deliver/SKILL.md` | Customer-facing delivery reports |
+| Continuous Learning | `.bbg/harness/skills/continuous-learning/SKILL.md` | Learning from mistakes |
+| Search First | `.bbg/harness/skills/search-first/SKILL.md` | Read before writing |
 
 ## Rules
 
-Coding rules are in `rules/`:
+Coding rules are in `.bbg/harness/rules/`:
 
 | Directory | Scope |
 |-----------|-------|
-| `rules/common/` | Cross-language: coding-style, git-workflow, testing, security, performance |
+| `.bbg/harness/rules/common/` | Cross-language: coding-style, git-workflow, testing, security, performance |
 {{#if-includes languages "typescript"}}
-| `rules/typescript/` | TypeScript: coding-style, testing, react, node, security |
+| `.bbg/harness/rules/typescript/` | TypeScript: coding-style, testing, react, node, security |
 {{/if-includes}}
 {{#if-includes languages "python"}}
-| `rules/python/` | Python: coding-style, testing, django, security |
+| `.bbg/harness/rules/python/` | Python: coding-style, testing, django, security |
 {{/if-includes}}
 {{#if-includes languages "go"}}
-| `rules/golang/` | Go: coding-style, testing, patterns, security |
+| `.bbg/harness/rules/golang/` | Go: coding-style, testing, patterns, security |
 {{/if-includes}}
 {{#if-includes languages "java"}}
-| `rules/java/` | Java: coding-style, testing, spring, security |
+| `.bbg/harness/rules/java/` | Java: coding-style, testing, spring, security |
 {{/if-includes}}
 {{#if-includes languages "rust"}}
-| `rules/rust/` | Rust: coding-style, testing, security |
+| `.bbg/harness/rules/rust/` | Rust: coding-style, testing, security |
 {{/if-includes}}
 {{#if-includes languages "kotlin"}}
-| `rules/kotlin/` | Kotlin: coding-style, testing, security |
+| `.bbg/harness/rules/kotlin/` | Kotlin: coding-style, testing, security |
 {{/if-includes}}
 
 ## Commands
 
-Slash commands for AI tools are in `commands/*.md`. Use `/plan`, `/tdd`, `/code-review`, `/build-fix`, `/security-scan` from any supported AI tool.
+Slash commands for AI tools are in `.bbg/harness/commands/*.md`. Use `/plan`, `/tdd`, `/code-review`, `/build-fix`, `/security-scan` from any supported AI tool.
 
 ## Hooks
 
-Automation hooks are in `hooks/`. They run on session start/end, pre/post file edits, and security scans.
+Automation hooks are in `.bbg/harness/hooks/`. They run on session start/end, pre/post file edits, and security scans.
 
 ## Contexts
 
-Switch between operational modes using files in `contexts/`:
-- `contexts/dev.md` -- Development mode
-- `contexts/review.md` -- Code review mode
-- `contexts/research.md` -- Research mode
+Switch between operational modes using files in `.bbg/harness/contexts/`:
+- `.bbg/harness/contexts/dev.md` -- Development mode
+- `.bbg/harness/contexts/review.md` -- Code review mode
+- `.bbg/harness/contexts/research.md` -- Research mode
 
 ## MCP Servers
 
-MCP server configurations are in `mcp-configs/mcp-servers.json`.
+MCP server configurations are in `.bbg/harness/mcp-configs/mcp-servers.json`.
 
 ## Detected Stack
 

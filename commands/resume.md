@@ -1,6 +1,6 @@
 # /resume
 
-Use `bbg resume <task-id>` to continue a prepared or in-progress task session.
+Use the Resume Skill. Do not ask the user to run a public `bbg resume` CLI command.
 
 ## Primary Use
 
@@ -10,13 +10,15 @@ Use `bbg resume <task-id>` to continue a prepared or in-progress task session.
 
 ## Examples
 
-```bash
-bbg resume fix-checkout-timeout
-bbg resume fix-checkout-timeout --json
-```
+- `/resume fix-checkout-timeout`
+- Ask the AI to use `skills/resume/SKILL.md`
+
+## Internal Runner
+
+The skill may call `bbg resume-agent <task-id>` to rehydrate structured task state.
 
 ## Related
 
 - **Commands**: [start](./start.md), [status](./status.md)
-- **Skills**: [workflow-orchestration](../skills/workflow-orchestration/SKILL.md)
+- **Skills**: [resume](../skills/resume/SKILL.md), [workflow-orchestration](../skills/workflow-orchestration/SKILL.md)
 - **Artifacts**: `.bbg/tasks/<task-id>/handoff.md`, `.bbg/tasks/<task-id>/decisions.json`

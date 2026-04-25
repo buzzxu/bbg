@@ -5,6 +5,6 @@ Read the repo-level canonical guidance before acting:
 
 1. Read `AGENTS.md`
 2. Read `RULES.md`
-3. Follow `commands/build-fix.md`
-4. Use `skills/verification-loop/SKILL.md`
+3. Follow `.bbg/harness/commands/build-fix.md`
+4. Use `.bbg/harness/skills/verification-loop/SKILL.md`
 <!-- BBG:END MANAGED -->

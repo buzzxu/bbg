@@ -24,7 +24,7 @@ src/
 │   └── index.ts              # Analyzer barrel export
 ├── commands/                 # 6 CLI commands
 │   ├── init.ts               # Initialize governance in a project
-│   ├── add-repo.ts           # Add a repository to governance
+│   ├── add-repo.ts           # Internal Add Repo Skill runner
 │   ├── doctor.ts             # Health check for governance setup
 │   ├── sync.ts               # Sync governance across repos
 │   ├── release.ts            # Release management
@@ -65,30 +65,18 @@ agents/                       # 25 agent definitions
                               go-build-resolver, java-build-resolver,
                               rust-build-resolver, cpp-build-resolver
 
-skills/                       # 61 skill directories (each with SKILL.md)
-├── Core (21):                coding-standards, tdd-workflow, security-review,
+skills/                       # skill directories (each with SKILL.md)
+├── User-facing:              analyze, add-repo, start, resume, deliver
+├── Internal orchestration:   workflow, task-start, model-route, analyze-repo,
+│                             cross-audit, hermes
+├── Engineering:              coding-standards, tdd-workflow, security-review,
 │                             verification-loop, search-first, writing-plans,
-│                             continuous-learning,
-│                             eval-harness, strategic-compact, api-design,
-│                             backend-patterns, database-migrations, postgres-patterns,
-│                             frontend-patterns, e2e-testing, deployment-patterns,
-│                             docker-patterns, kubernetes-patterns, harness-engineering,
-│                             autonomous-loops, mcp-integration
-├── Language (24):            typescript-patterns, react-patterns, nextjs-patterns,
-│                             vue-patterns, python-patterns, python-testing,
-│                             django-patterns, fastapi-patterns, golang-patterns,
-│                             golang-testing, gin-patterns, java-patterns,
-│                             springboot-patterns, springboot-testing, jpa-patterns,
-│                             rust-patterns, rust-testing, axum-patterns,
-│                             kotlin-patterns, android-patterns, ktor-patterns,
-│                             laravel-patterns, laravel-testing, cpp-patterns
-└── Operations (16):          ci-cd-patterns, monitoring-patterns, git-workflow,
+│                             continuous-learning, harness-engineering
+├── Language:                 typescript-patterns, react-patterns, python-patterns,
+│                             golang-patterns, java-patterns, rust-patterns
+└── Operations:               ci-cd-patterns, monitoring-patterns, git-workflow,
                               code-review-checklist, incident-response,
-                              performance-optimization, security-hardening,
-                              dependency-audit, secrets-management,
-                              microservices-patterns, event-driven-architecture,
-                              data-modeling, api-versioning, prompt-engineering,
-                              llm-cost-optimization, agent-orchestration
+                              performance-optimization, security-hardening
 
 rules/                        # 34 rule files
 ├── common/ (8):              coding-style, git-workflow, testing, security,
@@ -150,12 +138,13 @@ npm run test:watch     # vitest (watch mode)
 
 # CLI Usage
 npx bbg init           # Initialize governance
-npx bbg add-repo       # Add a repository
 npx bbg doctor         # Health check
 npx bbg sync           # Sync governance
 npx bbg release        # Release management
 npx bbg upgrade        # Upgrade templates
 ```
+
+Repository registration is an AI workflow: use `skills/add-repo/SKILL.md` instead of a public `bbg add-repo` command.
 
 ## Key Design Decisions
 

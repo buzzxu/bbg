@@ -144,12 +144,12 @@ export const ROOT_TEMPLATE_MANIFEST: ReadonlyArray<RenderTemplateTask> = [
   },
   {
     source: "handlebars/scripts/doctor.py.hbs",
-    destination: "scripts/doctor.py",
+    destination: ".bbg/harness/scripts/doctor.py",
     mode: "handlebars",
   },
   {
     source: "handlebars/scripts/sync_versions.py.hbs",
-    destination: "scripts/sync_versions.py",
+    destination: ".bbg/harness/scripts/sync_versions.py",
     mode: "handlebars",
   },
 ];
@@ -161,9 +161,36 @@ export const ROOT_TEMPLATE_MANIFEST: ReadonlyArray<RenderTemplateTask> = [
 export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
   // Claude Code
   { source: "generic/.claude/settings.json", destination: ".claude/settings.json", mode: "copy" },
+  {
+    source: "generic/.codex/skills/bbg-analyze/SKILL.md",
+    destination: ".claude/skills/bbg-analyze/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-add-repo/SKILL.md",
+    destination: ".claude/skills/bbg-add-repo/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-start/SKILL.md",
+    destination: ".claude/skills/bbg-start/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-resume/SKILL.md",
+    destination: ".claude/skills/bbg-resume/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-deliver/SKILL.md",
+    destination: ".claude/skills/bbg-deliver/SKILL.md",
+    mode: "copy",
+  },
   { source: "generic/.claude/commands/analyze.md", destination: ".claude/commands/analyze.md", mode: "copy" },
+  { source: "generic/.claude/commands/add-repo.md", destination: ".claude/commands/add-repo.md", mode: "copy" },
   { source: "generic/.claude/commands/start.md", destination: ".claude/commands/start.md", mode: "copy" },
   { source: "generic/.claude/commands/resume.md", destination: ".claude/commands/resume.md", mode: "copy" },
+  { source: "generic/.claude/commands/deliver.md", destination: ".claude/commands/deliver.md", mode: "copy" },
   { source: "generic/.claude/commands/status.md", destination: ".claude/commands/status.md", mode: "copy" },
   { source: "generic/.claude/commands/plan.md", destination: ".claude/commands/plan.md", mode: "copy" },
   { source: "generic/.claude/commands/tdd.md", destination: ".claude/commands/tdd.md", mode: "copy" },
@@ -175,11 +202,37 @@ export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
     mode: "copy",
   },
   // Cursor
+  { source: "generic/.cursor/rules/bbg-skills.mdc", destination: ".cursor/rules/bbg-skills.mdc", mode: "copy" },
   { source: "generic/.cursor/rules/standards.mdc", destination: ".cursor/rules/standards.mdc", mode: "copy" },
   { source: "generic/.cursor/rules/security.mdc", destination: ".cursor/rules/security.mdc", mode: "copy" },
   { source: "generic/.cursor/rules/testing.mdc", destination: ".cursor/rules/testing.mdc", mode: "copy" },
   // OpenCode
   { source: "generic/.opencode/opencode.json", destination: ".opencode/opencode.json", mode: "copy" },
+  {
+    source: "generic/.codex/skills/bbg-analyze/SKILL.md",
+    destination: ".opencode/skills/bbg-analyze/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-add-repo/SKILL.md",
+    destination: ".opencode/skills/bbg-add-repo/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-start/SKILL.md",
+    destination: ".opencode/skills/bbg-start/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-resume/SKILL.md",
+    destination: ".opencode/skills/bbg-resume/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-deliver/SKILL.md",
+    destination: ".opencode/skills/bbg-deliver/SKILL.md",
+    mode: "copy",
+  },
   {
     source: "generic/.opencode/instructions/coding-standards.md",
     destination: ".opencode/instructions/coding-standards.md",
@@ -191,8 +244,10 @@ export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
     mode: "copy",
   },
   { source: "generic/.opencode/commands/analyze.md", destination: ".opencode/commands/analyze.md", mode: "copy" },
+  { source: "generic/.opencode/commands/add-repo.md", destination: ".opencode/commands/add-repo.md", mode: "copy" },
   { source: "generic/.opencode/commands/start.md", destination: ".opencode/commands/start.md", mode: "copy" },
   { source: "generic/.opencode/commands/resume.md", destination: ".opencode/commands/resume.md", mode: "copy" },
+  { source: "generic/.opencode/commands/deliver.md", destination: ".opencode/commands/deliver.md", mode: "copy" },
   { source: "generic/.opencode/commands/status.md", destination: ".opencode/commands/status.md", mode: "copy" },
   { source: "generic/.opencode/commands/plan.md", destination: ".opencode/commands/plan.md", mode: "copy" },
   { source: "generic/.opencode/commands/tdd.md", destination: ".opencode/commands/tdd.md", mode: "copy" },
@@ -207,11 +262,63 @@ export const TOOL_CONFIG_TEMPLATES: ReadonlyArray<RenderTemplateTask> = [
   // Codex CLI
   { source: "generic/.codex/config.toml", destination: ".codex/config.toml", mode: "copy" },
   { source: "handlebars/.codex/AGENTS.md.hbs", destination: ".codex/AGENTS.md", mode: "handlebars" },
+  {
+    source: "generic/.codex/skills/bbg-analyze/SKILL.md",
+    destination: ".codex/skills/bbg-analyze/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-add-repo/SKILL.md",
+    destination: ".codex/skills/bbg-add-repo/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-start/SKILL.md",
+    destination: ".codex/skills/bbg-start/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-resume/SKILL.md",
+    destination: ".codex/skills/bbg-resume/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-deliver/SKILL.md",
+    destination: ".codex/skills/bbg-deliver/SKILL.md",
+    mode: "copy",
+  },
   // Gemini
   { source: "generic/.gemini/settings.json", destination: ".gemini/settings.json", mode: "copy" },
+  {
+    source: "generic/.codex/skills/bbg-analyze/SKILL.md",
+    destination: ".gemini/skills/bbg-analyze/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-add-repo/SKILL.md",
+    destination: ".gemini/skills/bbg-add-repo/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-start/SKILL.md",
+    destination: ".gemini/skills/bbg-start/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-resume/SKILL.md",
+    destination: ".gemini/skills/bbg-resume/SKILL.md",
+    mode: "copy",
+  },
+  {
+    source: "generic/.codex/skills/bbg-deliver/SKILL.md",
+    destination: ".gemini/skills/bbg-deliver/SKILL.md",
+    mode: "copy",
+  },
   { source: "generic/.gemini/commands/analyze.md", destination: ".gemini/commands/analyze.md", mode: "copy" },
+  { source: "generic/.gemini/commands/add-repo.md", destination: ".gemini/commands/add-repo.md", mode: "copy" },
   { source: "generic/.gemini/commands/start.md", destination: ".gemini/commands/start.md", mode: "copy" },
   { source: "generic/.gemini/commands/resume.md", destination: ".gemini/commands/resume.md", mode: "copy" },
+  { source: "generic/.gemini/commands/deliver.md", destination: ".gemini/commands/deliver.md", mode: "copy" },
   { source: "generic/.gemini/commands/status.md", destination: ".gemini/commands/status.md", mode: "copy" },
   { source: "generic/.gemini/commands/plan.md", destination: ".gemini/commands/plan.md", mode: "copy" },
   {

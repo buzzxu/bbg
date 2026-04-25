@@ -2,11 +2,13 @@
 
 ## Description
 
-Run deep analysis for a single repository and update its living architecture file. Intended for immediate analysis after adding a new sub-repository.
+Use the Analyze Repo Skill for single-repository analysis. Do not ask the user to run a public `bbg analyze-repo` CLI command.
 
 ## Usage
 
 ```
+
+Prefer `skills/analyze/SKILL.md` for deep AI business and technical analysis. The skill may call `bbg analyze-repo-agent <repo>` only for lightweight static architecture refreshes.
 /analyze-repo user-service
 /analyze-repo order-service --deep-interview
 /analyze-repo payment-gateway --refresh-wiki
@@ -41,5 +43,5 @@ Run deep analysis for a single repository and update its living architecture fil
 
 ## Related
 
-- **Skills**: [deep-interview](../skills/deep-interview/SKILL.md), [architecture-analysis](../skills/architecture-analysis/SKILL.md)
+- **Skills**: [analyze-repo](../skills/analyze-repo/SKILL.md), [analyze](../skills/analyze/SKILL.md), [deep-interview](../skills/deep-interview/SKILL.md), [architecture-analysis](../skills/architecture-analysis/SKILL.md)
 - **Commands**: [/analyze](./analyze.md), [/interview](./interview.md)

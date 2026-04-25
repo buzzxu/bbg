@@ -2,7 +2,7 @@
 
 ## Description
 
-Unified entrypoint to start a development task from requirement text or requirement file, then move through interview, planning, implementation workflow, and optional delivery report generation.
+Use the Task Start Skill to start a development task from requirement text or requirement file, then move through interview, planning, implementation workflow, and optional delivery report generation. Do not ask the user to run a public `bbg task-start` CLI command.
 
 ## Usage
 
@@ -11,6 +11,8 @@ Unified entrypoint to start a development task from requirement text or requirem
 /task-start --file docs/workflows/requirement-template.md
 /task-start --workflow full-feature
 ```
+
+The skill may call `bbg task-start-agent` internally after the requirement is clarified and confirmed.
 
 ## Options
 
@@ -44,5 +46,5 @@ Unified entrypoint to start a development task from requirement text or requirem
 
 ## Related
 
-- **Skills**: [task-intake](../skills/task-intake/SKILL.md), [deep-interview](../skills/deep-interview/SKILL.md), [workflow-orchestration](../skills/workflow-orchestration/SKILL.md)
+- **Skills**: [task-start](../skills/task-start/SKILL.md), [task-intake](../skills/task-intake/SKILL.md), [deep-interview](../skills/deep-interview/SKILL.md), [workflow-orchestration](../skills/workflow-orchestration/SKILL.md)
 - **Commands**: [/interview](./interview.md), [/workflow-start](./workflow-start.md), [/deliver](./deliver.md)

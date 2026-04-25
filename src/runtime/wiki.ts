@@ -2,7 +2,12 @@ import { readdir } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { DocumentationLanguage } from "../config/documentation-language.js";
 import { getAnalyzeDocCopy } from "../analyze/doc-copy.js";
-import type { AnalyzeInterviewSummary, AnalyzeKnowledgeModel, WorkspaceFusionResult } from "../analyze/types.js";
+import type {
+  AnalyzeEvidenceGraph,
+  AnalyzeInterviewSummary,
+  AnalyzeKnowledgeModel,
+  WorkspaceFusionResult,
+} from "../analyze/types.js";
 import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
 
 const WIKI_INDEX_PATH = "docs/wiki/index.md";
@@ -227,6 +232,7 @@ export async function writeAnalyzeWikiArtifacts(input: {
   interview: AnalyzeInterviewSummary | null;
   model: AnalyzeKnowledgeModel;
   focus: string | null;
+  evidenceGraph?: AnalyzeEvidenceGraph;
   documentationLanguage: DocumentationLanguage;
 }): Promise<{ wikiPaths: string[] }> {
   const copy = getAnalyzeDocCopy(input.documentationLanguage);
@@ -254,6 +260,9 @@ export async function writeAnalyzeWikiArtifacts(input: {
         ".bbg/knowledge/workspace/business-chains.json",
         ".bbg/knowledge/workspace/contracts.json",
         ".bbg/knowledge/workspace/risk-surface.json",
+        ".bbg/knowledge/workspace/evidence-graph.json",
+        ".bbg/knowledge/workspace/domain-lexicon.json",
+        ".bbg/analyze/ai/request.json",
       ],
       tags: ["analysis", "workspace", "architecture"],
     }),
@@ -295,6 +304,17 @@ export async function writeAnalyzeWikiArtifacts(input: {
     ...(input.fusion.integrationEdges.length > 0
       ? input.fusion.integrationEdges.map((edge) => `- ${edge.from} -> ${edge.to}`)
       : [`- ${copy.none}`]),
+    "",
+    "## Evidence Graph",
+    "",
+    input.evidenceGraph
+      ? `- files=${input.evidenceGraph.files.length}, routes=${input.evidenceGraph.routes.length}, apis=${input.evidenceGraph.apiEndpoints.length}, entities=${input.evidenceGraph.dtoEntities.length}, tests=${input.evidenceGraph.tests.length}`
+      : `- ${copy.none}`,
+    ...(input.evidenceGraph?.apiEndpoints.length
+      ? input.evidenceGraph.apiEndpoints
+          .slice(0, 8)
+          .map((endpoint) => `- ${endpoint.repo}: ${endpoint.method ?? "HTTP"} ${endpoint.path} (${endpoint.file})`)
+      : []),
     "",
     `## ${copy.riskSurface}`,
     "",
@@ -363,6 +383,9 @@ export async function writeAnalyzeWikiArtifacts(input: {
         ".bbg/knowledge/workspace/risk-surface.json",
         ".bbg/knowledge/workspace/decisions.json",
         ".bbg/knowledge/workspace/change-impact.json",
+        ".bbg/knowledge/workspace/evidence-graph.json",
+        ".bbg/knowledge/workspace/domain-lexicon.json",
+        ".bbg/analyze/ai/request.json",
       ],
       tags: ["analysis", "project", "business-context"],
     }),
@@ -504,7 +527,7 @@ export async function writeTaskWikiArtifact(input: {
     event: "ingest",
     subject: input.taskId,
     updates: [wikiPath],
-    notes: ["Generated from `bbg start` as durable task knowledge."],
+    notes: ["Generated from Start Skill / `bbg start-agent` as durable task knowledge."],
   });
   return { wikiPath };
 }
@@ -614,9 +637,12 @@ export async function buildAnalyzeKnowledgeQueryAugmentation(input: {
     { path: ".bbg/knowledge/workspace/decisions.json", dimension: "decision history" },
     { path: ".bbg/knowledge/workspace/knowledge-items.json", dimension: "knowledge items" },
     { path: ".bbg/knowledge/workspace/evidence-index.json", dimension: "evidence" },
+    { path: ".bbg/knowledge/workspace/evidence-graph.json", dimension: "evidence graph" },
+    { path: ".bbg/knowledge/workspace/domain-lexicon.json", dimension: "domain lexicon" },
     { path: ".bbg/knowledge/workspace/ai-analysis.json", dimension: "ai analysis" },
     { path: ".bbg/knowledge/workspace/reconciliation-report.json", dimension: "reconciliation" },
     { path: ".bbg/knowledge/hermes/analyze-candidates.json", dimension: "hermes candidates" },
+    { path: ".bbg/analyze/ai/request.json", dimension: "ai reasoning contract" },
   ];
 
   const scored: Array<{ path: string; score: number; dimension: string }> = [];

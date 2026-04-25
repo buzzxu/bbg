@@ -140,8 +140,8 @@ describe("upgrade command", () => {
     expect(createdHookContent).toContain("#!/usr/bin/env bash");
     const preCommitMode = (await stat(join(cwd, ".githooks", "pre-commit"))).mode;
     const prePushMode = (await stat(join(cwd, ".githooks", "pre-push"))).mode;
-    const doctorScriptMode = (await stat(join(cwd, "scripts", "doctor.py"))).mode;
-    const syncVersionsMode = (await stat(join(cwd, "scripts", "sync_versions.py"))).mode;
+    const doctorScriptMode = (await stat(join(cwd, ".bbg", "harness", "scripts", "doctor.py"))).mode;
+    const syncVersionsMode = (await stat(join(cwd, ".bbg", "harness", "scripts", "sync_versions.py"))).mode;
     expect(preCommitMode & 0o111).toBeTruthy();
     expect(prePushMode & 0o111).toBeTruthy();
     expect(doctorScriptMode & 0o111).toBeTruthy();
@@ -200,6 +200,54 @@ describe("upgrade command", () => {
     expect(result.created).toContain("README.md");
     expect(result.created).toContain(".githooks/pre-commit");
     expect(result.skippedDeletedTemplate).toContain(".gitignore");
+  });
+
+  it("removes clean old root harness files after generating the .bbg harness layout", { timeout: 20000 }, async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+
+    const oldRootFiles = {
+      "agents/planner.md": "old generated planner\n",
+      "skills/analyze/SKILL.md": "old generated analyze skill\n",
+      "commands/analyze.md": "old generated analyze command\n",
+      "rules/common/coding-style.md": "old generated coding rule\n",
+      "hooks/hooks.json": "{}\n",
+      "workflows/schema.json": "{}\n",
+      "evals/golden-tasks/manifest.json": "{}\n",
+    };
+    await Promise.all(
+      Object.entries(oldRootFiles).map(([pathValue, content]) => writeTextFile(join(cwd, pathValue), content)),
+    );
+
+    const existingHashes = JSON.parse(await readFile(join(cwd, ".bbg", "file-hashes.json"), "utf8")) as Record<
+      string,
+      { generatedHash: string; generatedAt: string; templateVersion: string }
+    >;
+    for (const [pathValue, content] of Object.entries(oldRootFiles)) {
+      existingHashes[pathValue] = {
+        generatedHash: sha256Hex(content),
+        generatedAt: "2026-03-29T00:00:00.000Z",
+        templateVersion: "0.0.1",
+      };
+    }
+    await writeTextFile(join(cwd, ".bbg", "file-hashes.json"), `${JSON.stringify(existingHashes, null, 2)}\n`);
+
+    const result = await runUpgrade({ cwd });
+
+    expect(result.skippedDeletedTemplate).toEqual(expect.arrayContaining(Object.keys(oldRootFiles)));
+    await expect(readFile(join(cwd, "agents", "planner.md"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(cwd, "skills", "analyze", "SKILL.md"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(cwd, "commands", "analyze.md"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(cwd, "rules", "common", "coding-style.md"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(cwd, "hooks", "hooks.json"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(cwd, "workflows", "schema.json"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(cwd, "evals", "golden-tasks", "manifest.json"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(cwd, ".bbg", "harness", "skills", "analyze", "SKILL.md"), "utf8")).resolves.toContain(
+      "Analyze Skill",
+    );
+    await expect(readFile(join(cwd, ".bbg", "evals", "golden-tasks", "manifest.json"), "utf8")).resolves.toContain(
+      "simple-bugfix",
+    );
   });
 
   it("reports unchanged tracked files after a clean upgrade has already been applied", { timeout: 30000 }, async () => {

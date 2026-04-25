@@ -105,7 +105,7 @@ Success criteria: [how to verify the task is done]
 
 ### Harness + Hermes Loop
 - Use harness assets as the canonical execution layer: `AGENTS.md`, `RULES.md`, `rules/`, `skills/`, `.bbg/context/`, `.bbg/policy/`
-- Use repo workflows as the cross-tool entry points: `bbg workflow plan|review|tdd|security`
+- Use repo workflow skills as the cross-tool entry points: `skills/start/SKILL.md`, `skills/workflow/SKILL.md`, `skills/task-start/SKILL.md`
 - Use task environments for isolated execution: `bbg task-env start`
 - Use observation sessions for runtime evidence: `bbg observe start`
 - Use doc gardening to keep repo docs agent-readable: `bbg doc-garden`
@@ -115,10 +115,10 @@ Success criteria: [how to verify the task is done]
 - Only move Hermes outputs back into canonical assets after review and promotion
 
 ### When Hermes Should Be Recommended
-- **Planning**: if similar tasks or rollout decisions may already exist, recommend `bbg hermes query`
-- **Review**: if a reusable fix pattern appears, recommend `bbg hermes distill` or `bbg hermes draft-skill`
-- **TDD**: if a test-and-fix loop is reusable, recommend `bbg hermes draft-skill`
-- **Security**: if findings imply a durable policy boundary, recommend `bbg hermes draft-rule`
+- **Planning**: if similar tasks or rollout decisions may already exist, recommend Hermes query through `skills/hermes/SKILL.md`
+- **Review**: if a reusable fix pattern appears, recommend Hermes distill or draft-skill through `skills/hermes/SKILL.md`
+- **TDD**: if a test-and-fix loop is reusable, recommend Hermes draft-skill through `skills/hermes/SKILL.md`
+- **Security**: if findings imply a durable policy boundary, recommend Hermes draft-rule through `skills/hermes/SKILL.md`
 
 ### When Hermes Should Stay Manual
 - Querying prior local memory

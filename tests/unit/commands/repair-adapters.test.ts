@@ -64,6 +64,11 @@ describe("repair-adapters command", () => {
 
     expect(result.repaired).toContain("CLAUDE.md");
     expect(result.created).toContain(".gemini/settings.json");
+    expect(result.created).toContain(".codex/skills/bbg-analyze/SKILL.md");
+    expect(result.created).toContain(".claude/skills/bbg-analyze/SKILL.md");
+    expect(result.created).toContain(".gemini/skills/bbg-analyze/SKILL.md");
+    expect(result.created).toContain(".opencode/skills/bbg-analyze/SKILL.md");
+    expect(result.created).toContain(".cursor/rules/bbg-skills.mdc");
 
     const claudeText = await readFile(join(cwd, "CLAUDE.md"), "utf8");
     expect(claudeText).toContain("User notes stay here.");
@@ -72,5 +77,13 @@ describe("repair-adapters command", () => {
     const geminiSettings = await readFile(join(cwd, ".gemini", "settings.json"), "utf8");
     expect(geminiSettings).toContain(".bbg/context/repo-map.json");
     expect(geminiSettings).toContain(".bbg/policy/decisions.json");
+
+    const codexAnalyzeSkill = await readFile(join(cwd, ".codex", "skills", "bbg-analyze", "SKILL.md"), "utf8");
+    expect(codexAnalyzeSkill).toContain("name: bbg-analyze");
+    expect(codexAnalyzeSkill).toContain(".bbg/harness/skills/analyze/SKILL.md");
+
+    const claudeAnalyzeSkill = await readFile(join(cwd, ".claude", "skills", "bbg-analyze", "SKILL.md"), "utf8");
+    expect(claudeAnalyzeSkill).toContain("name: bbg-analyze");
+    expect(claudeAnalyzeSkill).toContain("project-local BBG bridge skill");
   });
 });

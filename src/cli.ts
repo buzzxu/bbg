@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { fileURLToPath } from "node:url";
+import type { RepoType } from "./config/schema.js";
 import { CLI_NAME, CLI_VERSION } from "./constants.js";
 import { runAddRepo } from "./commands/add-repo.js";
 import { runDoctor } from "./commands/doctor.js";
@@ -20,6 +21,7 @@ import { runHarnessAuditCommand } from "./commands/harness-audit.js";
 import { runModelRouteCommand } from "./commands/model-route.js";
 import { runTaskStartCommand } from "./commands/task-start.js";
 import { runAnalyzeCommand } from "./commands/analyze.js";
+import { createAnalyzeProgressPrinter, resolveAnalyzeProgressStyle } from "./commands/analyze-progress.js";
 import { runAnalyzeRepoCommand } from "./commands/analyze-repo.js";
 import { runDeliverCommand } from "./commands/deliver.js";
 import { runCrossAuditCommand } from "./commands/cross-audit.js";
@@ -311,6 +313,15 @@ const printStatusResult = (result: Awaited<ReturnType<typeof runStatusCommand>>)
   process.stdout.write(
     `Analyze: ${result.analyze.status ?? "none"} (${result.analyze.scope ?? "n/a"}, ${result.analyze.runId ?? "latest-none"})\n`,
   );
+  if (result.analyze.progress) {
+    process.stdout.write(
+      `Analyze progress: ${result.analyze.progress.progressPercent}% [${result.analyze.progress.phaseIndex}/${result.analyze.progress.totalPhases}] ${result.analyze.progress.phase} ${result.analyze.progress.status}\n`,
+    );
+    process.stdout.write(`Analyze message: ${result.analyze.progress.message}\n`);
+    if (result.analyze.progress.nextAction) {
+      process.stdout.write(`Analyze next: ${result.analyze.progress.nextAction}\n`);
+    }
+  }
   if (result.analyze.quarantine.count > 0) {
     process.stdout.write(
       `Analyze quarantine: ${result.analyze.quarantine.count} (latest=${result.analyze.quarantine.latestQuarantinedAt ?? "unknown"})\n`,
@@ -457,25 +468,46 @@ export const buildProgram = (): Command => {
     });
 
   program
-    .command("add-repo")
-    .description("Add a repository to current workspace")
+    .command("add-repo-agent [source]", { hidden: true })
+    .description("Internal AI skill runner for repository registration")
     .option("--url <url>", "Repository git URL")
     .option("--branch <branch>", "Repository branch")
-    .option("--no-analyze", "Skip automatic analysis after registration")
-    .action(async (options: { url?: string; branch?: string; analyze?: boolean }) => {
-      const result = await runAddRepo({
-        cwd: process.cwd(),
-        url: options.url,
-        branch: options.branch,
-        analyze: options.analyze,
-      });
+    .option("--type <type>", "Repository type")
+    .option("--description <description>", "Repository description")
+    .option("-y, --yes", "Use AI-supplied defaults and skip prompts", false)
+    .option("--overwrite", "Overwrite an existing repository registration", false)
+    .option("--analyze", "Run internal analysis after registration", false)
+    .action(
+      async (
+        source: string | undefined,
+        options: {
+          url?: string;
+          branch?: string;
+          type?: RepoType;
+          description?: string;
+          yes?: boolean;
+          overwrite?: boolean;
+          analyze?: boolean;
+        },
+      ) => {
+        const result = await runAddRepo({
+          cwd: process.cwd(),
+          url: source ?? options.url,
+          branch: options.branch,
+          type: options.type,
+          description: options.description,
+          yes: options.yes,
+          overwrite: options.overwrite,
+          analyze: options.analyze,
+        });
 
-      process.stdout.write(`Added repository: ${result.addedRepoName}\n`);
-    });
+        process.stdout.write(`Added repository: ${result.addedRepoName}\n`);
+      },
+    );
 
   program
-    .command("start [task...]")
-    .description("Start a task using the primary workflow entrypoint")
+    .command("start-agent [task...]", { hidden: true })
+    .description("Internal AI skill runner for task session start")
     .option("--json", "Output task session as JSON", false)
     .action(async (task: string[] | undefined, options?: { json?: boolean }) => {
       const result = await runStartCommand({
@@ -490,8 +522,8 @@ export const buildProgram = (): Command => {
     });
 
   program
-    .command("resume <taskId>")
-    .description("Resume a prepared or in-progress task session")
+    .command("resume-agent <taskId>", { hidden: true })
+    .description("Internal AI skill runner for task session resume")
     .option("--json", "Output task session as JSON", false)
     .action(async (taskId: string, options?: { json?: boolean }) => {
       const result = await runResumeCommand({
@@ -651,40 +683,24 @@ export const buildProgram = (): Command => {
     .description("Safely remove bbg-managed governance assets from the project")
     .option("--dry-run", "Show planned removals without writing", false)
     .option("--force", "Remove modified bbg-managed files where safe", false)
-    .option("--keep-runtime-data", "Preserve runtime task/session/eval data under .bbg/", false)
-    .option("--keep-docs", "Preserve generated docs under docs/", false)
-    .option("--keep-knowledge", "Preserve knowledge and wiki artifacts", false)
-    .option("--keep-tool-adapters", "Preserve generated AI tool adapter files", false)
+    .option("--keep-init-info", "Preserve project and repository init answers for the next bbg init", false)
     .option("-y, --yes", "Skip confirmation prompt", false)
-    .action(
-      async (options: {
-        dryRun?: boolean;
-        force?: boolean;
-        keepRuntimeData?: boolean;
-        keepDocs?: boolean;
-        keepKnowledge?: boolean;
-        keepToolAdapters?: boolean;
-        yes?: boolean;
-      }) => {
-        const result = await runUninstall({
-          cwd: process.cwd(),
-          dryRun: options.dryRun ?? false,
-          force: options.force ?? false,
-          keepRuntimeData: options.keepRuntimeData ?? false,
-          keepDocs: options.keepDocs ?? false,
-          keepKnowledge: options.keepKnowledge ?? false,
-          keepToolAdapters: options.keepToolAdapters ?? false,
-          yes: options.yes ?? false,
-        });
+    .action(async (options: { dryRun?: boolean; force?: boolean; keepInitInfo?: boolean; yes?: boolean }) => {
+      const result = await runUninstall({
+        cwd: process.cwd(),
+        dryRun: options.dryRun ?? false,
+        force: options.force ?? false,
+        keepInitInfo: options.keepInitInfo ?? false,
+        yes: options.yes ?? false,
+      });
 
-        process.stdout.write(`Deleted: ${result.deleted.length}\n`);
-        process.stdout.write(`Removed sections: ${result.removedSections.length}\n`);
-        process.stdout.write(`Kept: ${result.kept.length}\n`);
-        process.stdout.write(`Skipped modified: ${result.skippedModified.length}\n`);
-        process.stdout.write(`Missing: ${result.missing.length}\n`);
-        process.stdout.write(`Notices: ${result.notices.length}\n`);
-      },
-    );
+      process.stdout.write(`Deleted: ${result.deleted.length}\n`);
+      process.stdout.write(`Removed sections: ${result.removedSections.length}\n`);
+      process.stdout.write(`Kept: ${result.kept.length}\n`);
+      process.stdout.write(`Skipped modified: ${result.skippedModified.length}\n`);
+      process.stdout.write(`Missing: ${result.missing.length}\n`);
+      process.stdout.write(`Notices: ${result.notices.length}\n`);
+    });
 
   program
     .command("repair-adapters")
@@ -777,9 +793,13 @@ export const buildProgram = (): Command => {
       printObserveResult(result);
     });
 
-  const workflowCommand = program.command("workflow").description("Run repo-level workflow guidance");
+  const workflowCommand = program
+    .command("workflow-agent", { hidden: true })
+    .description("Internal AI skill runner for repo-level workflow guidance");
 
-  const hermesCommand = program.command("hermes").description("Run explicit Hermes learning guidance");
+  const hermesCommand = program
+    .command("hermes-agent", { hidden: true })
+    .description("Internal AI skill runner for explicit Hermes learning guidance");
 
   hermesCommand
     .command("query [topic...]")
@@ -1304,8 +1324,8 @@ export const buildProgram = (): Command => {
     });
 
   program
-    .command("model-route [task...]")
-    .description("Recommend a deterministic local execution profile")
+    .command("model-route-agent [task...]", { hidden: true })
+    .description("Internal AI skill runner for local execution profile recommendation")
     .option("--prefer <mode>", "Preference bias: cost, speed, or quality")
     .option("--list", "List available execution profiles", false)
     .action(async (task: string[] | undefined, options: { prefer?: "cost" | "speed" | "quality"; list?: boolean }) => {
@@ -1344,8 +1364,8 @@ export const buildProgram = (): Command => {
     });
 
   program
-    .command("task-start [requirement...]")
-    .description("Start a task from requirement text or file")
+    .command("task-start-agent [requirement...]", { hidden: true })
+    .description("Internal AI skill runner for task intake")
     .option("--file <path>", "Requirement file path")
     .option("--workflow <name>", "Workflow preset name")
     .option("--profile <name>", "Interview profile: quick, standard, deep")
@@ -1374,17 +1394,18 @@ export const buildProgram = (): Command => {
     );
 
   program
-    .command("analyze [focus...]")
-    .description("Analyze all or selected repositories")
+    .command("analyze-agent [focus...]", { hidden: true })
+    .description("Internal AI skill runner for project analysis")
     .option("--repos <names>", "Comma-separated repos or all")
     .option("--repo <name>", "Single repo to analyze")
     .option("--refresh", "Force a full refresh of analysis artifacts", false)
     .option("--interview [mode]", "Project deep interview mode: auto, guided, deep, or off", "auto")
+    .option("--progress <mode>", "Internal progress display: auto, plain, tui, or silent", "auto")
     .option("--json", "Output analyze result as JSON", false)
     .action(
       async (
         focusParts: string[] | undefined,
-        options: { repos?: string; repo?: string; refresh?: boolean; json?: boolean; interview?: string },
+        options: { repos?: string; repo?: string; refresh?: boolean; json?: boolean; interview?: string; progress?: string },
       ) => {
         const cwd = process.cwd();
         const repos = options.repos?.split(",").map((value) => value.trim());
@@ -1474,11 +1495,28 @@ export const buildProgram = (): Command => {
           return;
         }
 
+        const progressStyle = resolveAnalyzeProgressStyle({
+          requested: options.progress,
+          currentTool,
+          stdoutIsTTY: process.stdout.isTTY ?? false,
+        });
+        const progress = options.json || progressStyle === "silent"
+          ? undefined
+          : createAnalyzeProgressPrinter(
+              (value) => {
+                process.stdout.write(value);
+              },
+              {
+                style: progressStyle,
+                width: process.stdout.columns,
+              },
+            );
         const result = await runAnalyzeCommand({
           cwd,
           repos: request.repos.length > 0 ? request.repos : undefined,
           refresh: request.refresh,
           ...(request.focus ? { focus: request.focus } : {}),
+          ...(progress ? { progress } : {}),
           interview: {
             mode: request.interviewMode,
           },
@@ -1566,6 +1604,12 @@ export const buildProgram = (): Command => {
             process.stdout.write(` (${phase.details.join(" | ")})`);
           }
           process.stdout.write("\n");
+        }
+        if (result.aiAgentTaskPath) {
+          process.stdout.write(`AI action required: ${result.aiAgentTaskPath}\n`);
+        }
+        if (result.nextAction) {
+          process.stdout.write(`Next: ${result.nextAction}\n`);
         }
         if (result.interview) {
           const assumptionsByKey = new Map(
@@ -1684,8 +1728,8 @@ export const buildProgram = (): Command => {
     );
 
   program
-    .command("analyze-repo <repo>")
-    .description("Analyze a single repository and update its architecture doc")
+    .command("analyze-repo-agent <repo>", { hidden: true })
+    .description("Internal AI skill runner for single-repository static architecture refresh")
     .action(async (repo: string) => {
       const result = await runAnalyzeRepoCommand({ cwd: process.cwd(), repo });
       process.stdout.write(`Repo: ${result.repo}\n`);
@@ -1693,8 +1737,8 @@ export const buildProgram = (): Command => {
     });
 
   program
-    .command("deliver")
-    .description("Generate client-facing delivery report")
+    .command("deliver-agent", { hidden: true })
+    .description("Internal AI skill runner for client-facing delivery report generation")
     .option("--task <id>", "Task identifier")
     .option("--spec <path>", "Confirmed spec path")
     .option("--no-include-svg", "Disable SVG diagram generation")
@@ -1714,8 +1758,8 @@ export const buildProgram = (): Command => {
     });
 
   program
-    .command("cross-audit")
-    .description("Run independent second-pass cross audit")
+    .command("cross-audit-agent", { hidden: true })
+    .description("Internal AI skill runner for independent second-pass cross audit")
     .option("--cross-model <model>", "Cross-audit model")
     .option("--primary-model <model>", "Primary audit model")
     .option("--scope <items>", "Comma-separated scope items")

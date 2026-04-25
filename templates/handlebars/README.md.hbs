@@ -18,11 +18,11 @@ This project is equipped with comprehensive AI development workflow governance, 
 
 | Tool | Config Directory | Description |
 |------|-----------------|-------------|
-| Claude Code | `.claude/` | Settings, slash commands |
-| OpenCode | `.opencode/` | Instructions, commands |
-| Cursor | `.cursor/rules/` | Rule files (.mdc) |
-| Codex CLI | `.codex/` | Config, AGENTS.md |
-| Gemini | `.gemini/` | Settings, reusable prompts |
+| Claude Code | `.claude/` | Settings, project skills, slash commands |
+| OpenCode | `.opencode/` | Instructions, project skill adapters, commands |
+| Cursor | `.cursor/rules/` | Project skill routing rules (.mdc) |
+| Codex CLI | `.codex/` | Config, AGENTS.md, project-local bridge skills |
+| Gemini | `.gemini/` | Settings, project skill adapters, reusable prompts |
 
 ### Model Selection
 
@@ -40,29 +40,39 @@ If your tool supports switching models directly, keep using the tool and change 
 
 | Directory | Contents |
 |-----------|----------|
-| `agents/` | Agent definitions for specialized AI tasks |
-| `skills/` | Detailed workflow instructions (SKILL.md per skill) |
-| `rules/` | Coding rules organized by language |
-| `commands/` | Slash commands for AI tools |
-| `hooks/` | Automation hooks for session lifecycle |
-| `contexts/` | Operational modes (dev, review, research) |
-| `mcp-configs/` | MCP server configurations |
+| `.bbg/harness/agents/` | Agent definitions for specialized AI tasks |
+| `.bbg/harness/skills/` | Detailed workflow instructions (SKILL.md per skill) |
+| `.bbg/harness/rules/` | Coding rules organized by language |
+| `.bbg/harness/commands/` | Slash commands for AI tools |
+| `.bbg/harness/hooks/` | Automation hooks for session lifecycle |
+| `.bbg/harness/contexts/` | Operational modes (dev, review, research) |
+| `.bbg/harness/mcp-configs/` | MCP server configurations |
 
 ### Primary Entrypoints
 
-- **Analyze**: `bbg analyze` -- Build or refresh project and workspace understanding
-- **Start**: `bbg start "<task>"` -- Begin a task using the primary workflow entrypoint
-- **Resume**: `bbg resume <task-id>` -- Continue an existing prepared task session
+- **Analyze**: `.bbg/harness/skills/analyze/SKILL.md` -- AI-driven full workspace or focused business-function analysis
+- **Add Repo**: `.bbg/harness/skills/add-repo/SKILL.md` -- AI-driven repository registration followed by focused analysis
+- **Start**: `.bbg/harness/skills/start/SKILL.md` -- AI-driven task session start and implementation flow
+- **Resume**: `.bbg/harness/skills/resume/SKILL.md` -- AI-driven continuation of an existing task session
+- **Deliver**: `.bbg/harness/skills/deliver/SKILL.md` -- AI-driven customer-facing delivery report
 - **Status**: `bbg status` -- Inspect analyze and task session state
-- **Add Repo**: `bbg add-repo <path-or-url>` -- Register a new repository and analyze it by default
+
+For Codex, `.codex/skills/bbg-*/SKILL.md` contains project-local bridge skills. These bridges make phrases such as `bbg-analyze`, `bbg analyze`, `analyze skill`, `项目分析`, and `业务分析` route back into the repository-local BBG skills above without installing anything globally.
+
+Only first-level user entrypoints are exposed as tool adapters. Internal BBG skills remain callable only from those primary workflows.
+
+For Claude Code, `.claude/skills/bbg-*/SKILL.md` contains project-local native skills plus `.claude/commands/` slash-command shortcuts. For Gemini and OpenCode, `.gemini/skills/` and `.opencode/skills/` contain the same project-local BBG skill adapters, while `.gemini/commands/` and `.opencode/commands/` provide tool-native routing. For Cursor, `.cursor/rules/bbg-skills.mdc` routes the same phrases to the repository-local skills.
+
+Internal orchestration skills such as workflow routing, model routing, task intake, Hermes learning, single-repo refresh, and cross-audit are invoked by these entrypoints when needed; users do not need to call them directly.
 
 ### Harness + Hermes
 
 - **Harness** keeps execution quality consistent across Claude Code, Codex, Cursor, Gemini, and OpenCode
 - **Hermes** captures reusable learnings through query, distill, draft, verify, and promote flows
-- Use `bbg analyze` before implementation on first adoption or after major repo changes
-- Use `bbg start "<task>"` as the default implementation entrypoint
-- Common Hermes entry points: `bbg hermes query`, `bbg hermes distill`, `bbg hermes draft-skill`, `bbg hermes draft-rule`, `bbg hermes verify`, `bbg hermes promote`
+- Use `.bbg/harness/skills/analyze/SKILL.md` before implementation on first adoption or after major repo changes
+- Use `.bbg/harness/skills/add-repo/SKILL.md` when adding an existing local sub-project or remote repository
+- Use `.bbg/harness/skills/start/SKILL.md` as the default implementation entrypoint
+- Let Start/Analyze/Deliver invoke internal Hermes learning when reusable knowledge should be queried or promoted
 
 Practical harness-engineering helpers:
 
@@ -86,10 +96,12 @@ Practical harness-engineering helpers:
 
 1. Open this project with your AI coding tool of choice
 2. The tool will automatically load its configuration from the appropriate directory
-3. Run `bbg analyze` the first time you work in this project or after major repository changes
-4. Run `bbg start "<task>"` to begin implementation work
-5. Use `bbg resume <task-id>` or `bbg status` when switching tools or continuing later
-6. Reference agents in `agents/` and skills in `skills/` for specialized guidance
+3. Ask the AI to use `.bbg/harness/skills/analyze/SKILL.md` the first time you work in this project or after major repository changes
+4. Ask the AI to use `.bbg/harness/skills/add-repo/SKILL.md` when adding another repository into the workspace
+5. Ask the AI to use `.bbg/harness/skills/start/SKILL.md` to begin implementation work
+6. Ask the AI to use `.bbg/harness/skills/resume/SKILL.md` or run `bbg status` when switching tools or continuing later
+7. Ask the AI to use `.bbg/harness/skills/deliver/SKILL.md` when you need a customer-facing delivery report
+8. Reference agents in `.bbg/harness/agents/` and skills in `.bbg/harness/skills/` for specialized guidance
 
 ### Task Resume Guidance
 

@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { exists, readTextFile } from "../utils/fs.js";
+import { buildAnalyzeKnowledgeQueryAugmentation } from "../runtime/wiki.js";
 import { buildWorkflowDecisions } from "../workflow/decisions.js";
 import type { WorkflowDecisionSet, WorkflowKind } from "../workflow/types.js";
 
@@ -25,38 +26,38 @@ const WORKFLOW_SPECS: Record<
   { commandSpecPath: string; summary: string; references: string[]; hermesRecommendations: string[] }
 > = {
   plan: {
-    commandSpecPath: "commands/plan.md",
+    commandSpecPath: ".bbg/harness/commands/plan.md",
     summary: "Create an implementation plan from canonical repo guidance before making changes.",
-    references: ["AGENTS.md", "RULES.md", "skills/tdd-workflow/SKILL.md"],
+    references: ["AGENTS.md", "RULES.md", ".bbg/harness/skills/tdd-workflow/SKILL.md"],
     hermesRecommendations: [
-      "If similar work may already exist, run `bbg hermes query` before planning from scratch.",
+      "If similar work may already exist, use `.bbg/harness/skills/hermes/SKILL.md` query before planning from scratch.",
     ],
   },
   review: {
-    commandSpecPath: "commands/code-review.md",
+    commandSpecPath: ".bbg/harness/commands/code-review.md",
     summary: "Run a structured review focused on correctness, tests, and security.",
-    references: ["AGENTS.md", "RULES.md", "skills/code-review-checklist/SKILL.md"],
+    references: ["AGENTS.md", "RULES.md", ".bbg/harness/skills/code-review-checklist/SKILL.md"],
     hermesRecommendations: [
-      "If review findings reveal a reusable fix pattern, run `bbg hermes distill`.",
-      "If the pattern should become a reusable execution recipe, run `bbg hermes draft-skill`.",
+      "If review findings reveal a reusable fix pattern, use `.bbg/harness/skills/hermes/SKILL.md` distill.",
+      "If the pattern should become a reusable execution recipe, use `.bbg/harness/skills/hermes/SKILL.md` draft-skill.",
     ],
   },
   security: {
-    commandSpecPath: "commands/security-scan.md",
+    commandSpecPath: ".bbg/harness/commands/security-scan.md",
     summary: "Follow the repo security workflow and verify sensitive surfaces before shipping.",
-    references: ["AGENTS.md", "RULES.md", "skills/security-review/SKILL.md"],
+    references: ["AGENTS.md", "RULES.md", ".bbg/harness/skills/security-review/SKILL.md"],
     hermesRecommendations: [
-      "If repeated security findings imply a durable policy boundary, run `bbg hermes draft-rule`.",
-      "If the evidence needs consolidation before drafting, run `bbg hermes distill`.",
+      "If repeated security findings imply a durable policy boundary, use `.bbg/harness/skills/hermes/SKILL.md` draft-rule.",
+      "If the evidence needs consolidation before drafting, use `.bbg/harness/skills/hermes/SKILL.md` distill.",
     ],
   },
   tdd: {
-    commandSpecPath: "commands/tdd.md",
+    commandSpecPath: ".bbg/harness/commands/tdd.md",
     summary: "Follow RED -> GREEN -> IMPROVE using the repo test-driven workflow.",
-    references: ["AGENTS.md", "RULES.md", "skills/tdd-workflow/SKILL.md"],
+    references: ["AGENTS.md", "RULES.md", ".bbg/harness/skills/tdd-workflow/SKILL.md"],
     hermesRecommendations: [
-      "If the test-and-fix loop becomes a reusable engineering pattern, run `bbg hermes draft-skill`.",
-      "If you need to inspect prior local learning before refining the loop, run `bbg hermes query`.",
+      "If the test-and-fix loop becomes a reusable engineering pattern, use `.bbg/harness/skills/hermes/SKILL.md` draft-skill.",
+      "If you need to inspect prior local learning before refining the loop, use `.bbg/harness/skills/hermes/SKILL.md` query.",
     ],
   },
 };
@@ -73,16 +74,29 @@ export async function runWorkflowCommand(input: RunWorkflowCommandInput): Promis
     .split(/\n\s*\n/)
     .map((block) => block.trim())
     .find((block) => block.length > 0 && !block.startsWith("#"));
+  const analyzeAugmentation = await buildAnalyzeKnowledgeQueryAugmentation({
+    cwd: input.cwd,
+    topic: input.task,
+  });
+  const hasAnalyzeContext = analyzeAugmentation.references.length > 0;
 
   return {
     kind: input.kind,
     task: input.task?.trim().length ? input.task.trim() : null,
     commandSpecPath: workflow.commandSpecPath,
-    summary: firstParagraph ?? workflow.summary,
-    references: workflow.references,
-    hermesRecommendations: workflow.hermesRecommendations,
+    summary: [firstParagraph ?? workflow.summary, analyzeAugmentation.summary]
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .join(" "),
+    references: [...new Set([...workflow.references, ...analyzeAugmentation.references])],
+    hermesRecommendations: [
+      ...new Set([
+        ...workflow.hermesRecommendations,
+        ...(hasAnalyzeContext ? ["Review Analyze knowledge references before splitting implementation work."] : []),
+      ]),
+    ],
     decisions: buildWorkflowDecisions(input.kind, input.task),
     nextActions: [
+      ...(hasAnalyzeContext ? ["review-analyze-context"] : []),
       ...(input.kind === "plan" ? ["implement"] : []),
       ...(input.kind === "review" ? ["address-findings", "verify"] : []),
       ...(input.kind === "tdd" ? ["write-test", "implement", "refactor"] : []),

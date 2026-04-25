@@ -182,22 +182,49 @@ describe("init command", () => {
     expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "doc-gardening-playbook.md"));
     expect(result.createdFiles).toContain(join(cwd, "docs", "architecture", "order-lifecycle.md"));
     expect(result.createdFiles).toContain(join(cwd, "docs", "workflows", "development-standards.md"));
-    expect(result.createdFiles).toContain(join(cwd, "scripts", "doctor.py"));
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "harness", "scripts", "doctor.py"));
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "harness", "scripts", "sync_versions.py"));
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "harness", "skills", "analyze", "SKILL.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "harness", "commands", "analyze.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "harness", "hooks", "hooks.json"));
+    expect(result.createdFiles).toContain(join(cwd, ".bbg", "evals", "golden-tasks", "manifest.json"));
     expect(result.createdFiles).toContain(join(cwd, ".githooks", "pre-commit"));
     expect(result.createdFiles).toContain(join(cwd, ".gemini", "settings.json"));
+    expect(result.createdFiles).toContain(join(cwd, ".claude", "skills", "bbg-analyze", "SKILL.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".claude", "skills", "bbg-add-repo", "SKILL.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".claude", "skills", "bbg-start", "SKILL.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".claude", "skills", "bbg-resume", "SKILL.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".claude", "skills", "bbg-deliver", "SKILL.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".claude", "commands", "add-repo.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".claude", "commands", "deliver.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".opencode", "skills", "bbg-analyze", "SKILL.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".opencode", "commands", "add-repo.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".opencode", "commands", "deliver.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".gemini", "skills", "bbg-analyze", "SKILL.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "add-repo.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "deliver.md"));
+    expect(result.createdFiles).toContain(join(cwd, ".cursor", "rules", "bbg-skills.mdc"));
     expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "plan.md"));
     expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "code-review.md"));
     expect(result.createdFiles).toContain(join(cwd, ".gemini", "commands", "tdd.md"));
+    expect(result.createdFiles).not.toContain(join(cwd, "agents", "planner.md"));
+    expect(result.createdFiles).not.toContain(join(cwd, "skills", "analyze", "SKILL.md"));
+    expect(result.createdFiles).not.toContain(join(cwd, "commands", "analyze.md"));
+    expect(result.createdFiles).not.toContain(join(cwd, "rules", "common", "coding-style.md"));
+    expect(result.createdFiles).not.toContain(join(cwd, "hooks", "hooks.json"));
+    expect(result.createdFiles).not.toContain(join(cwd, "scripts", "doctor.py"));
+    expect(result.createdFiles).not.toContain(join(cwd, "evals", "golden-tasks", "manifest.json"));
     expect(result.createdFiles).not.toContain(join(cwd, ".kiro", "steering", "coding-style.md"));
     expect(result.createdFiles).not.toContain(join(cwd, ".github", "copilot-instructions.md"));
 
     const claudeAdapter = await readFile(join(cwd, "CLAUDE.md"), "utf8");
     expect(claudeAdapter).toContain("<!-- BBG:BEGIN MANAGED -->");
-    expect(claudeAdapter).toContain("bbg analyze");
-    expect(claudeAdapter).toContain('bbg start "<task>"');
+    expect(claudeAdapter).toContain(".bbg/harness/skills/analyze/SKILL.md");
+    expect(claudeAdapter).toContain(".bbg/harness/skills/start/SKILL.md");
 
     const agentsText = await readFile(join(cwd, "AGENTS.md"), "utf8");
     expect(agentsText).toContain("bbg does not require a specific model vendor or model name");
+    expect(agentsText).toContain(".bbg/harness/skills/analyze/SKILL.md");
 
     const geminiSettings = await readFile(join(cwd, ".gemini", "settings.json"), "utf8");
     expect(geminiSettings).toContain(".bbg/context/repo-map.json");
@@ -207,15 +234,35 @@ describe("init command", () => {
     expect(codexConfig).not.toContain("model =");
     expect(codexConfig).toContain("bbg intentionally does not pin a Codex model");
 
+    const codexAnalyzeSkill = await readFile(join(cwd, ".codex", "skills", "bbg-analyze", "SKILL.md"), "utf8");
+    expect(codexAnalyzeSkill).toContain("name: bbg-analyze");
+    expect(codexAnalyzeSkill).toContain(".bbg/harness/skills/analyze/SKILL.md");
+    expect(codexAnalyzeSkill).toContain("project-local BBG bridge skill");
+
+    const claudeAnalyzeSkill = await readFile(join(cwd, ".claude", "skills", "bbg-analyze", "SKILL.md"), "utf8");
+    expect(claudeAnalyzeSkill).toContain("name: bbg-analyze");
+    expect(claudeAnalyzeSkill).toContain(".bbg/harness/skills/analyze/SKILL.md");
+
+    const cursorRules = await readFile(join(cwd, ".cursor", "rules", "standards.mdc"), "utf8");
+    expect(cursorRules).toContain(".bbg/harness/skills/add-repo/SKILL.md");
+    expect(cursorRules).toContain(".bbg/harness/skills/deliver/SKILL.md");
+
+    const cursorSkillRules = await readFile(join(cwd, ".cursor", "rules", "bbg-skills.mdc"), "utf8");
+    expect(cursorSkillRules).toContain("BBG primary skill entrypoints");
+    expect(cursorSkillRules).toContain(".bbg/harness/skills/analyze/SKILL.md");
+
     const readmeText = await readFile(join(cwd, "README.md"), "utf8");
     expect(readmeText).toContain("bbg does not pin a required model for any AI tool");
+    expect(readmeText).toContain("without installing anything globally");
+    expect(readmeText).toContain("Only first-level user entrypoints are exposed as tool adapters");
 
     const harnessPlaybook = await readFile(join(cwd, "docs", "workflows", "harness-engineering-playbook.md"), "utf8");
     expect(harnessPlaybook).toContain("BBG uses a two-layer model");
     expect(harnessPlaybook).toContain("`harness` manages execution quality");
     expect(harnessPlaybook).toContain("`Hermes` manages learning quality");
-    expect(harnessPlaybook).toContain("`bbg workflow plan`");
-    expect(harnessPlaybook).toContain("`bbg hermes query`");
+    expect(harnessPlaybook).toContain(".bbg/harness/skills/start/SKILL.md");
+    expect(harnessPlaybook).toContain("Internal skills such as workflow routing");
+    expect(harnessPlaybook).toContain("Hermes query");
 
     const configText = await readFile(join(cwd, ".bbg", "config.json"), "utf8");
     const config = JSON.parse(configText) as {
@@ -277,8 +324,7 @@ describe("init command", () => {
       },
       analysisAi: {
         enabled: true,
-        mode: "provider",
-        provider: "local-synthesis",
+        mode: "handoff",
         modelClass: "premium",
         timeoutMs: 45000,
       },
@@ -331,8 +377,12 @@ describe("init command", () => {
     if (process.platform !== "win32") {
       const preCommitMode = (await stat(join(cwd, ".githooks", "pre-commit"))).mode;
       const prePushMode = (await stat(join(cwd, ".githooks", "pre-push"))).mode;
+      const doctorScriptMode = (await stat(join(cwd, ".bbg", "harness", "scripts", "doctor.py"))).mode;
+      const syncVersionsMode = (await stat(join(cwd, ".bbg", "harness", "scripts", "sync_versions.py"))).mode;
       expect(preCommitMode & 0o111).toBeGreaterThan(0);
       expect(prePushMode & 0o111).toBeGreaterThan(0);
+      expect(doctorScriptMode & 0o111).toBeGreaterThan(0);
+      expect(syncVersionsMode & 0o111).toBeGreaterThan(0);
     }
 
     expect(result.clonedRepos).toEqual([]);
@@ -382,8 +432,8 @@ describe("init command", () => {
         join(cwd, "docs", "workflows", "release-checklist.md"),
         join(cwd, ".githooks", "pre-commit"),
         join(cwd, ".githooks", "pre-push"),
-        join(cwd, "scripts", "doctor.py"),
-        join(cwd, "scripts", "sync_versions.py"),
+        join(cwd, ".bbg", "harness", "scripts", "doctor.py"),
+        join(cwd, ".bbg", "harness", "scripts", "sync_versions.py"),
       ]),
     );
 

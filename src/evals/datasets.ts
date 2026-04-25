@@ -144,6 +144,8 @@ export function createStarterDatasetDocument(): EvalDatasetDocument {
             ".bbg/knowledge/repos/api/patterns.json",
             ".bbg/knowledge/workspace/topology.json",
             ".bbg/knowledge/workspace/integration-map.json",
+            ".bbg/knowledge/workspace/evidence-graph.json",
+            ".bbg/knowledge/workspace/domain-lexicon.json",
             ".bbg/knowledge/workspace/business-modules.json",
             ".bbg/knowledge/workspace/capabilities.json",
             ".bbg/knowledge/workspace/analysis-dimensions.json",
@@ -156,12 +158,14 @@ export function createStarterDatasetDocument(): EvalDatasetDocument {
             ".bbg/knowledge/workspace/risk-surface.json",
             ".bbg/knowledge/workspace/decisions.json",
             ".bbg/knowledge/workspace/change-impact.json",
-            ".bbg/knowledge/workspace/ai-analysis.json",
-            ".bbg/knowledge/workspace/reconciliation-report.json",
             ".bbg/knowledge/workspace/knowledge-items.json",
             ".bbg/knowledge/workspace/evidence-index.json",
             ".bbg/knowledge/workspace/lifecycle.json",
             ".bbg/knowledge/workspace/run-diff.json",
+            ".bbg/analyze/ai/request.json",
+            ".bbg/analyze/ai/instructions.md",
+            ".bbg/analyze/ai/agent-task.md",
+            ".bbg/analyze/ai/response.schema.json",
             ".bbg/knowledge/hermes/analyze-artifacts.json",
             ".bbg/knowledge/hermes/analyze-candidates.json",
           ],
@@ -1084,18 +1088,21 @@ async function seedRuntimeFixture(cwd: string, fixtureDirectory: string): Promis
   const fixtureRoot = join(cwd, fixtureDirectory);
 
   await writeTextFile(join(fixtureRoot, "README.md"), "# Runtime starter\n");
-  await writeTextFile(join(fixtureRoot, "AGENTS.md"), "# Eval Fixture\n\nPrimary task entrypoint is `bbg start`.\n");
+  await writeTextFile(
+    join(fixtureRoot, "AGENTS.md"),
+    "# Eval Fixture\n\nPrimary task entrypoint is `.bbg/harness/skills/start/SKILL.md`.\n",
+  );
   await writeTextFile(join(fixtureRoot, "RULES.md"), "# Rules\n\nUse deterministic eval-friendly workflows.\n");
   await writeTextFile(
-    join(fixtureRoot, "commands", "plan.md"),
+    join(fixtureRoot, ".bbg", "harness", "commands", "plan.md"),
     "# Plan\n\nCreate an implementation plan from canonical repo guidance before making changes.\n",
   );
   await writeTextFile(
-    join(fixtureRoot, "commands", "hermes-query.md"),
+    join(fixtureRoot, ".bbg", "harness", "commands", "hermes-query.md"),
     "# Hermes Query\n\nAnswer task questions using local Hermes context before re-deriving solutions.\n",
   );
   await writeTextFile(
-    join(fixtureRoot, "skills", "tdd-workflow", "SKILL.md"),
+    join(fixtureRoot, ".bbg", "harness", "skills", "tdd-workflow", "SKILL.md"),
     "# TDD Workflow\n\nFollow RED -> GREEN -> IMPROVE.\n",
   );
   await writeTextFile(
@@ -1153,19 +1160,19 @@ async function seedWorkspaceFixture(cwd: string, fixtureDirectory: string): Prom
   await writeTextFile(join(fixtureRoot, "README.md"), "# Workspace starter\n");
   await writeTextFile(
     join(fixtureRoot, "AGENTS.md"),
-    "# Workspace Eval Fixture\n\nPrimary task entrypoint is `bbg start`.\n",
+    "# Workspace Eval Fixture\n\nPrimary task entrypoint is `.bbg/harness/skills/start/SKILL.md`.\n",
   );
   await writeTextFile(join(fixtureRoot, "RULES.md"), "# Rules\n\nFavor deterministic multi-repo workflows.\n");
   await writeTextFile(
-    join(fixtureRoot, "commands", "plan.md"),
+    join(fixtureRoot, ".bbg", "harness", "commands", "plan.md"),
     "# Plan\n\nUse workspace context before starting cross-repo tasks.\n",
   );
   await writeTextFile(
-    join(fixtureRoot, "commands", "hermes-query.md"),
+    join(fixtureRoot, ".bbg", "harness", "commands", "hermes-query.md"),
     "# Hermes Query\n\nPrefer existing workspace knowledge when tasks span multiple repos.\n",
   );
   await writeTextFile(
-    join(fixtureRoot, "skills", "tdd-workflow", "SKILL.md"),
+    join(fixtureRoot, ".bbg", "harness", "skills", "tdd-workflow", "SKILL.md"),
     "# TDD Workflow\n\nFollow RED -> GREEN -> IMPROVE.\n",
   );
   await writeTextFile(

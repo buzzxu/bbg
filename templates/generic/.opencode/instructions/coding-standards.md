@@ -5,8 +5,8 @@ Use the repo-level canonical governance files as the primary source of truth:
 
 - Read `AGENTS.md`
 - Read `RULES.md`
-- Use `rules/`, `skills/`, `.bbg/context/`, and `.bbg/policy/`
-- Hermes workflows live in `commands/hermes-*.md` and `skills/hermes-*/`
+- Use `.bbg/harness/rules/`, `.bbg/harness/skills/`, `.bbg/context/`, and `.bbg/policy/`
+- Hermes workflows live in `.bbg/harness/commands/hermes-*.md` and `.bbg/harness/skills/hermes-*/`
 
 Prefer repo-level workflow commands:
 

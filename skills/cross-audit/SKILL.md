@@ -1,14 +1,15 @@
 ---
 name: cross-audit
-category: operations
-description: Run independent second-pass audit with a different AI model, reconcile findings, and produce a consolidated decision report
+category: internal
+visibility: internal
+description: Internal second-pass audit skill for high-risk changes, conflicting reviews, or explicit audit requests; do not expose as a primary user-facing entrypoint
 ---
 
 # Cross Audit
 
 ## Overview
 
-Use this skill after primary review to reduce single-model blind spots. It runs an independent second pass with a different model and merges both outputs into one adjudicated report.
+Use this skill internally after primary review to reduce single-model blind spots. It runs an independent second pass with a different model and merges both outputs into one adjudicated report.
 
 ## When To Use
 
@@ -63,5 +64,5 @@ Each finding should include:
 
 ## Related
 
-- Commands: `commands/cross-audit.md`, `commands/code-review.md`, `commands/security-scan.md`
-- Skills: `skills/code-review-checklist/SKILL.md`, `skills/security-review/SKILL.md`
+- Commands: `.bbg/harness/commands/cross-audit.md`, `.bbg/harness/commands/code-review.md`, `.bbg/harness/commands/security-scan.md`
+- Skills: `.bbg/harness/skills/code-review-checklist/SKILL.md`, `.bbg/harness/skills/security-review/SKILL.md`

@@ -13,6 +13,7 @@ import {
 } from "../utils/git.js";
 import { collectStackInfo, sanitizePromptValue, promptConfirm, promptInput, promptSelect } from "../utils/prompts.js";
 import { inferRepoName, isParseableGitUrl } from "../utils/git-url.js";
+import { applyPreservedInitInfo, INIT_INFO_CACHE_PATH, type PreservedInitInfo } from "./init-info-cache.js";
 
 /* ------------------------------------------------------------------ */
 /*  Options accepted by collectInitConfig                              */
@@ -22,6 +23,7 @@ interface CollectInitOptions {
   cwd: string;
   yes?: boolean;
   dryRun?: boolean;
+  initInfo?: PreservedInitInfo | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -85,23 +87,38 @@ export interface InitCollectionResult {
 }
 
 export async function collectInitConfig(nowIso: string, options: CollectInitOptions): Promise<InitCollectionResult> {
-  const defaults = buildBaselineConfig(nowIso);
+  const baselineDefaults = buildBaselineConfig(nowIso);
+  const preservedDefaults = applyPreservedInitInfo(baselineDefaults, options.initInfo ?? null);
   if (options.yes) {
     return {
-      config: defaults,
+      config: preservedDefaults,
       clonedRepos: [],
     };
   }
 
   await ensureGitAvailable();
 
+  if (options.initInfo) {
+    const usePreservedInfo = await promptConfirm({
+      message: uiText("init.usePreservedInitInfo", { value: INIT_INFO_CACHE_PATH }),
+      default: true,
+    });
+
+    if (usePreservedInfo) {
+      return {
+        config: preservedDefaults,
+        clonedRepos: [],
+      };
+    }
+  }
+
   const projectName = sanitizePromptValue(
-    await promptInput({ message: uiText("init.projectName"), default: defaults.projectName }),
-    defaults.projectName,
+    await promptInput({ message: uiText("init.projectName"), default: baselineDefaults.projectName }),
+    baselineDefaults.projectName,
   );
   const projectDescription = sanitizePromptValue(
-    await promptInput({ message: uiText("init.projectDescription"), default: defaults.projectDescription }),
-    defaults.projectDescription,
+    await promptInput({ message: uiText("init.projectDescription"), default: baselineDefaults.projectDescription }),
+    baselineDefaults.projectDescription,
   );
 
   const repos: RepoEntry[] = [];
@@ -204,31 +221,31 @@ export async function collectInitConfig(nowIso: string, options: CollectInitOpti
     ? {
         high: parseRiskThresholdInput(
           await promptInput({ message: uiText("init.highRiskThreshold"), default: "A+:99" }),
-          defaults.governance.riskThresholds.high,
+          baselineDefaults.governance.riskThresholds.high,
         ),
         medium: parseRiskThresholdInput(
           await promptInput({ message: uiText("init.mediumRiskThreshold"), default: "A:95" }),
-          defaults.governance.riskThresholds.medium,
+          baselineDefaults.governance.riskThresholds.medium,
         ),
         low: parseRiskThresholdInput(
           await promptInput({ message: uiText("init.lowRiskThreshold"), default: "B:85" }),
-          defaults.governance.riskThresholds.low,
+          baselineDefaults.governance.riskThresholds.low,
         ),
       }
-    : defaults.governance.riskThresholds;
+    : baselineDefaults.governance.riskThresholds;
 
   const enableRedTeam = await promptConfirm({
     message: uiText("init.enableRedTeam"),
-    default: defaults.governance.enableRedTeam,
+    default: baselineDefaults.governance.enableRedTeam,
   });
   const enableCrossAudit = await promptConfirm({
     message: uiText("init.enableCrossAudit"),
-    default: defaults.governance.enableCrossAudit,
+    default: baselineDefaults.governance.enableCrossAudit,
   });
 
   return {
     config: {
-      ...defaults,
+      ...baselineDefaults,
       projectName,
       projectDescription,
       repos,

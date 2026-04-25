@@ -11,8 +11,19 @@ Use the repo-level canonical governance files as the primary source of truth:
 
 - Read `AGENTS.md`
 - Read `RULES.md`
-- Use `rules/`, `skills/`, `.bbg/context/`, and `.bbg/policy/`
-- Prefer `bbg analyze`, `bbg start "<task>"`, `bbg resume <task-id>`, and `bbg status`
+- Use `.bbg/harness/rules/`, `.bbg/harness/skills/`, `.bbg/context/`, and `.bbg/policy/`
+- Treat the repository-local BBG skills as the primary user entrypoints:
+  - Analyze: `.bbg/harness/skills/analyze/SKILL.md`
+  - Add Repo: `.bbg/harness/skills/add-repo/SKILL.md`
+  - Start: `.bbg/harness/skills/start/SKILL.md`
+  - Resume: `.bbg/harness/skills/resume/SKILL.md`
+  - Deliver: `.bbg/harness/skills/deliver/SKILL.md`
+- If the user says "bbg analyze", "analyze skill", "项目分析", "业务分析", or similar phrases, read and follow `.bbg/harness/skills/analyze/SKILL.md`.
+- If the user asks to add/register a repo, read and follow `.bbg/harness/skills/add-repo/SKILL.md`.
+- If the user asks to start implementation work, read and follow `.bbg/harness/skills/start/SKILL.md`.
+- If the user asks to continue previous work, read and follow `.bbg/harness/skills/resume/SKILL.md`.
+- If the user asks for a delivery/customer report, read and follow `.bbg/harness/skills/deliver/SKILL.md`.
+- Use `bbg status` only for deterministic state inspection.
 - When resuming a task, prefer `.bbg/tasks/<task-id>/context.json`, then `handoff.md`, then `decisions.json`
 - If the tool was launched by `bbg`, prefer `BBG_TASK_*`, `BBG_LOOP_*`, `BBG_HANDOFF_PATH`, `BBG_CONTEXT_PATH`, `BBG_RESUME_STRATEGY`, and `BBG_RECOVERY_PLAN`
 <!-- BBG:END MANAGED -->

@@ -48,7 +48,7 @@ function buildNarrativeSections(input: {
           .join("; ")}.`
       : "No business chains were confidently identified yet.",
     input.focus?.query
-      ? `The focus query \"${input.focus.query}\" shifts attention toward ${input.focus.matchedRepos.join(", ") || "the wider workspace"}.`
+      ? `The focus query "${input.focus.query}" shifts attention toward ${input.focus.matchedRepos.join(", ") || "the wider workspace"}.`
       : `Analysis spans ${input.fusion.repos.length} repository role(s) with cross-module business coordination.`,
   ];
   const technical = [

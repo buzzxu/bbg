@@ -12,10 +12,22 @@ Use the repo-level canonical governance files as the primary source of truth:
 
 Prefer the primary repo entrypoints over tool-specific prompts:
 
-- `bbg analyze`
-- `bbg start "<task>"`
-- `bbg resume <task-id>`
+- Analyze Skill: `skills/analyze/SKILL.md`
+- Add Repo Skill: `skills/add-repo/SKILL.md`
+- Start Skill: `skills/start/SKILL.md`
+- Resume Skill: `skills/resume/SKILL.md`
+- Deliver Skill: `skills/deliver/SKILL.md`
 - `bbg status`
+
+Project-local Codex bridge skills are generated under `.codex/skills/`:
+
+- `bbg-analyze` -> `skills/analyze/SKILL.md`
+- `bbg-add-repo` -> `skills/add-repo/SKILL.md`
+- `bbg-start` -> `skills/start/SKILL.md`
+- `bbg-resume` -> `skills/resume/SKILL.md`
+- `bbg-deliver` -> `skills/deliver/SKILL.md`
+
+If a user says "analyze skill", "bbg analyze", "项目分析", "业务分析", or a similar phrase, use the project-local `bbg-analyze` bridge when available and then follow `skills/analyze/SKILL.md`. Do not install BBG skills into global Codex directories.
 
 bbg does not pin a required Codex model. Use any coding-capable model supported by your Codex account and switch models in Codex itself when you need different reasoning or implementation behavior.
 

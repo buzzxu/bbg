@@ -417,7 +417,7 @@ describe("verify command", () => {
           autonomy: {
             maxAttempts: 5,
             maxVerifyFailures: 3,
-            maxDurationMs: 604800000,
+            maxDurationMs: 315360000000,
             verifyFailureCount: 0,
             escalated: false,
             escalationReason: null,
@@ -610,7 +610,7 @@ describe("verify command", () => {
           autonomy: {
             maxAttempts: 5,
             maxVerifyFailures: 3,
-            maxDurationMs: 604800000,
+            maxDurationMs: 315360000000,
             verifyFailureCount: 0,
             escalated: false,
             escalationReason: null,
@@ -771,7 +771,7 @@ describe("verify command", () => {
           autonomy: {
             maxAttempts: 5,
             maxVerifyFailures: 3,
-            maxDurationMs: 604800000,
+            maxDurationMs: 315360000000,
             verifyFailureCount: 0,
             escalated: false,
             escalationReason: null,
@@ -839,7 +839,7 @@ describe("verify command", () => {
             ],
             reason: "Java boundary changes require explicit language review.",
           },
-          commandSpecPath: "commands/plan.md",
+          commandSpecPath: ".bbg/harness/commands/plan.md",
           summary: "Validate Java boundary handling before delivery.",
           hermesRecommendations: [],
           hermesQuery: {
@@ -877,7 +877,7 @@ describe("verify command", () => {
             autonomy: {
               maxAttempts: 5,
               maxVerifyFailures: 3,
-              maxDurationMs: 604800000,
+              maxDurationMs: 315360000000,
               verifyFailureCount: 0,
               escalated: false,
               escalationReason: null,

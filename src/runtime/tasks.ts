@@ -12,6 +12,7 @@ import { slugifyValue } from "../utils/slug.js";
 import { detectCurrentAgentToolFromEnv } from "./agent-tool.js";
 import { launchConfiguredAgentRunner } from "./agent-runner.js";
 import { readAnalyzeQuarantineSummary } from "./analyze-quarantine.js";
+import { readAnalyzeCurrentProgress } from "./analyze-progress.js";
 import { listLoopStates, readLoopState } from "./loops.js";
 import { summarizeObserveSession } from "./observe.js";
 import { buildDefaultRuntimeConfig } from "./schema.js";
@@ -26,7 +27,6 @@ import type {
   TaskImpactGuidance,
   TaskObservationSummary,
   TaskRecoveryPlan,
-  TaskReviewResult,
   TaskRunnerState,
   TaskResumeStrategy,
   TaskSession,
@@ -1387,18 +1387,21 @@ async function readLatestAnalyzeSummary(cwd: string): Promise<{
   runId: string | null;
   status: string | null;
   scope: string | null;
+  progress: Awaited<ReturnType<typeof readAnalyzeCurrentProgress>>;
   quarantine: {
     count: number;
     latestQuarantinedAt: string | null;
   };
 }> {
   const quarantine = await readAnalyzeQuarantineSummary(cwd);
+  const progress = await readAnalyzeCurrentProgress(cwd);
   const pathValue = join(cwd, ".bbg", "analyze", "latest.json");
   if (!(await exists(pathValue))) {
     return {
       runId: null,
       status: null,
       scope: null,
+      progress,
       quarantine: {
         count: quarantine.count,
         latestQuarantinedAt: quarantine.latestQuarantinedAt,
@@ -1411,6 +1414,7 @@ async function readLatestAnalyzeSummary(cwd: string): Promise<{
     runId: typeof parsed.runId === "string" ? parsed.runId : null,
     status: typeof parsed.status === "string" ? parsed.status : null,
     scope: typeof parsed.scope === "string" ? parsed.scope : null,
+    progress,
     quarantine: {
       count: quarantine.count,
       latestQuarantinedAt: quarantine.latestQuarantinedAt,
@@ -1848,7 +1852,6 @@ export async function startTask(cwd: string, task: string): Promise<StartTaskRes
   };
 
   const decisionsPath = getDecisionsPath(cwd, taskId);
-  const contextPath = getContextPath(cwd, taskId);
   await Promise.all([
     writeJsonStore(sessionPath, session),
     writeJsonStore(decisionsPath, workflow.decisions),

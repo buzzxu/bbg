@@ -140,12 +140,11 @@ describe("doctor command", () => {
     const report = await runDoctor({ cwd, json: true, toolMatrix: true });
 
     expect(report.toolMatrix).toBeDefined();
-    expect(report.toolMatrix?.find((entry) => entry.tool === "claude")).toEqual(expect.objectContaining({
-      status: "full",
-    }));
-    expect(report.toolMatrix?.find((entry) => entry.tool === "gemini")).toEqual(expect.objectContaining({
-      status: "full",
-    }));
+    for (const tool of ["claude", "codex", "cursor", "gemini", "opencode"]) {
+      expect(report.toolMatrix?.find((entry) => entry.tool === tool)).toEqual(expect.objectContaining({
+        status: "full",
+      }));
+    }
   });
 
   it("fix mode repairs missing repo entries in .gitignore", async () => {

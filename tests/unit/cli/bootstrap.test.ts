@@ -117,6 +117,7 @@ const commandState = vi.hoisted(() => {
     description: ReturnType<typeof vi.fn>;
     option: ReturnType<typeof vi.fn>;
     requiredOption: ReturnType<typeof vi.fn>;
+    hideHelp: ReturnType<typeof vi.fn>;
     command: ReturnType<typeof vi.fn>;
     action: ReturnType<typeof vi.fn>;
     getActionHandler: () => CommandAction | undefined;
@@ -131,6 +132,7 @@ const commandState = vi.hoisted(() => {
       description: vi.fn(() => commandBuilder),
       option: vi.fn(() => commandBuilder),
       requiredOption: vi.fn(() => commandBuilder),
+      hideHelp: vi.fn(() => commandBuilder),
       command: vi.fn((subcommandName: string) => {
         const nestedCommandPath = `${commandPath} ${subcommandName}`;
         if (!commandMocks.has(nestedCommandPath)) {
@@ -153,6 +155,7 @@ const commandState = vi.hoisted(() => {
         commandBuilder.description.mockClear();
         commandBuilder.option.mockClear();
         commandBuilder.requiredOption.mockClear();
+        commandBuilder.hideHelp.mockClear();
         commandBuilder.command.mockClear();
         commandBuilder.action.mockClear();
       },
@@ -405,10 +408,10 @@ describe("cli bootstrap", () => {
     runHermesState.runHermesCommand.mockResolvedValue({
       kind: "query",
       topic: "rollout process",
-      commandSpecPath: "commands/hermes-query.md",
+      commandSpecPath: ".bbg/harness/commands/hermes-query.md",
       summary:
         "Answer questions using the K8 local Hermes memory router: local canonical wiki memory before local candidate memory, and raw/runtime artifacts only when the local layers are insufficient.",
-      references: ["AGENTS.md", "commands/hermes-query.md", "skills/hermes-memory-router/SKILL.md"],
+      references: ["AGENTS.md", ".bbg/harness/commands/hermes-query.md", ".bbg/harness/skills/hermes-memory-router/SKILL.md"],
     });
     runTaskEnvState.runTaskEnvCommand.mockResolvedValue({
       mode: "start",
@@ -464,11 +467,11 @@ describe("cli bootstrap", () => {
     runWorkflowState.runWorkflowCommand.mockResolvedValue({
       kind: "plan",
       task: "ship feature",
-      commandSpecPath: "commands/plan.md",
+      commandSpecPath: ".bbg/harness/commands/plan.md",
       summary: "Create an implementation plan from canonical repo guidance before making changes.",
-      references: ["AGENTS.md", "RULES.md", "skills/tdd-workflow/SKILL.md"],
+      references: ["AGENTS.md", "RULES.md", ".bbg/harness/skills/tdd-workflow/SKILL.md"],
       hermesRecommendations: [
-        "If similar work may already exist, run `bbg hermes query` before planning from scratch.",
+        "If similar work may already exist, use `.bbg/harness/skills/hermes/SKILL.md` query before planning from scratch.",
       ],
       decisions: {
         taskEnv: { decision: "required", reasons: ["debug-or-stabilization-task"] },
@@ -566,10 +569,10 @@ describe("cli bootstrap", () => {
           stopConditions: ["public-api-contract-change", "runtime-validation-gap"],
           reason: "Language-specific review is recommended to preserve architecture and implementation quality.",
         },
-        commandSpecPath: "commands/plan.md",
+        commandSpecPath: ".bbg/harness/commands/plan.md",
         summary: "Create an implementation plan from canonical repo guidance before making changes.",
         hermesRecommendations: [
-          "If similar work may already exist, run `bbg hermes query` before planning from scratch.",
+          "If similar work may already exist, use `.bbg/harness/skills/hermes/SKILL.md` query before planning from scratch.",
         ],
       },
       handoffPath: ".bbg/tasks/ship-feature/handoff.md",
@@ -662,10 +665,10 @@ describe("cli bootstrap", () => {
           stopConditions: ["public-api-contract-change", "runtime-validation-gap"],
           reason: "Language-specific review is recommended to preserve architecture and implementation quality.",
         },
-        commandSpecPath: "commands/plan.md",
+        commandSpecPath: ".bbg/harness/commands/plan.md",
         summary: "Create an implementation plan from canonical repo guidance before making changes.",
         hermesRecommendations: [
-          "If similar work may already exist, run `bbg hermes query` before planning from scratch.",
+          "If similar work may already exist, use `.bbg/harness/skills/hermes/SKILL.md` query before planning from scratch.",
         ],
       },
       handoffPath: ".bbg/tasks/ship-feature/handoff.md",
@@ -894,7 +897,7 @@ describe("cli bootstrap", () => {
           "analyze is AI-native for deep technical and business understanding",
           "terminal mode prepares the workspace handoff but does not complete full analysis",
         ],
-        command: "bbg analyze",
+        command: "bbg analyze-agent",
         request: {
           repos: [],
           refresh: false,
@@ -1050,7 +1053,7 @@ describe("cli bootstrap", () => {
     const cliModule = await import("../../../src/cli.js");
     cliModule.buildProgram();
 
-    const startCommand = commandState.getCommandMock("start [task...]");
+    const startCommand = commandState.getCommandMock("start-agent [task...]");
     const handler = startCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
@@ -1081,7 +1084,7 @@ describe("cli bootstrap", () => {
     const cliModule = await import("../../../src/cli.js");
     cliModule.buildProgram();
 
-    const resumeCommand = commandState.getCommandMock("resume <taskId>");
+    const resumeCommand = commandState.getCommandMock("resume-agent <taskId>");
     const handler = resumeCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
@@ -1253,7 +1256,8 @@ describe("cli bootstrap", () => {
           checkId: "scripts-exist",
           severity: "warning",
           passed: false,
-          message: "missing or non-executable scripts: scripts/doctor.py, scripts/sync_versions.py",
+          message:
+            "missing or non-executable scripts: .bbg/harness/scripts/doctor.py, .bbg/harness/scripts/sync_versions.py",
         },
         {
           id: "runtime-telemetry",
@@ -1289,7 +1293,7 @@ describe("cli bootstrap", () => {
       "- language-pattern-guides: language guide metadata incomplete: docs/architecture/languages/README.md\n",
     );
     expect(stdoutSpy).toHaveBeenCalledWith(
-      "- scripts-exist: missing or non-executable scripts: scripts/doctor.py, scripts/sync_versions.py\n",
+      "- scripts-exist: missing or non-executable scripts: .bbg/harness/scripts/doctor.py, .bbg/harness/scripts/sync_versions.py\n",
     );
     expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("doctor.maturity")} (2):\n`);
     expect(stdoutSpy).toHaveBeenCalledWith(
@@ -1360,10 +1364,7 @@ describe("cli bootstrap", () => {
     await handler?.({
       dryRun: true,
       force: false,
-      keepRuntimeData: true,
-      keepDocs: false,
-      keepKnowledge: false,
-      keepToolAdapters: false,
+      keepInitInfo: true,
       yes: true,
     });
 
@@ -1371,12 +1372,25 @@ describe("cli bootstrap", () => {
       cwd: "/tmp/workspace",
       dryRun: true,
       force: false,
-      keepRuntimeData: true,
-      keepDocs: false,
-      keepKnowledge: false,
-      keepToolAdapters: false,
+      keepInitInfo: true,
       yes: true,
     });
+    expect(uninstallCommand?.option).not.toHaveBeenCalledWith(
+      "--keep-runtime-data",
+      expect.any(String),
+      expect.any(Boolean),
+    );
+    expect(uninstallCommand?.option).not.toHaveBeenCalledWith("--keep-docs", expect.any(String), expect.any(Boolean));
+    expect(uninstallCommand?.option).not.toHaveBeenCalledWith(
+      "--keep-knowledge",
+      expect.any(String),
+      expect.any(Boolean),
+    );
+    expect(uninstallCommand?.option).not.toHaveBeenCalledWith(
+      "--keep-tool-adapters",
+      expect.any(String),
+      expect.any(Boolean),
+    );
     expect(stdoutSpy).toHaveBeenCalledWith("Deleted: 1\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Removed sections: 1\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Kept: 1\n");
@@ -1421,7 +1435,7 @@ describe("cli bootstrap", () => {
     const cliModule = await import("../../../src/cli.js");
     cliModule.buildProgram();
 
-    const hermesCommand = commandState.getCommandMock("hermes query [topic...]");
+    const hermesCommand = commandState.getCommandMock("hermes-agent query [topic...]");
     const handler = hermesCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
@@ -1434,7 +1448,7 @@ describe("cli bootstrap", () => {
     });
     expect(stdoutSpy).toHaveBeenCalledWith("Hermes: query\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Topic: rollout process\n");
-    expect(stdoutSpy).toHaveBeenCalledWith("Spec: commands/hermes-query.md\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Spec: .bbg/harness/commands/hermes-query.md\n");
 
     stdoutSpy.mockRestore();
     cwdSpy.mockRestore();
@@ -1479,7 +1493,7 @@ describe("cli bootstrap", () => {
     const cliModule = await import("../../../src/cli.js");
     cliModule.buildProgram();
 
-    const workflowCommand = commandState.getCommandMock("workflow plan [task...]");
+    const workflowCommand = commandState.getCommandMock("workflow-agent plan [task...]");
     const handler = workflowCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
@@ -1492,10 +1506,10 @@ describe("cli bootstrap", () => {
     });
     expect(stdoutSpy).toHaveBeenCalledWith("Workflow: plan\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Task: ship feature\n");
-    expect(stdoutSpy).toHaveBeenCalledWith("Spec: commands/plan.md\n");
+    expect(stdoutSpy).toHaveBeenCalledWith("Spec: .bbg/harness/commands/plan.md\n");
     expect(stdoutSpy).toHaveBeenCalledWith("Hermes recommendations:\n");
     expect(stdoutSpy).toHaveBeenCalledWith(
-      "- If similar work may already exist, run `bbg hermes query` before planning from scratch.\n",
+      "- If similar work may already exist, use `.bbg/harness/skills/hermes/SKILL.md` query before planning from scratch.\n",
     );
     expect(stdoutSpy).toHaveBeenCalledWith("Decisions:\n");
     expect(stdoutSpy).toHaveBeenCalledWith("- taskEnv: required (debug-or-stabilization-task)\n");
@@ -1514,7 +1528,7 @@ describe("cli bootstrap", () => {
     const cliModule = await import("../../../src/cli.js");
     cliModule.buildProgram();
 
-    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const analyzeCommand = commandState.getCommandMock("analyze-agent [focus...]");
     const handler = analyzeCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
@@ -1549,7 +1563,7 @@ describe("cli bootstrap", () => {
     expect(runAnalyzeState.runAnalyzeCommand).not.toHaveBeenCalled();
     expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.requiresAi")}\n`);
     expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.preferredAi")}: claude\n`);
-    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.replay")}: bbg analyze\n`);
+    expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.replay")}: bbg analyze-agent\n`);
     expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.handoff")}: .bbg/analyze/handoff/latest.md\n`);
 
     stdoutSpy.mockRestore();
@@ -1566,7 +1580,7 @@ describe("cli bootstrap", () => {
       preferredTool: "claude",
       availableTools: ["claude", "codex"],
       reasons: ["needs ai"],
-      command: "bbg analyze --repo repo-a --refresh --interview guided",
+      command: "bbg analyze-agent --repo repo-a --refresh --interview guided",
       request: {
         repos: ["repo-a"],
         refresh: true,
@@ -1582,7 +1596,7 @@ describe("cli bootstrap", () => {
     const cliModule = await import("../../../src/cli.js");
     cliModule.buildProgram();
 
-    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const analyzeCommand = commandState.getCommandMock("analyze-agent [focus...]");
     const handler = analyzeCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
@@ -1592,6 +1606,7 @@ describe("cli bootstrap", () => {
       cwd: "/tmp/workspace",
       repos: ["repo-a"],
       refresh: true,
+      progress: expect.any(Function),
       interview: {
         mode: "guided",
       },
@@ -1599,6 +1614,95 @@ describe("cli bootstrap", () => {
     expect(analyzeHandoffState.markAnalyzeAgentHandoffConsumed).toHaveBeenCalledWith("/tmp/workspace", "claude");
     expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.run")}: 20260419T120000Z-a1b2c3\n`);
     expect(stdoutSpy).toHaveBeenCalledWith(`${uiText("analyze.phases")}:\n`);
+
+    const analyzeInput = runAnalyzeState.runAnalyzeCommand.mock.calls[0]?.[0] as {
+      progress?: (event: {
+        version: 1;
+        runId: string;
+        updatedAt: string;
+        phase: "discovery";
+        status: "running";
+        phaseIndex: number;
+        totalPhases: number;
+        progressPercent: number;
+        message: string;
+        details: string[];
+      }) => void;
+    };
+    stdoutSpy.mockClear();
+    analyzeInput.progress?.({
+      version: 1,
+      runId: "20260419T120000Z-a1b2c3",
+      updatedAt: "2026-04-19T12:00:00.000Z",
+      phase: "discovery",
+      status: "running",
+      phaseIndex: 1,
+      totalPhases: 20,
+      progressPercent: 5,
+      message: "Scanning repositories.",
+      details: ["repo=repo-a"],
+    });
+    const progressOutput = stdoutSpy.mock.calls.map(([value]) => String(value)).join("");
+    expect(progressOutput).toContain("[=-----------------------]   5%  [1/20] discovery RUN");
+    expect(progressOutput).not.toContain("╭ BBG Analyze");
+
+    stdoutSpy.mockRestore();
+    cwdSpy.mockRestore();
+  });
+
+  it("prints AI continuation task when analyze is waiting for current agent reasoning", async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/tmp/workspace");
+    analyzeHandoffState.detectCurrentAnalyzeAgentTool.mockReturnValue("codex");
+    analyzeHandoffState.readPendingAnalyzeAgentHandoff.mockResolvedValue(null);
+    runAnalyzeState.runAnalyzeCommand.mockResolvedValueOnce({
+      runId: "20260419T120000Z-a1b2c3",
+      status: "partial",
+      scope: "repo",
+      analyzedRepos: ["repo-a"],
+      technicalArchitecturePath: "docs/architecture/technical-architecture.md",
+      businessArchitecturePath: "docs/architecture/business-architecture.md",
+      dependencyGraphPath: "docs/architecture/repo-dependency-graph.md",
+      capabilityMapPath: "docs/business/capability-map.md",
+      criticalFlowsPath: "docs/business/critical-flows.md",
+      integrationContractsPath: "docs/architecture/integration-contracts.md",
+      runtimeConstraintsPath: "docs/architecture/runtime-constraints.md",
+      riskSurfacePath: "docs/architecture/risk-surface.md",
+      decisionHistoryPath: "docs/architecture/decision-history.md",
+      changeImpactMapPath: "docs/architecture/change-impact-map.md",
+      repoDocs: ["docs/architecture/repos/repo-a.md"],
+      repositoryDocs: ["docs/repositories/repo-a.md"],
+      workspaceTopologyPath: "docs/architecture/workspace-topology.md",
+      integrationMapPath: "docs/architecture/integration-map.md",
+      moduleMapPath: "docs/business/module-map.md",
+      coreFlowsPath: "docs/business/core-flows.md",
+      projectContextPath: "docs/business/project-context.md",
+      focusedAnalysisPath: null,
+      docsUpdated: ["docs/architecture/technical-architecture.md"],
+      knowledgeUpdated: [".bbg/analyze/ai/agent-task.md"],
+      phases: [{ name: "ai-analysis", status: "pending", details: ["agentTask=.bbg/analyze/ai/agent-task.md"] }],
+      focus: null,
+      interview: null,
+      aiAgentTaskPath: ".bbg/analyze/ai/agent-task.md",
+      aiResponsePath: ".bbg/analyze/ai/response.json",
+      nextAction:
+        "Current AI agent must read .bbg/analyze/ai/agent-task.md, write .bbg/analyze/ai/response.json, then rerun bbg analyze-agent.",
+    });
+
+    const cliModule = await import("../../../src/cli.js");
+    cliModule.buildProgram();
+
+    const analyzeCommand = commandState.getCommandMock("analyze-agent [focus...]");
+    const handler = analyzeCommand?.getActionHandler();
+    expect(handler).toBeTypeOf("function");
+
+    await handler?.(undefined, {});
+
+    expect(stdoutSpy).toHaveBeenCalledWith("AI action required: .bbg/analyze/ai/agent-task.md\n");
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      "Next: Current AI agent must read .bbg/analyze/ai/agent-task.md, write .bbg/analyze/ai/response.json, then rerun bbg analyze-agent.\n",
+    );
+    expect(analyzeHandoffState.markAnalyzeAgentHandoffConsumed).not.toHaveBeenCalled();
 
     stdoutSpy.mockRestore();
     cwdSpy.mockRestore();
@@ -1614,7 +1718,7 @@ describe("cli bootstrap", () => {
       preferredTool: "codex",
       availableTools: ["claude", "codex"],
       reasons: ["needs ai"],
-      command: "bbg analyze --repo repo-a",
+      command: "bbg analyze-agent --repo repo-a",
       request: {
         repos: ["repo-a"],
         refresh: false,
@@ -1701,7 +1805,7 @@ describe("cli bootstrap", () => {
     const cliModule = await import("../../../src/cli.js");
     cliModule.buildProgram();
 
-    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const analyzeCommand = commandState.getCommandMock("analyze-agent [focus...]");
     const handler = analyzeCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
@@ -1796,7 +1900,7 @@ describe("cli bootstrap", () => {
     const cliModule = await import("../../../src/cli.js");
     cliModule.buildProgram();
 
-    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const analyzeCommand = commandState.getCommandMock("analyze-agent [focus...]");
     const handler = analyzeCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
@@ -1878,7 +1982,7 @@ describe("cli bootstrap", () => {
     const cliModule = await import("../../../src/cli.js");
     cliModule.buildProgram();
 
-    const analyzeCommand = commandState.getCommandMock("analyze [focus...]");
+    const analyzeCommand = commandState.getCommandMock("analyze-agent [focus...]");
     const handler = analyzeCommand?.getActionHandler();
     expect(handler).toBeTypeOf("function");
 
@@ -1888,6 +1992,7 @@ describe("cli bootstrap", () => {
       cwd: "/tmp/workspace",
       refresh: false,
       focus: "checkout flow",
+      progress: expect.any(Function),
       interview: {
         mode: "auto",
       },

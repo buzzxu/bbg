@@ -3,7 +3,7 @@ import { detectCurrentAnalyzeAgentTool } from "./analyze-handoff.js";
 
 export interface AnalyzeAiExecutionPlan {
   enabled: boolean;
-  mode: "provider" | "handoff" | "heuristic-fallback" | "disabled";
+  mode: "provider" | "handoff" | "disabled";
   provider: string | null;
   modelClass: "fast" | "balanced" | "premium" | null;
   timeoutMs: number;
@@ -16,8 +16,7 @@ function resolveAnalysisAiSetting(runtime: RuntimeConfig | undefined): RuntimeAn
     runtime?.analysisAi ??
     buildDefaultRuntimeConfig().analysisAi ?? {
       enabled: true,
-      mode: "provider",
-      provider: "local-synthesis",
+      mode: "handoff",
       modelClass: "premium",
       timeoutMs: 45000,
     }
@@ -39,25 +38,18 @@ export function planAnalyzeAiExecution(runtime: RuntimeConfig | undefined): Anal
     };
   }
 
-  if (setting.mode === "handoff" && currentTool === null) {
-    return {
-      enabled: true,
-      mode: "heuristic-fallback",
-      provider: setting.provider ?? null,
-      modelClass: setting.modelClass ?? "premium",
-      timeoutMs: setting.timeoutMs,
-      currentTool,
-      reason: "handoff mode requested without an active AI tool; using heuristic fallback",
-    };
-  }
-
   return {
     enabled: true,
     mode: setting.mode,
-    provider: setting.provider ?? (setting.mode === "provider" ? "local-synthesis" : currentTool),
+    provider: setting.provider ?? (setting.mode === "handoff" ? currentTool : null),
     modelClass: setting.modelClass ?? "premium",
     timeoutMs: setting.timeoutMs,
     currentTool,
-    reason: setting.mode === "provider" ? "provider execution planned" : `handoff execution planned for ${currentTool}`,
+    reason:
+      setting.mode === "provider"
+        ? "external provider execution planned; response.json is required"
+        : currentTool
+          ? `handoff execution planned for ${currentTool}; response.json is required`
+          : "handoff execution planned; open an AI agent to produce response.json",
   };
 }

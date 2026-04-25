@@ -1,7 +1,7 @@
 # /model-route
 
 ## Description
-Select the optimal AI model for the current task based on complexity, domain, and cost-performance tradeoffs. Recommends which model to use and why.
+Use the Model Route Skill to select the optimal execution profile for the current task based on complexity, domain, and cost-performance tradeoffs. Do not ask the user to run a public `bbg model-route` CLI command.
 
 ## Usage
 ```
@@ -9,6 +9,8 @@ Select the optimal AI model for the current task based on complexity, domain, an
 /model-route --list
 /model-route "Fix type error in utils" --prefer cost
 ```
+
+The skill may call `bbg model-route-agent` internally to incorporate repo-local telemetry and language hints.
 
 ## Process
 1. **Analyze task** — Classify the task by:
@@ -51,4 +53,4 @@ Alternative: claude-haiku (faster, may miss nuance)
 ## Related
 
 - **Agents**: [harness-optimizer](../agents/harness-optimizer.md)
-- **Skills**: [llm-cost-optimization](../skills/llm-cost-optimization/SKILL.md)
+- **Skills**: [model-route](../skills/model-route/SKILL.md), [llm-cost-optimization](../skills/llm-cost-optimization/SKILL.md)

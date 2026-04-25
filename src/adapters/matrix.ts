@@ -47,8 +47,14 @@ function checkGeminiSettings(content: string): string[] {
     if (!instructions.includes(".bbg/policy/decisions.json")) {
       issues.push("missing policy instruction");
     }
-    if (parsed.context?.commandsDir !== "commands") {
-      issues.push("commandsDir must be commands");
+    if (parsed.context?.commandsDir !== ".bbg/harness/commands") {
+      issues.push("commandsDir must be .bbg/harness/commands");
+    }
+    if (parsed.context?.skillsDir !== ".bbg/harness/skills") {
+      issues.push("skillsDir must be .bbg/harness/skills");
+    }
+    if (parsed.context?.rulesDir !== ".bbg/harness/rules") {
+      issues.push("rulesDir must be .bbg/harness/rules");
     }
   } catch {
     issues.push("invalid JSON");

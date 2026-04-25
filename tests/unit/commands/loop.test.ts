@@ -166,7 +166,7 @@ describe("loop commands", () => {
           stopConditions: [],
           reason: "No explicit language-specific review gate configured.",
         },
-        commandSpecPath: "commands/start.md",
+        commandSpecPath: ".bbg/harness/commands/start.md",
         summary: "Fix checkout timeout",
         hermesRecommendations: [],
         hermesQuery: {

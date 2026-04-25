@@ -33,7 +33,7 @@ function toMermaidFlow(flow: AnalyzeKnowledgeModel["criticalFlows"][number]): st
   const repos = [...new Set(flow.steps.map((step) => step.repo))];
   const lines = ["```mermaid", "flowchart LR"];
   for (const repo of repos) {
-    lines.push(`  ${mermaidNodeId(repo)}[\"${repo}\"]`);
+    lines.push(`  ${mermaidNodeId(repo)}["${repo}"]`);
   }
   for (let index = 0; index < repos.length - 1; index += 1) {
     lines.push(`  ${mermaidNodeId(repos[index])} --> ${mermaidNodeId(repos[index + 1])}`);
@@ -689,7 +689,7 @@ export async function writeAnalyzeDocs(input: {
       [
         "```mermaid",
         "flowchart LR",
-        ...input.focus.matchedRepos.map((repo) => `  ${mermaidNodeId(repo)}[\"${repo}\"]`),
+        ...input.focus.matchedRepos.map((repo) => `  ${mermaidNodeId(repo)}["${repo}"]`),
         ...input.focus.matchedRepos
           .slice(0, -1)
           .map((repo, index) => `  ${mermaidNodeId(repo)} --> ${mermaidNodeId(input.focus!.matchedRepos[index + 1])}`),

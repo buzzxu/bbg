@@ -1,7 +1,7 @@
 # /resume -- Primary Task Resume Entry
 
 <!-- BBG:BEGIN MANAGED -->
-Run `bbg resume <task-id>`.
+Run the project-local BBG Resume Skill adapter: `.claude/skills/bbg-resume/SKILL.md`, then follow `.bbg/harness/skills/resume/SKILL.md`.
 
 When resuming, prefer structured runtime state in this order:
 

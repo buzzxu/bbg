@@ -21,6 +21,8 @@ import type {
 } from "./types.js";
 
 const CONFIDENCE_THRESHOLD = 0.65;
+const SENSITIVE_BOUNDARY_PATTERN =
+  /(auth|tenant|security|transaction|permission|token|secret|credential|privacy|pii|compliance|encryption|audit)/;
 
 const QUESTION_ORDER: AnalyzeInterviewQuestionKey[] = [
   "businessGoal",
@@ -78,7 +80,7 @@ function inferProjectContext(input: {
       if (!technical.testing.hasTestDir) {
         hotspots.push(`${technical.repo.name}: missing dedicated test directory`);
       }
-      if (/(auth|tenant|billing|payment|checkout|transaction|security)/.test(combinedSignals)) {
+      if (SENSITIVE_BOUNDARY_PATTERN.test(combinedSignals)) {
         hotspots.push(
           `${technical.repo.name}: sensitive domain boundary (${technical.repo.description || technical.repo.type})`,
         );
@@ -147,9 +149,7 @@ function inferAssumptions(input: {
   const combinedSignals = input.technical
     .map((technical) => [technical.repo.description, ...technical.structure, ...technical.deps].join(" ").toLowerCase())
     .join(" ");
-  const hasSensitiveBoundary = /(auth|tenant|payment|billing|checkout|security|transaction|permission|token)/.test(
-    combinedSignals,
-  );
+  const hasSensitiveBoundary = SENSITIVE_BOUNDARY_PATTERN.test(combinedSignals);
   const hasFrontendAndBackend =
     input.fusion.repos.some(
       (repo) => /(react|vue|next|taro|frontend|web)/i.test(repo.stack.framework) || repo.type === "frontend",
@@ -178,7 +178,7 @@ function inferAssumptions(input: {
         hotspots.push(`${technical.repo.name}: limited dedicated test coverage`);
       }
       if (
-        /(auth|tenant|payment|billing|checkout|security|transaction|permission|token)/.test(
+        SENSITIVE_BOUNDARY_PATTERN.test(
           [technical.repo.description, ...technical.structure, ...technical.deps].join(" ").toLowerCase(),
         )
       ) {
@@ -303,7 +303,7 @@ function inferAssumptions(input: {
           ? "This workspace is intentionally split across multiple repos, so contract drift and unsynchronized changes are a recurring risk to avoid."
           : "",
         hasSensitiveBoundary
-          ? "Sensitive domain boundaries should be regression-tested before refactors because auth, checkout, or permission flows are historically brittle."
+          ? "Sensitive domain boundaries should be regression-tested before refactors because identity, transaction, permission, or compliance flows are historically brittle."
           : "",
         hasWeakTesting
           ? "Areas without dedicated tests should be treated cautiously during refactors and require stronger verification before rollout."

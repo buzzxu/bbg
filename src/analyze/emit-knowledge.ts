@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type {
   AnalyzeAiAnalysisResult,
   AnalyzeAiReconciliationResult,
+  AnalyzeEvidenceGraph,
   AnalyzeFocusSummary,
   AnalyzeInterviewSummary,
   AnalyzeKnowledgeArtifacts,
@@ -12,6 +13,7 @@ import type {
   RepoTechnicalAnalysis,
   WorkspaceFusionResult,
 } from "./types.js";
+import { buildAnalyzeDomainLexicon } from "./domain-lexicon.js";
 import { buildAnalyzeKnowledgeLifecycleStates, buildAnalyzeRunDiff } from "./knowledge-lifecycle.js";
 import {
   buildAnalyzeKnowledgeItemsIndex,
@@ -59,6 +61,8 @@ export async function writeAnalyzeKnowledge(input: {
   focus: AnalyzeFocusSummary | null;
   aiAnalysis?: AnalyzeAiAnalysisResult | null;
   reconciliation?: AnalyzeAiReconciliationResult | null;
+  evidenceGraph?: AnalyzeEvidenceGraph;
+  aiReasoningContractPaths?: string[];
 }): Promise<AnalyzeKnowledgeArtifacts> {
   const updatedAt = new Date().toISOString();
   const knowledgeUpdated: string[] = [];
@@ -159,6 +163,36 @@ export async function writeAnalyzeKnowledge(input: {
     )}\n`,
   );
   knowledgeUpdated.push(workspaceIntegrationMapPath);
+
+  const workspaceEvidenceGraphPath = ".bbg/knowledge/workspace/evidence-graph.json";
+  if (input.evidenceGraph) {
+    await writeTextFile(
+      join(input.cwd, workspaceEvidenceGraphPath),
+      `${JSON.stringify(input.evidenceGraph, null, 2)}\n`,
+    );
+    knowledgeUpdated.push(workspaceEvidenceGraphPath);
+  } else if (await exists(join(input.cwd, workspaceEvidenceGraphPath))) {
+    await rm(join(input.cwd, workspaceEvidenceGraphPath), { force: true });
+  }
+
+  const workspaceDomainLexiconPath = ".bbg/knowledge/workspace/domain-lexicon.json";
+  if (input.evidenceGraph) {
+    await writeTextFile(
+      join(input.cwd, workspaceDomainLexiconPath),
+      `${JSON.stringify(
+        buildAnalyzeDomainLexicon({
+          runId: input.runId,
+          graph: input.evidenceGraph,
+          business: input.business,
+        }),
+        null,
+        2,
+      )}\n`,
+    );
+    knowledgeUpdated.push(workspaceDomainLexiconPath);
+  } else if (await exists(join(input.cwd, workspaceDomainLexiconPath))) {
+    await rm(join(input.cwd, workspaceDomainLexiconPath), { force: true });
+  }
 
   const workspaceBusinessModulesPath = ".bbg/knowledge/workspace/business-modules.json";
   await writeTextFile(
@@ -465,6 +499,7 @@ export async function writeAnalyzeKnowledge(input: {
     fusion: input.fusion,
     interview: input.interview,
     knowledgeItems,
+    evidenceGraph: input.evidenceGraph,
   });
   const lifecycleStates = buildAnalyzeKnowledgeLifecycleStates(knowledgeItems);
   const previousKnowledgeItems = parseKnowledgeItems(
@@ -560,11 +595,14 @@ export async function writeAnalyzeKnowledge(input: {
         paths: {
           knowledgeItems: workspaceKnowledgeItemsPath,
           evidenceIndex: workspaceEvidenceIndexPath,
+          evidenceGraph: input.evidenceGraph ? workspaceEvidenceGraphPath : undefined,
+          domainLexicon: input.evidenceGraph ? workspaceDomainLexiconPath : undefined,
           lifecycle: workspaceLifecyclePath,
           runDiff: workspaceRunDiffPath,
           businessChains: workspaceBusinessChainsPath,
           aiAnalysis: input.aiAnalysis ? workspaceAiAnalysisPath : undefined,
           reconciliation: input.reconciliation ? workspaceReconciliationPath : undefined,
+          aiReasoningRequest: input.aiReasoningContractPaths?.[0],
           wikiSummaryPaths: [],
           domainFiles: knowledgeUpdated.filter((pathValue) => pathValue.startsWith(".bbg/knowledge/")),
         },
@@ -583,7 +621,7 @@ export async function writeAnalyzeKnowledge(input: {
       2,
     )}\n`,
   );
-  knowledgeUpdated.push(snapshotPath);
+  knowledgeUpdated.push(...(input.aiReasoningContractPaths ?? []), snapshotPath);
 
   return { knowledgeUpdated, snapshotPath };
 }

@@ -104,7 +104,7 @@ function resolveAnalyzeHandoffMarkdownPath(cwd: string): string {
 }
 
 function buildAnalyzeReplayCommand(request: AnalyzeAgentHandoffRequest): string {
-  const args = ["bbg", "analyze"];
+  const args = ["bbg", "analyze-agent"];
   if (request.focus && request.focus.trim().length > 0) {
     args.push(JSON.stringify(request.focus.trim()));
   }

@@ -20,22 +20,22 @@ describe("hermes command", () => {
 
   it("returns local-memory guidance for query", async () => {
     const cwd = await makeTempDir();
-    await writeTextFile(join(cwd, "commands", "hermes-query.md"), "# /hermes-query\n\nUse local memory first.\n");
+    await writeTextFile(join(cwd, ".bbg", "harness", "commands", "hermes-query.md"), "# /hermes-query\n\nUse local memory first.\n");
 
     const result = await runHermesCommand({ cwd, kind: "query", topic: "rollout process" });
 
     expect(result).toEqual({
       kind: "query",
       topic: "rollout process",
-      commandSpecPath: "commands/hermes-query.md",
+      commandSpecPath: ".bbg/harness/commands/hermes-query.md",
       summary: "Use local memory first. Canonical wiki index is available as the primary local memory entrypoint.",
-      references: ["AGENTS.md", "commands/hermes-query.md", "skills/hermes-memory-router/SKILL.md", "docs/wiki/index.md"],
+      references: ["AGENTS.md", ".bbg/harness/commands/hermes-query.md", ".bbg/harness/skills/hermes-memory-router/SKILL.md", "docs/wiki/index.md"],
     });
   });
 
   it("augments Hermes query results with analyze knowledge references", async () => {
     const cwd = await makeTempDir();
-    await writeTextFile(join(cwd, "commands", "hermes-query.md"), "# /hermes-query\n\nUse local memory first.\n");
+    await writeTextFile(join(cwd, ".bbg", "harness", "commands", "hermes-query.md"), "# /hermes-query\n\nUse local memory first.\n");
     await writeTextFile(
       join(cwd, "docs", "business", "capability-map.md"),
       [
@@ -74,7 +74,7 @@ describe("hermes command", () => {
     const cwd = await makeTempDir();
 
     await expect(runHermesCommand({ cwd, kind: "distill" })).rejects.toThrow(
-      "commands/hermes-distill.md not found. Run `bbg init` first.",
+      ".bbg/harness/commands/hermes-distill.md not found. Run `bbg init` first.",
     );
   });
 });

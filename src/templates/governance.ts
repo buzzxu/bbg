@@ -20,6 +20,8 @@ function langDir(lang: string): string {
 /*  Governance file lists (source paths are relative to packageRoot)   */
 /* ------------------------------------------------------------------ */
 
+const HARNESS_ROOT = ".bbg/harness";
+
 const CORE_AGENTS = [
   "planner",
   "architect",
@@ -78,6 +80,16 @@ const CORE_SKILLS = [
   "context-loading",
   "session-memory",
   "workflow-orchestration",
+  "add-repo",
+  "analyze",
+  "analyze-repo",
+  "start",
+  "resume",
+  "workflow",
+  "hermes",
+  "model-route",
+  "task-start",
+  "deliver",
   "cross-audit",
   "architecture-analysis",
   "business-analysis",
@@ -392,6 +404,18 @@ function handlebarsTask(source: string, destination: string): RenderTemplateTask
   return { source, destination, mode: "handlebars" };
 }
 
+function harnessPath(destination: string): string {
+  return `${HARNESS_ROOT}/${destination}`;
+}
+
+function harnessCopyTask(source: string, destination: string): RenderTemplateTask {
+  return copyTask(source, harnessPath(destination));
+}
+
+function harnessHandlebarsTask(source: string, destination: string): RenderTemplateTask {
+  return handlebarsTask(source, harnessPath(destination));
+}
+
 /* ------------------------------------------------------------------ */
 /*  Detect which languages are present in the template context         */
 /* ------------------------------------------------------------------ */
@@ -452,11 +476,11 @@ export function buildGovernanceManifest(ctx: TemplateContext, plugins?: LoadedPl
 
   // --- Agents ---
   for (const agent of CORE_AGENTS) {
-    tasks.push(copyTask(`agents/${agent}.md`, `agents/${agent}.md`));
+    tasks.push(harnessCopyTask(`agents/${agent}.md`, `agents/${agent}.md`));
   }
   for (const lang of langs) {
     for (const agent of LANGUAGE_AGENTS[lang] ?? []) {
-      tasks.push(copyTask(`agents/${agent}.md`, `agents/${agent}.md`));
+      tasks.push(harnessCopyTask(`agents/${agent}.md`, `agents/${agent}.md`));
     }
   }
 
@@ -469,22 +493,22 @@ export function buildGovernanceManifest(ctx: TemplateContext, plugins?: LoadedPl
     ...WIKI_TRUST_SKILLS,
     ...HERMES_SKILLS,
   ]) {
-    tasks.push(copyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
+    tasks.push(harnessCopyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
   }
   for (const lang of langs) {
     for (const skill of LANGUAGE_SKILLS[lang] ?? []) {
-      tasks.push(copyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
+      tasks.push(harnessCopyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
     }
   }
 
   // --- Rules ---
   for (const rule of COMMON_RULES) {
-    tasks.push(copyTask(`rules/common/${rule}.md`, `rules/common/${rule}.md`));
+    tasks.push(harnessCopyTask(`rules/common/${rule}.md`, `rules/common/${rule}.md`));
   }
   for (const lang of langs) {
     const ruleDir = langDir(lang);
     for (const rule of LANGUAGE_RULES[ruleDir] ?? []) {
-      tasks.push(copyTask(`rules/${ruleDir}/${rule}.md`, `rules/${ruleDir}/${rule}.md`));
+      tasks.push(harnessCopyTask(`rules/${ruleDir}/${rule}.md`, `rules/${ruleDir}/${rule}.md`));
     }
   }
 
@@ -496,50 +520,50 @@ export function buildGovernanceManifest(ctx: TemplateContext, plugins?: LoadedPl
     ...WIKI_TRUST_COMMANDS,
     ...HERMES_COMMANDS,
   ]) {
-    tasks.push(copyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
+    tasks.push(harnessCopyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
   }
   for (const lang of langs) {
     for (const cmd of LANGUAGE_COMMANDS[lang] ?? []) {
-      tasks.push(copyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
+      tasks.push(harnessCopyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
     }
   }
 
   // --- Hooks ---
   for (const hookFile of HOOK_FILES) {
-    tasks.push(copyTask(`hooks/${hookFile}`, `hooks/${hookFile}`));
+    tasks.push(harnessCopyTask(`hooks/${hookFile}`, `hooks/${hookFile}`));
   }
 
   // --- Contexts (Handlebars-rendered) ---
   for (const ctxFile of CONTEXT_HBS_FILES) {
-    tasks.push(handlebarsTask(`handlebars/contexts/${ctxFile}.hbs`, `contexts/${ctxFile}`));
+    tasks.push(harnessHandlebarsTask(`handlebars/contexts/${ctxFile}.hbs`, `contexts/${ctxFile}`));
   }
 
   // --- MCP Configs ---
   for (const mcpFile of MCP_CONFIG_FILES) {
-    tasks.push(copyTask(`mcp-configs/${mcpFile}`, `mcp-configs/${mcpFile}`));
+    tasks.push(harnessCopyTask(`mcp-configs/${mcpFile}`, `mcp-configs/${mcpFile}`));
   }
 
   // --- Workflow Files ---
   for (const script of WORKFLOW_FILES.scripts) {
-    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, harnessPath(`scripts/${script}`)));
   }
   for (const schema of WORKFLOW_FILES.schema) {
-    tasks.push(copyTask(`generic/workflows/${schema}`, `workflows/${schema}`));
+    tasks.push(copyTask(`generic/workflows/${schema}`, harnessPath(`workflows/${schema}`)));
   }
   for (const preset of WORKFLOW_FILES.presets) {
-    tasks.push(copyTask(`generic/workflows/presets/${preset}`, `workflows/presets/${preset}`));
+    tasks.push(copyTask(`generic/workflows/presets/${preset}`, harnessPath(`workflows/presets/${preset}`)));
   }
 
   // --- Backend-only: Red Team Governance ---
   if (isBackendProject(ctx)) {
     for (const skill of BACKEND_GOVERNANCE.skills) {
-      tasks.push(copyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
+      tasks.push(harnessCopyTask(`skills/${skill}/SKILL.md`, `skills/${skill}/SKILL.md`));
     }
     for (const cmd of BACKEND_GOVERNANCE.commands) {
-      tasks.push(copyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
+      tasks.push(harnessCopyTask(`commands/${cmd}.md`, `commands/${cmd}.md`));
     }
     for (const script of BACKEND_GOVERNANCE.scripts) {
-      tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+      tasks.push(copyTask(`generic/.bbg/scripts/${script}`, harnessPath(`scripts/${script}`)));
     }
     for (const doc of BACKEND_GOVERNANCE.docs) {
       tasks.push(copyTask(doc.source, doc.destination));
@@ -551,13 +575,13 @@ export function buildGovernanceManifest(ctx: TemplateContext, plugins?: LoadedPl
 
   // --- BBG Scripts ---
   for (const script of BBG_SCRIPTS) {
-    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, harnessPath(`scripts/${script}`)));
   }
 
   // --- BBG Scripts (language-specific) ---
   for (const lang of langs) {
     for (const script of LANGUAGE_BBG_SCRIPTS[lang] ?? []) {
-      tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+      tasks.push(copyTask(`generic/.bbg/scripts/${script}`, harnessPath(`scripts/${script}`)));
     }
   }
 
@@ -571,12 +595,15 @@ export function buildGovernanceManifest(ctx: TemplateContext, plugins?: LoadedPl
 
   // --- Eval Golden Tasks ---
   for (const evalFile of EVAL_FILES) {
-    tasks.push(copyTask(evalFile, evalFile));
+    tasks.push(copyTask(evalFile, `.bbg/${evalFile}`));
   }
 
   // --- Org Governance (reserved schemas) ---
   for (const orgFile of ORG_GOVERNANCE_FILES) {
-    tasks.push(copyTask(`generic/${orgFile}`, orgFile));
+    const destination = orgFile.startsWith(".bbg/scripts/")
+      ? harnessPath(`scripts/${orgFile.slice(".bbg/scripts/".length)}`)
+      : orgFile;
+    tasks.push(copyTask(`generic/${orgFile}`, destination));
   }
 
   // --- Knowledge Metadata Files ---
@@ -586,13 +613,13 @@ export function buildGovernanceManifest(ctx: TemplateContext, plugins?: LoadedPl
 
   // --- Knowledge Scripts ---
   for (const script of KNOWLEDGE_SCRIPTS) {
-    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, harnessPath(`scripts/${script}`)));
   }
   for (const script of KNOWLEDGE_PROVENANCE_SCRIPTS) {
-    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, harnessPath(`scripts/${script}`)));
   }
   for (const script of HERMES_SCRIPTS) {
-    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, `.bbg/scripts/${script}`));
+    tasks.push(copyTask(`generic/.bbg/scripts/${script}`, harnessPath(`scripts/${script}`)));
   }
 
   // --- Wiki Scaffold Docs ---

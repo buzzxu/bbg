@@ -20,39 +20,39 @@ export interface RunHermesCommandResult {
 
 const HERMES_SPECS: Record<HermesKind, { commandSpecPath: string; summary: string; references: string[] }> = {
   query: {
-    commandSpecPath: "commands/hermes-query.md",
+    commandSpecPath: ".bbg/harness/commands/hermes-query.md",
     summary: "Query local Hermes memory before reinventing a workflow or explanation.",
-    references: ["AGENTS.md", "commands/hermes-query.md", "skills/hermes-memory-router/SKILL.md"],
+    references: ["AGENTS.md", ".bbg/harness/commands/hermes-query.md", ".bbg/harness/skills/hermes-memory-router/SKILL.md"],
   },
   candidates: {
-    commandSpecPath: "commands/hermes-candidates.md",
+    commandSpecPath: ".bbg/harness/commands/hermes-candidates.md",
     summary: "Review local Hermes candidate objects before drafting or resolving them.",
-    references: ["AGENTS.md", "commands/hermes-candidates.md", "skills/hermes-evaluation/SKILL.md"],
+    references: ["AGENTS.md", ".bbg/harness/commands/hermes-candidates.md", ".bbg/harness/skills/hermes-evaluation/SKILL.md"],
   },
   distill: {
-    commandSpecPath: "commands/hermes-distill.md",
+    commandSpecPath: ".bbg/harness/commands/hermes-distill.md",
     summary: "Distill evaluated Hermes candidates into local draft outputs.",
-    references: ["AGENTS.md", "commands/hermes-distill.md", "skills/hermes-distillation/SKILL.md"],
+    references: ["AGENTS.md", ".bbg/harness/commands/hermes-distill.md", ".bbg/harness/skills/hermes-distillation/SKILL.md"],
   },
   "draft-skill": {
-    commandSpecPath: "commands/hermes-draft-skill.md",
+    commandSpecPath: ".bbg/harness/commands/hermes-draft-skill.md",
     summary: "Draft a local reusable skill from evaluated Hermes evidence.",
-    references: ["AGENTS.md", "commands/hermes-draft-skill.md", "skills/hermes-skill-drafting/SKILL.md"],
+    references: ["AGENTS.md", ".bbg/harness/commands/hermes-draft-skill.md", ".bbg/harness/skills/hermes-skill-drafting/SKILL.md"],
   },
   "draft-rule": {
-    commandSpecPath: "commands/hermes-draft-rule.md",
+    commandSpecPath: ".bbg/harness/commands/hermes-draft-rule.md",
     summary: "Draft a local reusable rule from recurring Hermes evidence.",
-    references: ["AGENTS.md", "commands/hermes-draft-rule.md", "skills/hermes-rule-drafting/SKILL.md"],
+    references: ["AGENTS.md", ".bbg/harness/commands/hermes-draft-rule.md", ".bbg/harness/skills/hermes-rule-drafting/SKILL.md"],
   },
   verify: {
-    commandSpecPath: "commands/hermes-verify.md",
+    commandSpecPath: ".bbg/harness/commands/hermes-verify.md",
     summary: "Verify candidate evidence before any promotion decision.",
-    references: ["AGENTS.md", "commands/hermes-verify.md", "skills/hermes-verification/SKILL.md"],
+    references: ["AGENTS.md", ".bbg/harness/commands/hermes-verify.md", ".bbg/harness/skills/hermes-verification/SKILL.md"],
   },
   promote: {
-    commandSpecPath: "commands/hermes-promote.md",
+    commandSpecPath: ".bbg/harness/commands/hermes-promote.md",
     summary: "Record governed promotion decisions for verified Hermes candidates.",
-    references: ["AGENTS.md", "commands/hermes-promote.md", "skills/hermes-promotion/SKILL.md"],
+    references: ["AGENTS.md", ".bbg/harness/commands/hermes-promote.md", ".bbg/harness/skills/hermes-promotion/SKILL.md"],
   },
 };
 

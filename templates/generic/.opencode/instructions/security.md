@@ -5,7 +5,7 @@ Use the repo-level canonical security workflow:
 
 - Read `AGENTS.md`
 - Read `RULES.md`
-- Follow `commands/security-scan.md`
-- Use `skills/security-review/SKILL.md`
+- Follow `.bbg/harness/commands/security-scan.md`
+- Use `.bbg/harness/skills/security-review/SKILL.md`
 - Prefer `bbg workflow security`
 <!-- BBG:END MANAGED -->

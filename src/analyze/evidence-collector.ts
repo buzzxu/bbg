@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import type {
+  AnalyzeCodeReference,
+  AnalyzeEvidenceGraph,
   AnalyzeEvidenceItem,
   AnalyzeInterviewSummary,
   AnalyzeKnowledgeItem,
@@ -39,11 +41,191 @@ function matchKnowledgeIds(summary: string, items: AnalyzeKnowledgeItem[]): stri
   return [...new Set(matched)].slice(0, 6);
 }
 
+function normalizeComparable(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, "");
+}
+
+function codeRef(input: {
+  repo: string;
+  file: string;
+  lineRange: [number, number];
+  symbolName?: string;
+  snippet?: string;
+}): AnalyzeCodeReference {
+  return {
+    repo: input.repo,
+    file: input.file,
+    lineRange: input.lineRange,
+    ...(input.symbolName ? { symbolName: input.symbolName } : {}),
+    ...(input.snippet ? { snippet: input.snippet } : {}),
+  };
+}
+
+function dedupeCodeRefs(values: AnalyzeCodeReference[]): AnalyzeCodeReference[] {
+  const dedup = new Map<string, AnalyzeCodeReference>();
+  for (const value of values) {
+    dedup.set(`${value.repo}:${value.file}:${value.lineRange.join("-")}:${value.symbolName ?? ""}`, value);
+  }
+  return [...dedup.values()].slice(0, 8);
+}
+
+function routeCodeRefs(graph: AnalyzeEvidenceGraph | undefined, repo: string, route: string): AnalyzeCodeReference[] {
+  if (!graph) {
+    return [];
+  }
+  const normalizedRoute = normalizeComparable(route);
+  return dedupeCodeRefs(
+    graph.routes
+      .filter((entry) => entry.repo === repo)
+      .filter((entry) => {
+        const normalizedEntry = normalizeComparable(entry.route);
+        return normalizedEntry.includes(normalizedRoute) || normalizedRoute.includes(normalizedEntry);
+      })
+      .map((entry) =>
+        codeRef({
+          repo: entry.repo,
+          file: entry.file,
+          lineRange: entry.lineRange,
+          snippet: entry.summary,
+        }),
+      ),
+  );
+}
+
+function apiCodeRefs(graph: AnalyzeEvidenceGraph | undefined, repo: string, api: string): AnalyzeCodeReference[] {
+  if (!graph) {
+    return [];
+  }
+  const normalizedApi = normalizeComparable(api);
+  return dedupeCodeRefs(
+    graph.apiEndpoints
+      .filter((entry) => entry.repo === repo)
+      .filter((entry) => {
+        const normalizedEntry = normalizeComparable(entry.path);
+        return normalizedEntry.includes(normalizedApi) || normalizedApi.includes(normalizedEntry);
+      })
+      .map((entry) =>
+        codeRef({
+          repo: entry.repo,
+          file: entry.file,
+          lineRange: entry.lineRange,
+          symbolName: entry.symbolName,
+          snippet: entry.summary,
+        }),
+      ),
+  );
+}
+
+function termCodeRefs(graph: AnalyzeEvidenceGraph | undefined, repo: string, term: string): AnalyzeCodeReference[] {
+  if (!graph) {
+    return [];
+  }
+  const normalizedTerm = normalizeComparable(term);
+  const symbolRefs = graph.symbols
+    .filter((entry) => entry.repo === repo && normalizeComparable(entry.name).includes(normalizedTerm))
+    .map((entry) =>
+      codeRef({
+        repo: entry.repo,
+        file: entry.file,
+        lineRange: entry.lineRange,
+        symbolName: entry.name,
+        snippet: entry.summary,
+      }),
+    );
+  const entityRefs = graph.dtoEntities
+    .filter((entry) => entry.repo === repo && normalizeComparable(entry.name).includes(normalizedTerm))
+    .map((entry) =>
+      codeRef({
+        repo: entry.repo,
+        file: entry.file,
+        lineRange: entry.lineRange,
+        symbolName: entry.name,
+        snippet: entry.summary,
+      }),
+    );
+  return dedupeCodeRefs([...entityRefs, ...symbolRefs]);
+}
+
+function riskCodeRefs(graph: AnalyzeEvidenceGraph | undefined, repo: string, marker: string): AnalyzeCodeReference[] {
+  if (!graph) {
+    return [];
+  }
+  const normalizedMarker = normalizeComparable(marker);
+  const endpointRefs = graph.apiEndpoints
+    .filter(
+      (entry) => entry.repo === repo && normalizeComparable(`${entry.path} ${entry.file}`).includes(normalizedMarker),
+    )
+    .map((entry) =>
+      codeRef({
+        repo: entry.repo,
+        file: entry.file,
+        lineRange: entry.lineRange,
+        snippet: entry.summary,
+      }),
+    );
+  const symbolRefs = graph.symbols
+    .filter(
+      (entry) => entry.repo === repo && normalizeComparable(`${entry.name} ${entry.file}`).includes(normalizedMarker),
+    )
+    .map((entry) =>
+      codeRef({
+        repo: entry.repo,
+        file: entry.file,
+        lineRange: entry.lineRange,
+        symbolName: entry.name,
+        snippet: entry.summary,
+      }),
+    );
+  return dedupeCodeRefs([...endpointRefs, ...symbolRefs]);
+}
+
+function repoCodeRefs(graph: AnalyzeEvidenceGraph | undefined, repo: string): AnalyzeCodeReference[] {
+  if (!graph) {
+    return [];
+  }
+  return dedupeCodeRefs(
+    graph.files
+      .filter((entry) => entry.repo === repo && entry.kind !== "unknown")
+      .slice(0, 4)
+      .map((entry) =>
+        codeRef({
+          repo: entry.repo,
+          file: entry.path,
+          lineRange: [1, Math.min(entry.lineCount, 1)],
+          snippet: `${entry.kind} ${entry.language}`,
+        }),
+      ),
+  );
+}
+
+function integrationCodeRefs(
+  graph: AnalyzeEvidenceGraph | undefined,
+  edge: WorkspaceFusionResult["integrationEdges"][number],
+): AnalyzeCodeReference[] {
+  if (!graph) {
+    return [];
+  }
+  return dedupeCodeRefs(
+    graph.apiEndpoints
+      .filter((entry) => entry.repo === edge.from || entry.repo === edge.to)
+      .slice(0, 8)
+      .map((entry) =>
+        codeRef({
+          repo: entry.repo,
+          file: entry.file,
+          lineRange: entry.lineRange,
+          snippet: entry.summary,
+        }),
+      ),
+  );
+}
+
 function createEvidence(input: {
   runId: string;
   type: AnalyzeEvidenceItem["type"];
   summary: string;
   sourceRefs: string[];
+  codeRefs?: AnalyzeCodeReference[];
   clarity: number;
   relatedKnowledgeIds: string[];
 }): AnalyzeEvidenceItem {
@@ -53,7 +235,7 @@ function createEvidence(input: {
     type: input.type,
     summary: input.summary,
     sourceRefs: input.sourceRefs,
-    codeRefs: [],
+    codeRefs: dedupeCodeRefs(input.codeRefs ?? []),
     clarity: clamp(input.clarity),
     relatedKnowledgeIds: input.relatedKnowledgeIds,
     contradictions: [],
@@ -67,6 +249,7 @@ export function collectAnalyzeEvidenceItems(input: {
   fusion: WorkspaceFusionResult;
   interview: AnalyzeInterviewSummary | null;
   knowledgeItems: AnalyzeKnowledgeItem[];
+  evidenceGraph?: AnalyzeEvidenceGraph;
 }): AnalyzeEvidenceItem[] {
   const evidence: AnalyzeEvidenceItem[] = [];
 
@@ -79,6 +262,7 @@ export function collectAnalyzeEvidenceItems(input: {
           type: "code-structure",
           summary,
           sourceRefs: [`repo:${technical.repo.name}`],
+          codeRefs: repoCodeRefs(input.evidenceGraph, technical.repo.name),
           clarity: 0.72,
           relatedKnowledgeIds: matchKnowledgeIds(summary, input.knowledgeItems),
         }),
@@ -93,6 +277,7 @@ export function collectAnalyzeEvidenceItems(input: {
           type: "route-entrypoint",
           summary,
           sourceRefs: [`repo:${technical.repo.name}`],
+          codeRefs: routeCodeRefs(input.evidenceGraph, technical.repo.name, route),
           clarity: 0.68,
           relatedKnowledgeIds: matchKnowledgeIds(summary, input.knowledgeItems),
         }),
@@ -107,6 +292,7 @@ export function collectAnalyzeEvidenceItems(input: {
           type: "api-entrypoint",
           summary,
           sourceRefs: [`repo:${technical.repo.name}`],
+          codeRefs: apiCodeRefs(input.evidenceGraph, technical.repo.name, api),
           clarity: 0.7,
           relatedKnowledgeIds: matchKnowledgeIds(summary, input.knowledgeItems),
         }),
@@ -121,6 +307,7 @@ export function collectAnalyzeEvidenceItems(input: {
           type: "risk-marker",
           summary,
           sourceRefs: [`repo:${technical.repo.name}`],
+          codeRefs: riskCodeRefs(input.evidenceGraph, technical.repo.name, marker),
           clarity: 0.64,
           relatedKnowledgeIds: matchKnowledgeIds(summary, input.knowledgeItems),
         }),
@@ -137,6 +324,7 @@ export function collectAnalyzeEvidenceItems(input: {
           type: "domain-term",
           summary,
           sourceRefs: [`repo:${repo.repoName}`],
+          codeRefs: termCodeRefs(input.evidenceGraph, repo.repoName, term),
           clarity: 0.55,
           relatedKnowledgeIds: matchKnowledgeIds(summary, input.knowledgeItems),
         }),
@@ -151,6 +339,7 @@ export function collectAnalyzeEvidenceItems(input: {
           type: "entity-term",
           summary,
           sourceRefs: [`repo:${repo.repoName}`],
+          codeRefs: termCodeRefs(input.evidenceGraph, repo.repoName, term),
           clarity: 0.58,
           relatedKnowledgeIds: matchKnowledgeIds(summary, input.knowledgeItems),
         }),
@@ -166,6 +355,7 @@ export function collectAnalyzeEvidenceItems(input: {
         type: "integration-signal",
         summary,
         sourceRefs: [`edge:${edge.from}->${edge.to}`],
+        codeRefs: integrationCodeRefs(input.evidenceGraph, edge),
         clarity: 0.75,
         relatedKnowledgeIds: matchKnowledgeIds(summary, input.knowledgeItems),
       }),

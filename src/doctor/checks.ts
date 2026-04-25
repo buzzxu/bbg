@@ -53,14 +53,14 @@ const WORKFLOW_DOCS = [
 
 const TASK_TEMPLATES = ["docs/tasks/TEMPLATE.md", "docs/changes/TEMPLATE.md", "docs/handoffs/TEMPLATE.md"];
 const PRIMARY_COMMAND_DOCS = [
-  "commands/analyze.md",
-  "commands/start.md",
-  "commands/resume.md",
-  "commands/status.md",
-  "commands/add-repo.md",
+  ".bbg/harness/commands/analyze.md",
+  ".bbg/harness/commands/start.md",
+  ".bbg/harness/commands/resume.md",
+  ".bbg/harness/commands/status.md",
+  ".bbg/harness/commands/add-repo.md",
 ];
 
-const REQUIRED_SCRIPTS = ["scripts/doctor.py", "scripts/sync_versions.py"];
+const REQUIRED_SCRIPTS = [".bbg/harness/scripts/doctor.py", ".bbg/harness/scripts/sync_versions.py"];
 const REQUIRED_HOOKS = [".githooks/pre-commit", ".githooks/pre-push"];
 const REQUIRED_RUNTIME_SCRIPTS = ["build", "typecheck", "test", "lint"] as const;
 const SHELL_BUILTIN_COMMANDS = new Set([
@@ -628,8 +628,8 @@ export async function runHarnessRuntimeChecks(input: {
   checks.push(telemetryCheck);
 
   const [datasetFiles, experimentFiles] = await Promise.all([
-    fg("evals/*.dataset.json", { cwd: input.cwd, onlyFiles: true, dot: false }),
-    fg("evals/*.experiment.json", { cwd: input.cwd, onlyFiles: true, dot: false }),
+    fg([".bbg/evals/*.dataset.json", "evals/*.dataset.json"], { cwd: input.cwd, onlyFiles: true, dot: true }),
+    fg([".bbg/evals/*.experiment.json", "evals/*.experiment.json"], { cwd: input.cwd, onlyFiles: true, dot: true }),
   ]);
   const missingEvalArtifacts: string[] = [];
   if (datasetFiles.length === 0) {

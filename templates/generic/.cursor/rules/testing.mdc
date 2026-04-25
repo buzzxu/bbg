@@ -11,7 +11,7 @@ Use the repo-level canonical TDD workflow:
 
 - Read `AGENTS.md`
 - Read `RULES.md`
-- Follow `commands/tdd.md`
-- Use `skills/tdd-workflow/SKILL.md`
+- Follow `.bbg/harness/commands/tdd.md`
+- Use `.bbg/harness/skills/tdd-workflow/SKILL.md`
 - Prefer `bbg workflow tdd`
 <!-- BBG:END MANAGED -->

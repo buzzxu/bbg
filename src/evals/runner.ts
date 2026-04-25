@@ -13,7 +13,7 @@ import { runVerifyCommand } from "../commands/verify.js";
 import { getTaskRoot, syncTaskContextFromSession, readTaskSession } from "../runtime/tasks.js";
 import { readLoopState } from "../runtime/loops.js";
 import { readJsonStore, writeJsonStore } from "../runtime/store.js";
-import { exists, readTextFile, writeTextFile } from "../utils/fs.js";
+import { exists, writeTextFile } from "../utils/fs.js";
 import { gradeDeterministicResult } from "./graders.js";
 import { appendEvalHistory } from "./history.js";
 import { computeEvalMetrics, type EvalCaseMetrics, type EvalExperimentMetrics } from "./metrics.js";

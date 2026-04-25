@@ -1,4 +1,5 @@
 import type { WorkflowDecisionSet, WorkflowKind } from "../workflow/types.js";
+import type { AnalyzeProgressEvent } from "../analyze/types.js";
 import type { TaskEnvManifest } from "./task-envs.js";
 
 export type TaskSessionStatus =
@@ -240,6 +241,7 @@ export interface TaskStatusSummary {
     runId: string | null;
     status: string | null;
     scope: string | null;
+    progress: AnalyzeProgressEvent | null;
     quarantine: {
       count: number;
       latestQuarantinedAt: string | null;

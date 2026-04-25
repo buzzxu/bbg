@@ -12,10 +12,7 @@ export function isAnalyzeAiAnalysisResult(value: unknown): value is AnalyzeAiAna
   return (
     isRecord(value) &&
     typeof value.enabled === "boolean" &&
-    (value.mode === "provider" ||
-      value.mode === "handoff" ||
-      value.mode === "heuristic-fallback" ||
-      value.mode === "disabled") &&
+    (value.mode === "provider" || value.mode === "handoff" || value.mode === "disabled") &&
     (value.provider === null || typeof value.provider === "string") &&
     (value.modelClass === null ||
       value.modelClass === "fast" ||

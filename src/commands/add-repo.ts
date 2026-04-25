@@ -5,7 +5,7 @@ import { analyzeRepo } from "../analyzers/index.js";
 import type { FileHashRecord } from "../config/hash.js";
 import { sha256Hex } from "../config/hash.js";
 import { parseConfig, serializeConfig } from "../config/read-write.js";
-import type { RepoEntry, RepoType } from "../config/schema.js";
+import type { RepoEntry, RepoType, StackInfo } from "../config/schema.js";
 import { CLI_VERSION, REPO_TYPE_CHOICES } from "../constants.js";
 import { writeRepoRegistrationState } from "../runtime/repos.js";
 import { buildTemplateContext } from "../templates/context.js";
@@ -23,7 +23,11 @@ export interface RunAddRepoInput {
   cwd: string;
   url?: string;
   branch?: string;
+  type?: RepoType;
+  description?: string;
   analyze?: boolean;
+  yes?: boolean;
+  overwrite?: boolean;
 }
 
 export interface RunAddRepoResult {
@@ -32,6 +36,31 @@ export interface RunAddRepoResult {
 
 function isWorkspaceChildRelativePath(relativePath: string): boolean {
   return relativePath.length > 0 && !relativePath.startsWith("..") && !relativePath.includes("/");
+}
+
+function isRepoType(value: string | undefined): value is RepoType {
+  return REPO_TYPE_CHOICES.some((choice) => choice.value === value);
+}
+
+function inferRepoType(stack: StackInfo): RepoType {
+  const signal = [stack.language, stack.framework, stack.buildTool, stack.packageManager]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (/\b(taro|uni-app|h5|mobile)\b/.test(signal)) return "frontend-h5";
+  if (/\b(electron|tauri|desktop)\b/.test(signal)) return "frontend-pc";
+  if (/\b(react|vue|next|nuxt|vite|angular|svelte)\b/.test(signal)) return "frontend-web";
+  if (/\b(spring|java|nestjs|express|koa|fastapi|django|flask|gin|axum|actix|rails|laravel)\b/.test(signal)) {
+    return "backend";
+  }
+
+  return "other";
+}
+
+function buildDefaultDescription(repoName: string, type: RepoType, stack: StackInfo): string {
+  const stackLabel = [stack.language, stack.framework].filter((value) => value && value !== "unknown").join("/");
+  return stackLabel ? `${repoName} ${type} repository (${stackLabel})` : `${repoName} ${type} repository`;
 }
 
 async function restoreFile(pathValue: string, previousContent: string | null): Promise<void> {
@@ -87,11 +116,13 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     }));
     resolvedBranch = resolvedBranch
       ? resolvedBranch
-      : await promptSelect<string>({
-          message: uiText("addRepo.selectDefaultBranch"),
-          choices: branchChoices,
-          default: branchChoices[0]?.value,
-        });
+      : input.yes
+        ? (branchChoices[0]?.value ?? "main")
+        : await promptSelect<string>({
+            message: uiText("addRepo.selectDefaultBranch"),
+            choices: branchChoices,
+            default: branchChoices[0]?.value,
+          });
 
     if (!branchChoices.some((choice) => choice.value === resolvedBranch)) {
       throw new Error(`Branch ${resolvedBranch} is not available in remote branches.`);
@@ -109,25 +140,38 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
 
   const existingIndex = config.repos.findIndex((repo) => repo.name === repoName);
   if (existingIndex !== -1) {
-    const overwrite = await promptConfirm({
-      message: uiText("addRepo.repositoryAlreadyRegistered", { value: repoName }),
-      default: false,
-    });
+    const overwrite = input.yes
+      ? input.overwrite === true
+      : await promptConfirm({
+          message: uiText("addRepo.repositoryAlreadyRegistered", { value: repoName }),
+          default: false,
+        });
     if (!overwrite) {
       throw new Error(`Repository ${repoName} is already registered in config.`);
     }
   }
 
   const analysis = await analyzeRepo(targetDir);
-  const stack = await collectStackInfo(analysis.stack);
+  const stack = input.yes ? analysis.stack : await collectStackInfo(analysis.stack);
 
-  const type = await promptSelect<RepoType>({
-    message: uiText("addRepo.repositoryType"),
-    choices: REPO_TYPE_CHOICES,
-    default: "other",
-  });
+  if (input.type !== undefined && !isRepoType(input.type)) {
+    throw new Error(`Repository type ${input.type} is invalid.`);
+  }
+
+  const type =
+    input.type ??
+    (input.yes
+      ? inferRepoType(stack)
+      : await promptSelect<RepoType>({
+          message: uiText("addRepo.repositoryType"),
+          choices: REPO_TYPE_CHOICES,
+          default: "other",
+        }));
   const description = sanitizePromptValue(
-    await promptInput({ message: uiText("addRepo.repositoryDescription"), default: "" }),
+    input.description ??
+      (input.yes
+        ? buildDefaultDescription(repoName, type, stack)
+        : await promptInput({ message: uiText("addRepo.repositoryDescription"), default: "" })),
     "",
   );
 
@@ -223,15 +267,15 @@ export async function runAddRepo(input: RunAddRepoInput): Promise<RunAddRepoResu
     throw error;
   }
 
-  const shouldAnalyzeNow = input.analyze ?? true;
+  const shouldAnalyzeNow = input.analyze ?? false;
   let analyzeStatus: "completed" | "pending" | "failed" = "pending";
   let workspaceFusionStatus: "completed" | "pending" | "failed" = "pending";
 
   if (shouldAnalyzeNow) {
     try {
-      await runAnalyzeCommand({ cwd: input.cwd, repos: [repoName] });
-      analyzeStatus = "completed";
-      workspaceFusionStatus = "completed";
+      const analyze = await runAnalyzeCommand({ cwd: input.cwd, repos: [repoName] });
+      analyzeStatus = analyze.status === "completed" ? "completed" : "pending";
+      workspaceFusionStatus = analyze.status === "completed" ? "completed" : "pending";
     } catch {
       analyzeStatus = "failed";
       workspaceFusionStatus = "failed";

@@ -52,7 +52,7 @@ your-project/
 ├── .codex/                            # Codex CLI configuration
 ├── .gemini/                           # Gemini settings + command prompts
 ├── agents/                            # 25 agent definitions
-├── skills/                            # 76 skill workflows
+├── skills/                            # AI skill workflows
 ├── rules/                             # 34 rule files (8 languages)
 ├── commands/                          # 40 slash commands
 ├── hooks/                             # Hook automation
@@ -70,7 +70,7 @@ your-project/
 - **Auto-changelog** — `bbg release` generates conventional-commit-based changelogs
 - **Self-checks** — `bbg doctor --self` validates governance content integrity (7 checks)
 - **Plugin architecture** _(experimental)_ — Extend with custom agents, skills, rules, and commands
-- **Comprehensive scaffold** — 25 agents, 76 skills, 34 rules, 66 commands
+- **Comprehensive scaffold** — agents, skills, rules, commands, hooks, and runtime governance assets
 
 ## Supported AI Tools
 
@@ -111,15 +111,9 @@ bbg init --yes        # Accept defaults, skip prompts
 bbg init --dry-run    # Show what would be created
 ```
 
-### `bbg add-repo`
+### Add Repo Skill
 
-Add a repository to the current workspace configuration.
-
-```bash
-bbg add-repo                        # Interactive
-bbg add-repo --url <git-url>        # Specify URL
-bbg add-repo --url <url> --branch main
-```
+Register repositories through AI using `skills/add-repo/SKILL.md`. The skill uses BBG's internal runner, verifies registration state, and then continues with Analyze Skill for business and technical understanding.
 
 ### `bbg doctor`
 
@@ -163,32 +157,17 @@ Repair generated AI tool adapter files while preserving managed sections where p
 bbg repair-adapters
 ```
 
-### `bbg workflow`
+### AI Workflow Skills
 
-Show canonical repo workflow guidance that all supported AI tools can share.
+AI-native workflows run through five user-facing skills instead of public CLI commands:
 
-```bash
-bbg workflow plan "add adapter integrity checks"
-bbg workflow review "review pending changes"
-bbg workflow tdd "implement repo workflow command"
-bbg workflow security "audit generated adapters"
-```
+- `skills/analyze/SKILL.md` analyzes the full workspace or focused business functions
+- `skills/add-repo/SKILL.md` registers local/remote sub-projects and continues analysis
+- `skills/start/SKILL.md` starts governed implementation work
+- `skills/resume/SKILL.md` resumes structured task sessions
+- `skills/deliver/SKILL.md` creates customer-facing delivery reports
 
-Workflow guidance may recommend explicit Hermes follow-up commands such as `bbg hermes query`, `bbg hermes distill`, `bbg hermes draft-skill`, or `bbg hermes draft-rule` when reusable patterns are detected. Hermes should complement the default workflow path, not replace it or run automatically for every task.
-
-### `bbg hermes`
-
-Show canonical Hermes learning guidance for local query, distillation, drafting, verification, and promotion flows.
-
-```bash
-bbg hermes query "current rollout process"
-bbg hermes candidates
-bbg hermes distill
-bbg hermes draft-skill
-bbg hermes draft-rule
-bbg hermes verify
-bbg hermes promote
-```
+Internal orchestration skills are still generated, but users do not need to learn or call them directly.
 
 ### `bbg task-env`
 
@@ -329,13 +308,15 @@ Plugin content merges with built-in governance content during generation. Plugin
 | Language        | 6     | typescript-reviewer, python-reviewer, go-reviewer               |
 | Build Resolvers | 6     | typescript-build-resolver, go-build-resolver                    |
 
-### Skills (76)
+### Skills
 
-| Category   | Count | Examples                                                     |
-| ---------- | ----- | ------------------------------------------------------------ |
-| Core       | 21    | tdd-workflow, security-review, verification-loop, api-design |
-| Language   | 24    | typescript-patterns, react-patterns, python-patterns         |
-| Operations | 18    | ci-cd-patterns, monitoring-patterns, agent-handoff           |
+| Category | Examples |
+| -------- | -------- |
+| User-facing | analyze, add-repo, start, resume, deliver |
+| Internal orchestration | workflow, task-start, model-route, analyze-repo, cross-audit, hermes |
+| Engineering | tdd-workflow, security-review, verification-loop, api-design |
+| Language | typescript-patterns, react-patterns, python-patterns |
+| Operations | ci-cd-patterns, monitoring-patterns, agent-handoff |
 
 ### Rules (34)
 

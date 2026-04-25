@@ -6,6 +6,10 @@ export function isManagedAdapterPath(pathValue: string): boolean {
 
   return normalizedPath === "CLAUDE.md"
     || normalizedPath === ".codex/AGENTS.md"
+    || normalizedPath.startsWith(".claude/skills/")
+    || normalizedPath.startsWith(".codex/skills/")
+    || normalizedPath.startsWith(".gemini/skills/")
+    || normalizedPath.startsWith(".opencode/skills/")
     || normalizedPath.startsWith(".claude/commands/")
     || normalizedPath.startsWith(".opencode/commands/")
     || normalizedPath.startsWith(".opencode/instructions/")

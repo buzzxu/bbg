@@ -5,9 +5,9 @@ description: Run the primary task start flow
 # /start -- Primary Task Entry
 
 <!-- BBG:BEGIN MANAGED -->
-Run `bbg start "<task>"`.
+Run the project-local BBG Start Skill adapter: `.opencode/skills/bbg-start/SKILL.md`, then follow `.bbg/harness/skills/start/SKILL.md`.
 
-After `bbg start`, prefer the structured task state from:
+The skill may call `bbg start-agent "<task>"` internally. After task state exists, prefer:
 
 1. `.bbg/tasks/<task-id>/context.json`
 2. `.bbg/tasks/<task-id>/handoff.md`
@@ -19,6 +19,6 @@ If the CLI task flow is unavailable:
 
 1. Read `AGENTS.md`
 2. Read `RULES.md`
-3. Follow `commands/start.md`
-4. Resume an existing task with `bbg resume <task-id>` when applicable
+3. Follow `.bbg/harness/commands/start.md`
+4. Resume an existing task with `.bbg/harness/skills/resume/SKILL.md` when applicable
 <!-- BBG:END MANAGED -->

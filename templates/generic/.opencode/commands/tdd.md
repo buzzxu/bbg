@@ -5,12 +5,12 @@ description: Enter the repo-level TDD workflow
 # /tdd -- Repo Workflow Entry
 
 <!-- BBG:BEGIN MANAGED -->
-Run `bbg workflow tdd`.
+Run the Workflow Skill: `.bbg/harness/skills/workflow/SKILL.md` with kind `tdd`.
 
 If the CLI workflow is unavailable:
 
 1. Read `AGENTS.md`
 2. Read `RULES.md`
-3. Follow `commands/tdd.md`
-4. Use `skills/tdd-workflow/SKILL.md`
+3. Follow `.bbg/harness/commands/tdd.md`
+4. Use `.bbg/harness/skills/tdd-workflow/SKILL.md`
 <!-- BBG:END MANAGED -->

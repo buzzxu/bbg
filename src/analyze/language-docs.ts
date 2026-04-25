@@ -547,7 +547,7 @@ function renderBulletSection(title: string, values: string[]): string[] {
 function versionUpgradeCandidates(language: LanguageKey, detectedVersion: string | undefined): string[] {
   if (!detectedVersion) {
     return [
-      "Version was not detected automatically. Re-run `bbg analyze --refresh` after build metadata is available.",
+      "Version was not detected automatically. Re-run the Analyze Skill after build metadata is available.",
     ];
   }
 
@@ -601,7 +601,7 @@ function versionUpgradeCandidates(language: LanguageKey, detectedVersion: string
   }
 }
 
-function modernFeaturePreferences(language: LanguageKey, detectedVersion: string | undefined): string[] {
+function modernFeaturePreferences(language: LanguageKey, _detectedVersion: string | undefined): string[] {
   switch (language) {
     case "java":
       return [

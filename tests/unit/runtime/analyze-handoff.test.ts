@@ -101,7 +101,7 @@ describe("runtime/analyze-handoff", () => {
 
     expect(writeResult.jsonPath).toBe(".bbg/analyze/handoff/latest.json");
     expect(writeResult.markdownPath).toBe(".bbg/analyze/handoff/latest.md");
-    expect(writeResult.handoff.command).toBe("bbg analyze --repo backend --refresh --interview guided");
+    expect(writeResult.handoff.command).toBe("bbg analyze-agent --repo backend --refresh --interview guided");
 
     const stored = await readLatestAnalyzeAgentHandoff(cwd);
     expect(stored?.status).toBe("pending");
@@ -145,7 +145,7 @@ describe("runtime/analyze-handoff", () => {
       },
     });
 
-    expect(writeResult.handoff.command).toBe('bbg analyze "checkout flow" --repo backend');
+    expect(writeResult.handoff.command).toBe('bbg analyze-agent "checkout flow" --repo backend');
   });
 
   it("ignores invalid persisted handoff state", async () => {

@@ -121,7 +121,7 @@ describe("target project primary flow", () => {
     workflowState.runWorkflowCommand.mockResolvedValue({
       kind: "plan",
       task: "Fix checkout timeout",
-      commandSpecPath: "commands/start.md",
+      commandSpecPath: ".bbg/harness/commands/start.md",
       summary: "Fix the checkout timeout issue with regression coverage.",
       references: ["AGENTS.md", "RULES.md"],
       hermesRecommendations: ["Look up similar checkout incidents before coding."],
@@ -176,9 +176,9 @@ describe("target project primary flow", () => {
     hermesState.runHermesCommand.mockResolvedValue({
       kind: "query",
       topic: "Fix checkout timeout",
-      commandSpecPath: "commands/hermes-query.md",
+      commandSpecPath: ".bbg/harness/commands/hermes-query.md",
       summary: "Similar checkout incidents found in Hermes.",
-      references: ["commands/hermes-query.md"],
+      references: [".bbg/harness/commands/hermes-query.md"],
     });
     runnerState.launchConfiguredAgentRunner.mockResolvedValue(null);
   });
@@ -236,8 +236,8 @@ describe("target project primary flow", () => {
         strategy: "default",
         topic: "Fix checkout timeout",
         summary: "Similar checkout incidents found in Hermes.",
-        commandSpecPath: "commands/hermes-query.md",
-        references: ["commands/hermes-query.md"],
+        commandSpecPath: ".bbg/harness/commands/hermes-query.md",
+        references: [".bbg/harness/commands/hermes-query.md"],
         influencedWorkflow: true,
         influencedRecovery: false,
         influencedVerification: false,

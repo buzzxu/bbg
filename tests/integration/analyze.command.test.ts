@@ -106,9 +106,35 @@ describe("analyze command", () => {
   it("writes architecture docs for selected repos", async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
+    const progressEvents: Array<{ phase: string; status: string; progressPercent: number; nextAction: string | null }> =
+      [];
 
-    const result = await runAnalyzeCommand({ cwd, repos: ["repo-a"] });
+    const result = await runAnalyzeCommand({
+      cwd,
+      repos: ["repo-a"],
+      progress: (event) => {
+        progressEvents.push({
+          phase: event.phase,
+          status: event.status,
+          progressPercent: event.progressPercent,
+          nextAction: event.nextAction,
+        });
+      },
+    });
 
+    expect(result.status).toBe("partial");
+    expect(progressEvents[0]).toMatchObject({ phase: "discovery", status: "running", progressPercent: 0 });
+    expect(progressEvents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ phase: "evidence-graph", status: "completed" }),
+        expect.objectContaining({
+          phase: "ai-analysis",
+          status: "pending",
+          nextAction: expect.stringContaining("response.json"),
+        }),
+        expect.objectContaining({ phase: "ai-analysis", status: "partial" }),
+      ]),
+    );
     expect(result.analyzedRepos).toEqual(["repo-a"]);
     expect(result.runId).toBeTruthy();
     expect(result.scope).toBe("repo");
@@ -141,9 +167,27 @@ describe("analyze command", () => {
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/domain-model.json");
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/risk-surface.json");
     expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/change-impact.json");
-    expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/ai-analysis.json");
-    expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/reconciliation-report.json");
+    expect(result.knowledgeUpdated).not.toContain(".bbg/knowledge/workspace/ai-analysis.json");
+    expect(result.knowledgeUpdated).not.toContain(".bbg/knowledge/workspace/reconciliation-report.json");
+    expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/evidence-graph.json");
+    expect(result.knowledgeUpdated).toContain(".bbg/knowledge/workspace/domain-lexicon.json");
+    expect(result.knowledgeUpdated).toContain(".bbg/analyze/ai/request.json");
+    expect(result.knowledgeUpdated).toContain(".bbg/analyze/ai/instructions.md");
+    expect(result.knowledgeUpdated).toContain(".bbg/analyze/ai/agent-task.md");
+    expect(result.knowledgeUpdated).toContain(".bbg/analyze/ai/response.schema.json");
+    expect(result.aiAgentTaskPath).toBe(".bbg/analyze/ai/agent-task.md");
+    expect(result.aiResponsePath).toBe(".bbg/analyze/ai/response.json");
+    expect(result.nextAction).toContain(".bbg/analyze/ai/agent-task.md");
     expect(result.phases.some((phase) => phase.name === "deep-interview")).toBe(true);
+    expect(result.phases.some((phase) => phase.name === "evidence-graph" && phase.status === "completed")).toBe(true);
+    expect(
+      result.phases.some(
+        (phase) =>
+          phase.name === "ai-analysis" &&
+          phase.status === "pending" &&
+          phase.details.includes("source=missing-external-response"),
+      ),
+    ).toBe(true);
     expect(result.interview?.mode).toBeTruthy();
     const latest = JSON.parse(
       await import("node:fs/promises").then(({ readFile }) =>
@@ -157,6 +201,16 @@ describe("analyze command", () => {
     expect(latest.runId).toBe(result.runId);
     expect(latest.repos).toEqual(["repo-a"]);
     expect(latest.phases?.some((phase) => phase.name === "deep-interview")).toBe(true);
+    const currentProgress = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "analyze", "current.json"), "utf8"),
+      ),
+    ) as { phase: string; status: string; nextAction: string | null };
+    expect(currentProgress).toMatchObject({
+      phase: "ai-analysis",
+      status: "partial",
+      nextAction: expect.stringContaining("agent-task.md"),
+    });
     const knowledge = JSON.parse(
       await import("node:fs/promises").then(({ readFile }) =>
         readFile(join(cwd, ".bbg", "knowledge", "repos", "repo-a", "technical.json"), "utf8"),
@@ -225,12 +279,58 @@ describe("analyze command", () => {
       readFile(join(cwd, "docs", "business", "analysis-dimensions.md"), "utf8"),
     );
     expect(analysisDimensionsDoc).toContain("# 分析维度");
-    const aiAnalysis = JSON.parse(
+    expect(await exists(join(cwd, ".bbg", "knowledge", "workspace", "ai-analysis.json"))).toBe(false);
+    expect(await exists(join(cwd, ".bbg", "knowledge", "workspace", "reconciliation-report.json"))).toBe(false);
+    const evidenceGraph = JSON.parse(
       await import("node:fs/promises").then(({ readFile }) =>
-        readFile(join(cwd, ".bbg", "knowledge", "workspace", "ai-analysis.json"), "utf8"),
+        readFile(join(cwd, ".bbg", "analyze", "evidence", "evidence-graph.json"), "utf8"),
       ),
-    ) as { analysis: { businessArchitectureNarrative: string[] } };
-    expect(aiAnalysis.analysis.businessArchitectureNarrative.length).toBeGreaterThan(0);
+    ) as { files: unknown[]; routes: Array<{ file: string }>; apiEndpoints: Array<{ path: string; file: string }> };
+    expect(evidenceGraph.files.length).toBeGreaterThanOrEqual(2);
+    expect(evidenceGraph.routes).toEqual(
+      expect.arrayContaining([expect.objectContaining({ file: "src/pages/checkout/index.tsx" })]),
+    );
+    expect(evidenceGraph.apiEndpoints).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: "/api/orders", file: "src/api/orders.ts" })]),
+    );
+    const domainLexicon = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "knowledge", "workspace", "domain-lexicon.json"), "utf8"),
+      ),
+    ) as { terms: Array<{ term: string; sourceKinds: string[] }> };
+    expect(domainLexicon.terms.map((entry) => entry.term)).toEqual(expect.arrayContaining(["Checkout"]));
+    expect(domainLexicon.terms.some((entry) => entry.sourceKinds.includes("api-endpoint"))).toBe(true);
+    const evidenceIndex = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "knowledge", "workspace", "evidence-index.json"), "utf8"),
+      ),
+    ) as { evidence: Array<{ type: string; codeRefs: Array<{ file: string }> }> };
+    expect(
+      evidenceIndex.evidence.some(
+        (entry) =>
+          entry.type === "route-entrypoint" &&
+          entry.codeRefs.some((ref) => ref.file === "src/pages/checkout/index.tsx"),
+      ),
+    ).toBe(true);
+    expect(
+      evidenceIndex.evidence.some(
+        (entry) => entry.type === "api-entrypoint" && entry.codeRefs.some((ref) => ref.file === "src/api/orders.ts"),
+      ),
+    ).toBe(true);
+    const aiRequest = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "analyze", "ai", "request.json"), "utf8"),
+      ),
+    ) as { inputSignature: string; evidenceGraphDigest: { counts: { routes: number; apiEndpoints: number } } };
+    expect(aiRequest.inputSignature).toMatch(/^[a-f0-9]{24}$/);
+    expect(aiRequest.evidenceGraphDigest.counts.routes).toBeGreaterThan(0);
+    expect(aiRequest.evidenceGraphDigest.counts.apiEndpoints).toBeGreaterThan(0);
+    const aiAgentTask = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(join(cwd, ".bbg", "analyze", "ai", "agent-task.md"), "utf8"),
+    );
+    expect(aiAgentTask).toContain("BBG_AGENT_ACTION_REQUIRED");
+    expect(aiAgentTask).toContain(".bbg/analyze/ai/response.json");
+    expect(aiAgentTask).toContain("bbg analyze-agent --repo repo-a");
   });
 
   it("captures guided interview answers into analyze knowledge and wiki artifacts", async () => {
@@ -353,7 +453,7 @@ describe("analyze command", () => {
 
     const result = await runAnalyzeCommand({ cwd, repos: ["repo-a"] });
 
-    expect(result.status).toBe("completed");
+    expect(result.status).toBe("partial");
     expect(result.interview?.mode).toMatch(/guided|deep/);
     expect(result.interview?.assumptionsApplied.map((assumption) => assumption.key)).toEqual(
       expect.arrayContaining(["nonNegotiableConstraints", "decisionHistory"]),
@@ -380,6 +480,63 @@ describe("analyze command", () => {
     delete process.env.CODEX_THREAD_ID;
   });
 
+  it("can reuse a provider-agnostic AI reasoning response by input signature", async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+
+    const first = await runAnalyzeCommand({ cwd, repos: ["repo-a"] });
+    expect(first.status).toBe("partial");
+    const request = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "analyze", "ai", "request.json"), "utf8"),
+      ),
+    ) as { runId: string; inputSignature: string };
+    expect(await exists(join(cwd, ".bbg", "knowledge", "workspace", "ai-analysis.json"))).toBe(false);
+
+    await writeTextFile(
+      join(cwd, ".bbg", "analyze", "ai", "response.json"),
+      `${JSON.stringify(
+        {
+          version: 1,
+          runId: first.runId,
+          inputSignature: request.inputSignature,
+          analysis: {
+            enabled: true,
+            mode: "handoff",
+            provider: "codex",
+            modelClass: "premium",
+            generatedAt: "2026-04-09T00:00:00.000Z",
+            recommendedDimensions: [],
+            businessArchitectureNarrative: ["provider supplied business architecture"],
+            technicalArchitectureNarrative: ["provider supplied technical architecture"],
+            coreBusinessChains: [],
+            keyBusinessObjects: ["Checkout"],
+            decisionHypotheses: [],
+            unknowns: ["provider supplied deeper question"],
+            contradictions: [],
+            claims: [],
+            promptPreview: ["external contract response"],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const second = await runAnalyzeCommand({ cwd, repos: ["repo-a"] });
+
+    expect(second.runId).not.toBe(first.runId);
+    expect(second.status).toBe("completed");
+    expect(second.phases.find((phase) => phase.name === "ai-analysis")?.details).toContain("source=external-contract");
+    const appliedAnalysis = JSON.parse(
+      await import("node:fs/promises").then(({ readFile }) =>
+        readFile(join(cwd, ".bbg", "knowledge", "workspace", "ai-analysis.json"), "utf8"),
+      ),
+    ) as { analysis: { unknowns: string[]; promptPreview: string[] } };
+    expect(appliedAnalysis.analysis.unknowns).toEqual(["provider supplied deeper question"]);
+    expect(appliedAnalysis.analysis.promptPreview).toEqual(["external contract response"]);
+  });
+
   it("derives a focused analyze summary from repo signals", async () => {
     const cwd = await makeTempDir();
     await seedWorkspace(cwd);
@@ -399,6 +556,34 @@ describe("analyze command", () => {
       expect.arrayContaining([expect.stringContaining("Matched focus tokens against repo descriptions")]),
     );
     expect(result.phases.some((phase) => phase.name === "focus-analysis" && phase.status === "completed")).toBe(true);
+  });
+
+  it("derives focused analysis from Chinese business queries with generic semantic expansion", async () => {
+    const cwd = await makeTempDir();
+    await seedWorkspace(cwd);
+    await writeTextFile(
+      join(cwd, "repo-a", "src", "api", "after-sale.ts"),
+      [
+        "export const createAfterSaleRefund = () => request({ method: 'post', url: '/api/after-sale/refund' });",
+        "export const getReturnTickets = () => request({ method: 'get', url: '/api/returns/tickets' });",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runAnalyzeCommand({ cwd, repos: ["repo-a"], focus: "售后流程分析" });
+
+    expect(result.focus?.query).toBe("售后流程分析");
+    expect(result.focus?.intent).toBe("business-chain");
+    expect(result.focus?.matchedRepos).toEqual(["repo-a"]);
+    expect(result.focus?.matchedSignals).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("/api/after-sale/refund"),
+        expect.stringMatching(/refund|return/i),
+      ]),
+    );
+    expect(result.focus?.matchedEntities).toEqual(expect.arrayContaining(["售后"]));
+    expect(result.focus?.semanticExpansions).toEqual(expect.arrayContaining(["after sale", "refund", "return"]));
+    expect(result.focus?.rationale.join(" ")).not.toContain("did not contain enough searchable tokens");
   });
 
   it("renders analyze result docs in Chinese when documentationLanguage is zh-CN", async () => {

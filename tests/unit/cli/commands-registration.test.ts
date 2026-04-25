@@ -18,6 +18,7 @@ const commanderState = vi.hoisted(() => {
       description: vi.fn(() => builder),
       option: vi.fn(() => builder),
       requiredOption: vi.fn(() => builder),
+      hideHelp: vi.fn(() => builder),
       command: vi.fn(() => createCommandBuilder()),
       action: vi.fn(() => builder),
     };
@@ -120,9 +121,9 @@ describe("cli command registration", () => {
     expect(latestInstance).toBeDefined();
     expect(latestInstance?.command.mock.calls.map(([name]) => name)).toEqual([
       "init",
-      "add-repo",
-      "start [task...]",
-      "resume <taskId>",
+      "add-repo-agent [source]",
+      "start-agent [task...]",
+      "resume-agent <taskId>",
       "status",
       "doctor",
       "sync",
@@ -133,8 +134,8 @@ describe("cli command registration", () => {
       "task-env",
       "doc-garden",
       "observe",
-      "workflow",
-      "hermes",
+      "workflow-agent",
+      "hermes-agent",
       "loop-start",
       "loop-status",
       "quality-gate",
@@ -144,12 +145,12 @@ describe("cli command registration", () => {
       "sessions",
       "eval",
       "harness-audit",
-      "model-route [task...]",
-      "task-start [requirement...]",
-      "analyze [focus...]",
-      "analyze-repo <repo>",
-      "deliver",
-      "cross-audit",
+      "model-route-agent [task...]",
+      "task-start-agent [requirement...]",
+      "analyze-agent [focus...]",
+      "analyze-repo-agent <repo>",
+      "deliver-agent",
+      "cross-audit-agent",
     ]);
   });
 

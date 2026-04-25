@@ -247,8 +247,36 @@ describe("add-repo command", () => {
     ) as { analyzeStatus: string; workspaceFusionStatus: string };
     expect(registration).toEqual(
       expect.objectContaining({
-        analyzeStatus: "completed",
-        workspaceFusionStatus: "completed",
+        analyzeStatus: "pending",
+        workspaceFusionStatus: "pending",
+      }),
+    );
+  });
+
+  it("supports AI non-interactive registration with inferred defaults", async () => {
+    const cwd = await makeTempDir();
+    await writeSeededConfig(cwd);
+
+    const result = await runAddRepo({
+      cwd,
+      url: "https://example.com/new-repo.git",
+      branch: "main",
+      yes: true,
+    });
+
+    expect(result).toEqual({ addedRepoName: "new-repo" });
+    expect(promptState.promptConfirm).not.toHaveBeenCalled();
+    expect(promptState.promptSelect).not.toHaveBeenCalled();
+    expect(promptState.promptInput).not.toHaveBeenCalled();
+
+    const config = JSON.parse(await readFile(join(cwd, ".bbg", "config.json"), "utf8")) as {
+      repos: Array<{ name: string; type: string; description: string }>;
+    };
+    expect(config.repos[1]).toEqual(
+      expect.objectContaining({
+        name: "new-repo",
+        type: "frontend-web",
+        description: "new-repo frontend-web repository (typescript/react)",
       }),
     );
   });

@@ -19,8 +19,8 @@ Harness assets define how agents operate in the repository:
 
 - `AGENTS.md`
 - `RULES.md`
-- `rules/`
-- `skills/`
+- `.bbg/harness/rules/`
+- `.bbg/harness/skills/`
 - `.bbg/context/`
 - `.bbg/policy/`
 - tool adapters such as `CLAUDE.md`, `.codex/AGENTS.md`, `.cursor/rules/`, `.gemini/`, `.opencode/`
@@ -36,8 +36,8 @@ Harness responsibilities:
 
 Hermes assets define how the project learns from work:
 
-- `commands/hermes-*.md`
-- `skills/hermes-*/`
+- `.bbg/harness/commands/hermes-*.md`
+- `.bbg/harness/skills/hermes-*/`
 - `.bbg/knowledge/`
 - local or central Hermes runtime records
 
@@ -50,45 +50,41 @@ Hermes responsibilities:
 
 ## Canonical Workflow
 
-For day-to-day engineering, start with repo workflows:
+For day-to-day engineering, start with user-facing workflow skills:
 
-- `bbg workflow plan`
-- `bbg workflow review`
-- `bbg workflow tdd`
-- `bbg workflow security`
+- `.bbg/harness/skills/start/SKILL.md`
+- `.bbg/harness/skills/resume/SKILL.md`
+- `.bbg/harness/skills/analyze/SKILL.md`
+- `.bbg/harness/skills/add-repo/SKILL.md`
+- `.bbg/harness/skills/deliver/SKILL.md`
 
-Tool-specific prompts should be shortcuts to these workflows, not separate sources of truth.
+Internal skills such as workflow routing, task intake, model routing, Hermes, and cross-audit are invoked by the user-facing skills when needed. Tool-specific prompts should be shortcuts to the user-facing skills, not separate sources of truth.
 
 ## Hermes Usage Model
 
 Hermes should not run automatically for every task.
 
-- workflow commands may recommend Hermes follow-up
+- workflow skills may recommend Hermes follow-up
 - knowledge actions stay explicit and auditable
 - promotion back into canonical assets requires separate review
 
-Typical Hermes commands:
+Typical Hermes skill actions:
 
-- `bbg hermes query`
-- `bbg hermes distill`
-- `bbg hermes draft-skill`
-- `bbg hermes draft-rule`
-- `bbg hermes verify`
-- `bbg hermes promote`
+- query
+- distill
+- draft-skill
+- draft-rule
+- verify
+- promote
 
 ## Recommendation Triggers
 
 Common workflow-to-Hermes handoffs:
 
-- `bbg workflow plan`
-  - recommend `bbg hermes query` when similar tasks or rollout decisions may already exist
-- `bbg workflow review`
-  - recommend `bbg hermes distill` when findings reveal a reusable fix pattern
-  - recommend `bbg hermes draft-skill` when the pattern should become a reusable workflow
-- `bbg workflow tdd`
-  - recommend `bbg hermes draft-skill` when the test-and-fix loop is reusable
-- `bbg workflow security`
-  - recommend `bbg hermes draft-rule` when repeated findings imply a durable policy boundary
+- planning work recommends Hermes query when similar tasks or rollout decisions may already exist
+- review work recommends Hermes distill when findings reveal a reusable fix pattern
+- reusable workflow patterns recommend Hermes draft-skill
+- repeated security findings recommend Hermes draft-rule
 
 ## Adapter Design
 

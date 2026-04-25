@@ -7,14 +7,16 @@ Use the repo-level canonical governance files as the primary source of truth:
 
 - Read `AGENTS.md`
 - Read `RULES.md`
-- Use `rules/`, `skills/`, `.bbg/context/`, and `.bbg/policy/`
-- Hermes workflows live in `commands/hermes-*.md` and `skills/hermes-*/`
+- Use `.bbg/harness/rules/`, `.bbg/harness/skills/`, `.bbg/context/`, and `.bbg/policy/`
+- Hermes workflows live in `.bbg/harness/commands/hermes-*.md` and `.bbg/harness/skills/hermes-*/`
 
 Prefer the primary repo entrypoints over tool-specific prompts:
 
-- `bbg analyze`
-- `bbg start "<task>"`
-- `bbg resume <task-id>`
+- Analyze Skill: `.bbg/harness/skills/analyze/SKILL.md`
+- Add Repo Skill: `.bbg/harness/skills/add-repo/SKILL.md`
+- Start Skill: `.bbg/harness/skills/start/SKILL.md`
+- Resume Skill: `.bbg/harness/skills/resume/SKILL.md`
+- Deliver Skill: `.bbg/harness/skills/deliver/SKILL.md`
 - `bbg status`
 
 When continuing a task, prefer structured runtime state in this order:
@@ -42,5 +44,5 @@ If Claude was launched by `bbg`, use these environment variables when present:
 - `BBG_AUTONOMY_ESCALATED`
 - `BBG_AUTONOMY_ESCALATION_REASON`
 
-If a Claude slash command is unavailable, follow the matching canonical command doc in `commands/`.
+If a Claude slash command is unavailable, follow the matching canonical command doc in `.bbg/harness/commands/`.
 <!-- BBG:END MANAGED -->

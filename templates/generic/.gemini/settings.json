@@ -1,8 +1,8 @@
 {
   "instructions": ["AGENTS.md", "RULES.md", ".bbg/context/repo-map.json", ".bbg/policy/decisions.json"],
   "context": {
-    "commandsDir": "commands",
-    "skillsDir": "skills",
-    "rulesDir": "rules"
+    "commandsDir": ".bbg/harness/commands",
+    "skillsDir": ".bbg/harness/skills",
+    "rulesDir": ".bbg/harness/rules"
   }
 }

@@ -2,11 +2,13 @@
 
 ## Description
 
-Generate a client-facing implementation package after task completion and audits. Includes business-friendly summary, implementation plan, optional SVG diagrams, and effort-hours report.
+Use the Deliver Skill to generate a client-facing implementation package after task completion and audits. Do not ask the user to run a public `bbg deliver` CLI command.
 
 ## Usage
 
 ```
+
+The skill may call `bbg deliver-agent` internally for deterministic report scaffolding.
 /deliver
 /deliver --task TASK-2026-04-09-001
 /deliver --spec docs/specs/2026/04/notification-system.md
@@ -55,5 +57,5 @@ When used at workflow end, prompt user:
 
 ## Related
 
-- **Skills**: [client-delivery](../skills/client-delivery/SKILL.md), [wiki-compilation](../skills/wiki-compilation/SKILL.md)
+- **Skills**: [deliver](../skills/deliver/SKILL.md), [client-delivery](../skills/client-delivery/SKILL.md), [wiki-compilation](../skills/wiki-compilation/SKILL.md)
 - **Commands**: [/task-start](./task-start.md), [/workflow-status](./workflow-status.md)

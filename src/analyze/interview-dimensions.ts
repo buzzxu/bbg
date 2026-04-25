@@ -36,7 +36,7 @@ export function deriveSocraticInterviewDimensions(input: {
   ];
 
   const hasTransactionSignals = input.evidence.some((entry) =>
-    /(payment|order|checkout|transaction|refund)/i.test(entry.summary),
+    /(transaction|consistency|state|settlement|ledger|commit|rollback|idempotency)/i.test(entry.summary),
   );
   const hasTenantSignals = input.evidence.some((entry) => /(tenant|rbac|permission|auth)/i.test(entry.summary));
   const hasWorkflowSignals = input.evidence.some((entry) => /(workflow|approval|state|status)/i.test(entry.summary));
@@ -50,7 +50,9 @@ export function deriveSocraticInterviewDimensions(input: {
       weight: 0.15,
       score: 0.34,
       triggeredBy: input.evidence
-        .filter((entry) => /(payment|order|checkout|transaction|refund)/i.test(entry.summary))
+        .filter((entry) =>
+          /(transaction|consistency|state|settlement|ledger|commit|rollback|idempotency)/i.test(entry.summary),
+        )
         .slice(0, 4)
         .map((entry) => entry.id),
     });

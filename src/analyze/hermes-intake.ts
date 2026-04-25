@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { readIfExists, writeTextFile } from "../utils/fs.js";
-import type { AnalyzeKnowledgeItem, AnalyzeKnowledgeSnapshot } from "./types.js";
+import type { AnalyzeEvidenceItem, AnalyzeKnowledgeItem, AnalyzeKnowledgeSnapshot } from "./types.js";
 
 interface AnalyzeHermesArtifactRecord {
   runId: string;
@@ -21,6 +21,7 @@ interface AnalyzeHermesCandidateRecord {
   recommendedTarget: "wiki" | "process" | "rule" | "skill" | "report";
   changeKind: string;
   evidenceRefs: string[];
+  codeRefs: string[];
   createdAt: string;
 }
 
@@ -66,6 +67,14 @@ function shouldCreateCandidate(input: { item: AnalyzeKnowledgeItem; changeKind: 
     "risk-item",
     "analysis-dimension",
   ].includes(input.item.kind);
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
+}
+
+function codeRefToken(ref: AnalyzeEvidenceItem["codeRefs"][number]): string {
+  return `${ref.repo}:${ref.file}:${ref.lineRange[0]}-${ref.lineRange[1]}${ref.symbolName ? `#${ref.symbolName}` : ""}`;
 }
 
 export async function writeAnalyzeHermesIntake(input: {
@@ -122,6 +131,18 @@ export async function writeAnalyzeHermesIntake(input: {
   const knowledgeItems = parseJson<{ items: AnalyzeKnowledgeItem[] }>(await readIfExists(knowledgeItemsPath), {
     items: [],
   }).items;
+  const evidenceItems = parseJson<{ evidence: AnalyzeEvidenceItem[] }>(
+    await readIfExists(join(input.cwd, snapshot.paths.evidenceIndex)),
+    { evidence: [] },
+  ).evidence;
+  const evidenceByKnowledgeId = new Map<string, AnalyzeEvidenceItem[]>();
+  for (const evidence of evidenceItems) {
+    for (const knowledgeId of evidence.relatedKnowledgeIds) {
+      const current = evidenceByKnowledgeId.get(knowledgeId) ?? [];
+      current.push(evidence);
+      evidenceByKnowledgeId.set(knowledgeId, current);
+    }
+  }
   const runDiffChanges = parseJson<{ changes: Array<{ knowledgeItemId: string; changeKind: string }> }>(
     await readIfExists(runDiffPath),
     { changes: [] },
@@ -141,6 +162,7 @@ export async function writeAnalyzeHermesIntake(input: {
     if (!candidateById.has(candidateId)) {
       candidatesAdded += 1;
     }
+    const relatedEvidence = evidenceByKnowledgeId.get(item.id) ?? [];
     candidateById.set(candidateId, {
       id: candidateId,
       runId: snapshot.runId,
@@ -150,7 +172,15 @@ export async function writeAnalyzeHermesIntake(input: {
       confidence: item.confidence,
       recommendedTarget: recommendedTarget(item.kind),
       changeKind,
-      evidenceRefs: item.provenance.map((entry) => entry.ref),
+      evidenceRefs: unique([
+        ...item.provenance.map((entry) => entry.ref),
+        ...relatedEvidence.map((entry) => entry.id),
+        ...relatedEvidence.flatMap((entry) => entry.sourceRefs),
+      ]).slice(0, 12),
+      codeRefs: unique([
+        ...item.provenance.flatMap((entry) => entry.codeRefs.map(codeRefToken)),
+        ...relatedEvidence.flatMap((entry) => entry.codeRefs.map(codeRefToken)),
+      ]).slice(0, 12),
       createdAt: now,
     });
   }
